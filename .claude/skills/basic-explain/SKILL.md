@@ -1,6 +1,6 @@
 ---
 name: basic-explain
-description: 코드를 처음 보는 사람을 위해 프로젝트를 개발 지식 없이 이해할 수 있는 3단계 탭 HTML 가이드(docs/basic_guide.html)로 만들고 브라우저로 띄운다. "프로젝트 설명해줘", "처음 보는 코드 이해", "basic-explain" 같은 요청에 사용한다.
+description: 코드를 처음 보는 사람을 위해 프로젝트를 개발 지식 없이 이해할 수 있는 3단계 탭 HTML 가이드(docs/understand/정혜미/basic_guide.html)로 만들고 브라우저로 띄운다. "프로젝트 설명해줘", "처음 보는 코드 이해", "basic-explain" 같은 요청에 사용한다.
 ---
 
 # basic-explain
@@ -18,11 +18,11 @@ description: 코드를 처음 보는 사람을 위해 프로젝트를 개발 지
    - 빌드 파일, 진입점, 핵심 도메인 로직과 규칙, 데이터 흐름
    - 테스트 코드(규칙을 가장 정확하게 보여 준다)
    - 숫자와 규칙은 **코드에서 확인한 값만** 쓴다. 확인하지 못한 것은 쓰지 않는다.
-2. **`docs/basic_guide.html` 작성.** 이미 있으면 먼저 읽고 구조와 스타일을 이어받아 갱신한다. 폴더가 없으면 만든다.
+2. **`docs/understand/정혜미/basic_guide.html` 작성.** 이미 있으면 먼저 읽고 구조와 스타일을 이어받아 갱신한다. 폴더가 없으면 만든다.
 3. **브라우저로 연다.** 파일을 다 쓴 뒤 기본 브라우저로 띄운다.
-   - Windows: `Start-Process docs/basic_guide.html` (PowerShell) 또는 `start "" docs/basic_guide.html`
-   - macOS: `open docs/basic_guide.html`
-   - Linux: `xdg-open docs/basic_guide.html`
+   - Windows: `Start-Process docs/understand/정혜미/basic_guide.html` (PowerShell) 또는 `start "" docs/understand/정혜미/basic_guide.html`
+   - macOS: `open docs/understand/정혜미/basic_guide.html`
+   - Linux: `xdg-open docs/understand/정혜미/basic_guide.html`
 4. **보고.** 만든 파일 경로, 탭 3개의 제목, 인터랙티브 기능 목록, 확인하지 못한 부분(있다면)을 짧게 알린다. 브라우저에서 직접 동작을 확인하지 못했다면 그렇게 말한다.
 
 ## 문서 규칙
@@ -44,9 +44,9 @@ description: 코드를 처음 보는 사람을 위해 프로젝트를 개발 지
 **금지**
 - 코드 용어(클래스, 함수, 엔티티, API, 트랜잭션, 낙관적 락 등)와 파일·패키지 이름을 본문에 쓰지 않는다. 필요한 개념은 일상어로 풀어 쓴다.
 - 코드에서 확인하지 못한 숫자·규칙·계산 결과를 지어내지 않는다.
-- 이 스킬은 `docs/basic_guide.html` 외의 소스 코드를 수정하지 않는다.
+- 이 스킬은 `docs/understand/정혜미/basic_guide.html` 외의 소스 코드를 수정하지 않는다.
 
 ## 완료 기준
-- `docs/basic_guide.html`이 존재하고 탭이 정확히 3개이며, 각 탭에 인터랙티브 요소가 있다.
+- `docs/understand/정혜미/basic_guide.html`이 존재하고 탭이 정확히 3개이며, 각 탭에 인터랙티브 요소가 있다.
 - 본문에 개발 용어가 없다.
 - 브라우저로 열었다.
