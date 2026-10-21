@@ -38,3 +38,9 @@ out/
 
 ### H2 file database ###
 data/
+
+### Understand-Anything (임시 파일은 제외, 그래프만 공유) ###
+.ua/intermediate/
+.ua/tmp/
+.ua/.trash-*/
+.ua/*.log

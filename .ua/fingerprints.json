@@ -1,0 +1,3458 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "712ec6f3cf128187ec6565045b9826ef1a421ef5",
+  "generatedAt": "2026-10-21T01:35:28.854Z",
+  "files": {
+    ".claude/settings.json": {
+      "filePath": ".claude/settings.json",
+      "contentHash": "43fd9292d8554aea3381e56d82032711f710bf8de2cec4c06ef2966351c70934",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 6,
+      "hasStructuralAnalysis": false
+    },
+    ".gitattributes": {
+      "filePath": ".gitattributes",
+      "contentHash": "fe495e43270d435b102b52732f83383357ac97d0633e8644b4b41a65bb03a66f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": false
+    },
+    ".ua/config.json": {
+      "filePath": ".ua/config.json",
+      "contentHash": "c896144160a2ef6883f6814647cc53219b7adb0b4a76219b7ef47571d72ce4ec",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    },
+    "CLAUDE.md": {
+      "filePath": "CLAUDE.md",
+      "contentHash": "41cc142567f439230425db75359f7a21ef7b26512237ce44e73eecd80b0552e0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": false
+    },
+    "build.gradle.kts": {
+      "filePath": "build.gradle.kts",
+      "contentHash": "6f7bf7c51dcd2dd6e5dec6b28347ab015e32d12c294deb4f2b65031905b6f067",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 34,
+      "hasStructuralAnalysis": true
+    },
+    "docs/basic_guide.html": {
+      "filePath": "docs/basic_guide.html",
+      "contentHash": "8eebef954b07249ccea2a12230e9d744c8d370ea3cd3f2414f1328142deafeff",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 398,
+      "hasStructuralAnalysis": false
+    },
+    "gradle/wrapper/gradle-wrapper.jar": {
+      "filePath": "gradle/wrapper/gradle-wrapper.jar",
+      "contentHash": "ae35f7b530c30e3395c1788ec61f7c41a3a3a4555d55d33864c85075bc5ff8e9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 148,
+      "hasStructuralAnalysis": false
+    },
+    "gradle/wrapper/gradle-wrapper.properties": {
+      "filePath": "gradle/wrapper/gradle-wrapper.properties",
+      "contentHash": "52d6d9b23142f45a521d362aa521d93d26f812f0fe7c28f17bccc46b9fe32adf",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": false
+    },
+    "gradlew": {
+      "filePath": "gradlew",
+      "contentHash": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 249,
+      "hasStructuralAnalysis": false
+    },
+    "gradlew.bat": {
+      "filePath": "gradlew.bat",
+      "contentHash": "f17917f8dbe61182b149273ee78090fec1197442c3f38276af907bfa5190db16",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 113,
+      "hasStructuralAnalysis": false
+    },
+    "settings.gradle.kts": {
+      "filePath": "settings.gradle.kts",
+      "contentHash": "8d69817d12086d2ff48c2fde27fa226512145a3370439d302aaa43266992b29f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/DemoApplication.java": {
+      "filePath": "src/main/java/com/example/demo/DemoApplication.java",
+      "contentHash": "854247284ed7fe4b30ca8cc7485e8ee51e0266e0f47f9661ca94393396defcd0",
+      "functions": [
+        {
+          "name": "main",
+          "params": [
+            "args"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "DemoApplication",
+          "methods": [
+            "main"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.springframework.boot.SpringApplication",
+          "specifiers": [
+            "SpringApplication"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.autoconfigure.SpringBootApplication",
+          "specifiers": [
+            "SpringBootApplication"
+          ]
+        }
+      ],
+      "exports": [
+        "main",
+        "DemoApplication"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/config/DataInitializer.java": {
+      "filePath": "src/main/java/com/example/demo/config/DataInitializer.java",
+      "contentHash": "c4abeedca3b912c65cd2bc05046318fc0907899ea0e94a48b89c746fbe587eec",
+      "functions": [
+        {
+          "name": "DataInitializer",
+          "params": [
+            "service"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "run",
+          "params": [
+            "args"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "DataInitializer",
+          "methods": [
+            "DataInitializer",
+            "run"
+          ],
+          "properties": [
+            "service"
+          ],
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.service.BatteryService",
+          "specifiers": [
+            "BatteryService"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.ApplicationArguments",
+          "specifiers": [
+            "ApplicationArguments"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.ApplicationRunner",
+          "specifiers": [
+            "ApplicationRunner"
+          ]
+        },
+        {
+          "source": "org.springframework.stereotype.Component",
+          "specifiers": [
+            "Component"
+          ]
+        }
+      ],
+      "exports": [
+        "DataInitializer",
+        "run",
+        "DataInitializer"
+      ],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/config/JpaConfig.java": {
+      "filePath": "src/main/java/com/example/demo/config/JpaConfig.java",
+      "contentHash": "9840aec159f33bde6acb3d4d2329b37bb508e9bdc57691830c02e48f7ff8e66f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "JpaConfig",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.springframework.context.annotation.Configuration",
+          "specifiers": [
+            "Configuration"
+          ]
+        },
+        {
+          "source": "org.springframework.data.jpa.repository.config.EnableJpaRepositories",
+          "specifiers": [
+            "EnableJpaRepositories"
+          ]
+        }
+      ],
+      "exports": [
+        "JpaConfig"
+      ],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/config/LoginInterceptor.java": {
+      "filePath": "src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "contentHash": "40d479c791fc455df098af2956218a49e3f680cf076a8552eefb59249c31a79d",
+      "functions": [
+        {
+          "name": "preHandle",
+          "params": [
+            "request",
+            "response",
+            "handler"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "classes": [
+        {
+          "name": "LoginInterceptor",
+          "methods": [
+            "preHandle"
+          ],
+          "properties": [
+            "SESSION_USER"
+          ],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.servlet.http.HttpServletRequest",
+          "specifiers": [
+            "HttpServletRequest"
+          ]
+        },
+        {
+          "source": "jakarta.servlet.http.HttpServletResponse",
+          "specifiers": [
+            "HttpServletResponse"
+          ]
+        },
+        {
+          "source": "jakarta.servlet.http.HttpSession",
+          "specifiers": [
+            "HttpSession"
+          ]
+        },
+        {
+          "source": "org.springframework.web.servlet.HandlerInterceptor",
+          "specifiers": [
+            "HandlerInterceptor"
+          ]
+        }
+      ],
+      "exports": [
+        "SESSION_USER",
+        "preHandle",
+        "LoginInterceptor"
+      ],
+      "totalLines": 28,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/config/WebConfig.java": {
+      "filePath": "src/main/java/com/example/demo/config/WebConfig.java",
+      "contentHash": "066a90ebf6ba33d701f16d6e3b0b8f125eaeabfa24e3e239b2870d75224a098f",
+      "functions": [
+        {
+          "name": "addInterceptors",
+          "params": [
+            "registry"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [
+        {
+          "name": "WebConfig",
+          "methods": [
+            "addInterceptors"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.springframework.context.annotation.Configuration",
+          "specifiers": [
+            "Configuration"
+          ]
+        },
+        {
+          "source": "org.springframework.web.servlet.config.annotation.InterceptorRegistry",
+          "specifiers": [
+            "InterceptorRegistry"
+          ]
+        },
+        {
+          "source": "org.springframework.web.servlet.config.annotation.WebMvcConfigurer",
+          "specifiers": [
+            "WebMvcConfigurer"
+          ]
+        }
+      ],
+      "exports": [
+        "addInterceptors",
+        "WebConfig"
+      ],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/controller/AppController.java": {
+      "filePath": "src/main/java/com/example/demo/controller/AppController.java",
+      "contentHash": "cab0aa2b4b0350986ac5e24c0dbe86bf42b00e87caf86fcc516aee53b4a76be6",
+      "functions": [
+        {
+          "name": "AppController",
+          "params": [
+            "service"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "loginUser",
+          "params": [
+            "session"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "home",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "loginForm",
+          "params": [
+            "session"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "login",
+          "params": [
+            "username",
+            "password",
+            "session",
+            "model"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "logout",
+          "params": [
+            "session"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "list",
+          "params": [
+            "status",
+            "model"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "newOrder",
+          "params": [
+            "model"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "detail",
+          "params": [
+            "id",
+            "model"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "changeStatus",
+          "params": [
+            "id",
+            "status",
+            "version",
+            "session",
+            "redirect"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "master",
+          "params": [
+            "model"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "saveMaster",
+          "params": [
+            "form",
+            "model",
+            "redirect"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "toForm",
+          "params": [
+            "m"
+          ],
+          "returnType": "Map<String, String>",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "masterJson",
+          "params": [],
+          "returnType": "Master",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "simulate",
+          "params": [
+            "request"
+          ],
+          "returnType": "ResponseEntity<?>",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "confirm",
+          "params": [
+            "request",
+            "session"
+          ],
+          "returnType": "ResponseEntity<?>",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "apiError",
+          "params": [
+            "e"
+          ],
+          "returnType": "ResponseEntity<Map<String, Object>>",
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "AppController",
+          "methods": [
+            "AppController",
+            "loginUser",
+            "home",
+            "loginForm",
+            "login",
+            "logout",
+            "list",
+            "newOrder",
+            "detail",
+            "changeStatus",
+            "master",
+            "saveMaster",
+            "toForm",
+            "masterJson",
+            "simulate",
+            "confirm",
+            "apiError"
+          ],
+          "properties": [
+            "ACCOUNT",
+            "service"
+          ],
+          "exported": true,
+          "lineCount": 172
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.config.LoginInterceptor",
+          "specifiers": [
+            "LoginInterceptor"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Order",
+          "specifiers": [
+            "Order"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatus",
+          "specifiers": [
+            "OrderStatus"
+          ]
+        },
+        {
+          "source": "com.example.demo.service.BatteryService",
+          "specifiers": [
+            "BatteryService"
+          ]
+        },
+        {
+          "source": "com.example.demo.service.BusinessException",
+          "specifiers": [
+            "BusinessException"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Master",
+          "specifiers": [
+            "Master"
+          ]
+        },
+        {
+          "source": "jakarta.servlet.http.HttpSession",
+          "specifiers": [
+            "HttpSession"
+          ]
+        },
+        {
+          "source": "java.math.BigDecimal",
+          "specifiers": [
+            "BigDecimal"
+          ]
+        },
+        {
+          "source": "java.util.HashMap",
+          "specifiers": [
+            "HashMap"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        },
+        {
+          "source": "org.springframework.http.HttpStatus",
+          "specifiers": [
+            "HttpStatus"
+          ]
+        },
+        {
+          "source": "org.springframework.http.ResponseEntity",
+          "specifiers": [
+            "ResponseEntity"
+          ]
+        },
+        {
+          "source": "org.springframework.stereotype.Controller",
+          "specifiers": [
+            "Controller"
+          ]
+        },
+        {
+          "source": "org.springframework.ui.Model",
+          "specifiers": [
+            "Model"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.GetMapping",
+          "specifiers": [
+            "GetMapping"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.ModelAttribute",
+          "specifiers": [
+            "ModelAttribute"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.PathVariable",
+          "specifiers": [
+            "PathVariable"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.PostMapping",
+          "specifiers": [
+            "PostMapping"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.RequestBody",
+          "specifiers": [
+            "RequestBody"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.RequestParam",
+          "specifiers": [
+            "RequestParam"
+          ]
+        },
+        {
+          "source": "org.springframework.web.bind.annotation.ResponseBody",
+          "specifiers": [
+            "ResponseBody"
+          ]
+        },
+        {
+          "source": "org.springframework.web.servlet.mvc.support.RedirectAttributes",
+          "specifiers": [
+            "RedirectAttributes"
+          ]
+        }
+      ],
+      "exports": [
+        "AppController",
+        "loginUser",
+        "home",
+        "loginForm",
+        "login",
+        "logout",
+        "list",
+        "newOrder",
+        "detail",
+        "changeStatus",
+        "master",
+        "saveMaster",
+        "masterJson",
+        "simulate",
+        "confirm",
+        "AppController"
+      ],
+      "totalLines": 199,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/Country.java": {
+      "filePath": "src/main/java/com/example/demo/entity/Country.java",
+      "contentHash": "01bbff22fa58fa2a7c73aa7a61cf8c0c7eaed637a3699719e1d5d0ca94e57abb",
+      "functions": [
+        {
+          "name": "Country",
+          "params": [
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getLabel",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "isFactory",
+          "params": [],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "factories",
+          "params": [],
+          "returnType": "List<Country>",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Country",
+          "methods": [
+            "Country",
+            "getLabel",
+            "isFactory",
+            "factories"
+          ],
+          "properties": [
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 25
+        }
+      ],
+      "imports": [
+        {
+          "source": "java.util.Arrays",
+          "specifiers": [
+            "Arrays"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        }
+      ],
+      "exports": [
+        "getLabel",
+        "isFactory",
+        "factories",
+        "Country"
+      ],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/Factory.java": {
+      "filePath": "src/main/java/com/example/demo/entity/Factory.java",
+      "contentHash": "95dc59fca4d3db1d5c3b32cc9b542c3e2124d46dee2c5b2f497f2735bfdba106",
+      "functions": [
+        {
+          "name": "Factory",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "Factory",
+          "params": [
+            "country",
+            "maxDaily",
+            "stockLimit",
+            "unitCost"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "getCountry",
+          "params": [],
+          "returnType": "Country",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getMaxDaily",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setMaxDaily",
+          "params": [
+            "maxDaily"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getStockLimit",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setStockLimit",
+          "params": [
+            "stockLimit"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getUnitCost",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setUnitCost",
+          "params": [
+            "unitCost"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Factory",
+          "methods": [
+            "Factory",
+            "Factory",
+            "getCountry",
+            "getMaxDaily",
+            "setMaxDaily",
+            "getStockLimit",
+            "setStockLimit",
+            "getUnitCost",
+            "setUnitCost"
+          ],
+          "properties": [
+            "country",
+            "maxDaily",
+            "stockLimit",
+            "unitCost"
+          ],
+          "exported": true,
+          "lineCount": 58
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.persistence.Column",
+          "specifiers": [
+            "Column"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Entity",
+          "specifiers": [
+            "Entity"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.EnumType",
+          "specifiers": [
+            "EnumType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Enumerated",
+          "specifiers": [
+            "Enumerated"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Table",
+          "specifiers": [
+            "Table"
+          ]
+        }
+      ],
+      "exports": [
+        "Factory",
+        "getCountry",
+        "getMaxDaily",
+        "setMaxDaily",
+        "getStockLimit",
+        "setStockLimit",
+        "getUnitCost",
+        "setUnitCost",
+        "Factory"
+      ],
+      "totalLines": 68,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/Order.java": {
+      "filePath": "src/main/java/com/example/demo/entity/Order.java",
+      "contentHash": "2e097a41d087e42311521c706f291ee55bc3a4356880f68b2eba006aa323e7ec",
+      "functions": [
+        {
+          "name": "Order",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "Order",
+          "params": [
+            "confirmedAt",
+            "createdBy",
+            "totalK",
+            "routeType",
+            "routeLabel",
+            "totalDays",
+            "productionCost",
+            "shippingCost",
+            "totalCost",
+            "memo",
+            "planJson"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "getId",
+          "params": [],
+          "returnType": "Long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getConfirmedAt",
+          "params": [],
+          "returnType": "LocalDateTime",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getCreatedBy",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getTotalK",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getRouteType",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getRouteLabel",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getTotalDays",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getProductionCost",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getShippingCost",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getTotalCost",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getStatus",
+          "params": [],
+          "returnType": "OrderStatus",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setStatus",
+          "params": [
+            "status"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getMemo",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getPlanJson",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getVersion",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getTotalCostEok",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getProductionCostEok",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getShippingCostEok",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "eok",
+          "params": [
+            "won"
+          ],
+          "returnType": "String",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Order",
+          "methods": [
+            "Order",
+            "Order",
+            "getId",
+            "getConfirmedAt",
+            "getCreatedBy",
+            "getTotalK",
+            "getRouteType",
+            "getRouteLabel",
+            "getTotalDays",
+            "getProductionCost",
+            "getShippingCost",
+            "getTotalCost",
+            "getStatus",
+            "setStatus",
+            "getMemo",
+            "getPlanJson",
+            "getVersion",
+            "getTotalCostEok",
+            "getProductionCostEok",
+            "getShippingCostEok",
+            "eok"
+          ],
+          "properties": [
+            "id",
+            "confirmedAt",
+            "createdBy",
+            "totalK",
+            "routeType",
+            "routeLabel",
+            "totalDays",
+            "productionCost",
+            "shippingCost",
+            "totalCost",
+            "status",
+            "memo",
+            "planJson",
+            "version"
+          ],
+          "exported": true,
+          "lineCount": 140
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.persistence.Column",
+          "specifiers": [
+            "Column"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Entity",
+          "specifiers": [
+            "Entity"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.EnumType",
+          "specifiers": [
+            "EnumType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Enumerated",
+          "specifiers": [
+            "Enumerated"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GeneratedValue",
+          "specifiers": [
+            "GeneratedValue"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GenerationType",
+          "specifiers": [
+            "GenerationType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Lob",
+          "specifiers": [
+            "Lob"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Version",
+          "specifiers": [
+            "Version"
+          ]
+        },
+        {
+          "source": "java.time.LocalDateTime",
+          "specifiers": [
+            "LocalDateTime"
+          ]
+        }
+      ],
+      "exports": [
+        "Order",
+        "getId",
+        "getConfirmedAt",
+        "getCreatedBy",
+        "getTotalK",
+        "getRouteType",
+        "getRouteLabel",
+        "getTotalDays",
+        "getProductionCost",
+        "getShippingCost",
+        "getTotalCost",
+        "getStatus",
+        "setStatus",
+        "getMemo",
+        "getPlanJson",
+        "getVersion",
+        "getTotalCostEok",
+        "getProductionCostEok",
+        "getShippingCostEok",
+        "Order"
+      ],
+      "totalLines": 155,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/OrderStatus.java": {
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatus.java",
+      "contentHash": "f00837d56b72acfdb8008dee3dbd1a6d4b91e3af6fca76ed758ac42d00cafa08",
+      "functions": [
+        {
+          "name": "OrderStatus",
+          "params": [
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getLabel",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "next",
+          "params": [],
+          "returnType": "List<OrderStatus>",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "canChangeTo",
+          "params": [
+            "target"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderStatus",
+          "methods": [
+            "OrderStatus",
+            "getLabel",
+            "next",
+            "canChangeTo"
+          ],
+          "properties": [
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "imports": [
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        }
+      ],
+      "exports": [
+        "getLabel",
+        "next",
+        "canChangeTo",
+        "OrderStatus"
+      ],
+      "totalLines": 33,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/OrderStatusHistory.java": {
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "contentHash": "45ffb2db73c4fdba44c2a116058be417f2f6e4ae7720cb3657169d39998e0993",
+      "functions": [
+        {
+          "name": "OrderStatusHistory",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "OrderStatusHistory",
+          "params": [
+            "orderId",
+            "fromStatus",
+            "toStatus",
+            "changedBy",
+            "changedAt"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "getId",
+          "params": [],
+          "returnType": "Long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getOrderId",
+          "params": [],
+          "returnType": "Long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getFromStatus",
+          "params": [],
+          "returnType": "OrderStatus",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getToStatus",
+          "params": [],
+          "returnType": "OrderStatus",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getChangedBy",
+          "params": [],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getChangedAt",
+          "params": [],
+          "returnType": "LocalDateTime",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderStatusHistory",
+          "methods": [
+            "OrderStatusHistory",
+            "OrderStatusHistory",
+            "getId",
+            "getOrderId",
+            "getFromStatus",
+            "getToStatus",
+            "getChangedBy",
+            "getChangedAt"
+          ],
+          "properties": [
+            "id",
+            "orderId",
+            "fromStatus",
+            "toStatus",
+            "changedBy",
+            "changedAt"
+          ],
+          "exported": true,
+          "lineCount": 61
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.persistence.Column",
+          "specifiers": [
+            "Column"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Entity",
+          "specifiers": [
+            "Entity"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.EnumType",
+          "specifiers": [
+            "EnumType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Enumerated",
+          "specifiers": [
+            "Enumerated"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GeneratedValue",
+          "specifiers": [
+            "GeneratedValue"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GenerationType",
+          "specifiers": [
+            "GenerationType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "java.time.LocalDateTime",
+          "specifiers": [
+            "LocalDateTime"
+          ]
+        }
+      ],
+      "exports": [
+        "OrderStatusHistory",
+        "getId",
+        "getOrderId",
+        "getFromStatus",
+        "getToStatus",
+        "getChangedBy",
+        "getChangedAt",
+        "OrderStatusHistory"
+      ],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/Route.java": {
+      "filePath": "src/main/java/com/example/demo/entity/Route.java",
+      "contentHash": "e1aac0f842ad473107d903fb5f9989dccd74f505d58770726d9f5d00bb39a17a",
+      "functions": [
+        {
+          "name": "Route",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "Route",
+          "params": [
+            "fromCountry",
+            "toCountry",
+            "days"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "getId",
+          "params": [],
+          "returnType": "Long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getFromCountry",
+          "params": [],
+          "returnType": "Country",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getToCountry",
+          "params": [],
+          "returnType": "Country",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getDays",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setDays",
+          "params": [
+            "days"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Route",
+          "methods": [
+            "Route",
+            "Route",
+            "getId",
+            "getFromCountry",
+            "getToCountry",
+            "getDays",
+            "setDays"
+          ],
+          "properties": [
+            "id",
+            "fromCountry",
+            "toCountry",
+            "days"
+          ],
+          "exported": true,
+          "lineCount": 48
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.persistence.Column",
+          "specifiers": [
+            "Column"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Entity",
+          "specifiers": [
+            "Entity"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.EnumType",
+          "specifiers": [
+            "EnumType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Enumerated",
+          "specifiers": [
+            "Enumerated"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GeneratedValue",
+          "specifiers": [
+            "GeneratedValue"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.GenerationType",
+          "specifiers": [
+            "GenerationType"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.UniqueConstraint",
+          "specifiers": [
+            "UniqueConstraint"
+          ]
+        }
+      ],
+      "exports": [
+        "Route",
+        "getId",
+        "getFromCountry",
+        "getToCountry",
+        "getDays",
+        "setDays",
+        "Route"
+      ],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/entity/Setting.java": {
+      "filePath": "src/main/java/com/example/demo/entity/Setting.java",
+      "contentHash": "b782f05f7d867723b01446fd6e07f18fda7fb672aa7790d430ae904dcbbb5b31",
+      "functions": [
+        {
+          "name": "Setting",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "Setting",
+          "params": [
+            "shipCount",
+            "shipDailyCostWon"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "getShipCount",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setShipCount",
+          "params": [
+            "shipCount"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getShipDailyCostWon",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setShipDailyCostWon",
+          "params": [
+            "shipDailyCostWon"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getMasterVersion",
+          "params": [],
+          "returnType": "long",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "bumpMasterVersion",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "Setting",
+          "methods": [
+            "Setting",
+            "Setting",
+            "getShipCount",
+            "setShipCount",
+            "getShipDailyCostWon",
+            "setShipDailyCostWon",
+            "getMasterVersion",
+            "bumpMasterVersion"
+          ],
+          "properties": [
+            "SINGLETON_ID",
+            "id",
+            "shipCount",
+            "shipDailyCostWon",
+            "masterVersion",
+            "lockVersion"
+          ],
+          "exported": true,
+          "lineCount": 53
+        }
+      ],
+      "imports": [
+        {
+          "source": "jakarta.persistence.Entity",
+          "specifiers": [
+            "Entity"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Id",
+          "specifiers": [
+            "Id"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "jakarta.persistence.Version",
+          "specifiers": [
+            "Version"
+          ]
+        }
+      ],
+      "exports": [
+        "SINGLETON_ID",
+        "Setting",
+        "getShipCount",
+        "setShipCount",
+        "getShipDailyCostWon",
+        "setShipDailyCostWon",
+        "getMasterVersion",
+        "bumpMasterVersion",
+        "Setting"
+      ],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/repository/MasterRepositories.java": {
+      "filePath": "src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "contentHash": "021353b08520d05388373292f3b7cfe77e81c3df0e383d0602fcd70c574bc737",
+      "functions": [
+        {
+          "name": "MasterRepositories",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "classes": [
+        {
+          "name": "MasterRepositories",
+          "methods": [
+            "MasterRepositories"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Factory",
+          "specifiers": [
+            "Factory"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Route",
+          "specifiers": [
+            "Route"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Setting",
+          "specifiers": [
+            "Setting"
+          ]
+        },
+        {
+          "source": "org.springframework.data.jpa.repository.JpaRepository",
+          "specifiers": [
+            "JpaRepository"
+          ]
+        }
+      ],
+      "exports": [
+        "MasterRepositories"
+      ],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/repository/OrderRepositories.java": {
+      "filePath": "src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "contentHash": "10e5e765cdfdd3c041ac82a651b2cbdc8f5954c169caf8dcb23796ba4a3e45d4",
+      "functions": [
+        {
+          "name": "OrderRepositories",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderRepositories",
+          "methods": [
+            "OrderRepositories"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Order",
+          "specifiers": [
+            "Order"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatus",
+          "specifiers": [
+            "OrderStatus"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatusHistory",
+          "specifiers": [
+            "OrderStatusHistory"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "org.springframework.data.jpa.repository.JpaRepository",
+          "specifiers": [
+            "JpaRepository"
+          ]
+        }
+      ],
+      "exports": [
+        "OrderRepositories"
+      ],
+      "totalLines": 28,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/service/BatteryService.java": {
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "contentHash": "7ff641ae2ee4fc804e94a6647a245c4476619d75876f9c5b3444d04b3b090fa1",
+      "functions": [
+        {
+          "name": "BatteryService",
+          "params": [
+            "factories",
+            "routes",
+            "settings",
+            "orders",
+            "histories",
+            "json"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "initDefaults",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "currentMaster",
+          "params": [],
+          "returnType": "Master",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "routeKey",
+          "params": [
+            "a",
+            "b"
+          ],
+          "returnType": "String",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "updateMaster",
+          "params": [
+            "form"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 60
+        },
+        {
+          "name": "parseInt",
+          "params": [
+            "form",
+            "key",
+            "label",
+            "min",
+            "max",
+            "errors"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "simulate",
+          "params": [
+            "rawOrders"
+          ],
+          "returnType": "SimulationResult",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "validateOrders",
+          "params": [
+            "raw"
+          ],
+          "returnType": "Map<Country, Integer>",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "confirm",
+          "params": [
+            "requested",
+            "routeType",
+            "masterVersion",
+            "memo",
+            "user"
+          ],
+          "returnType": "Order",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "listOrders",
+          "params": [
+            "status"
+          ],
+          "returnType": "List<Order>",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "countByStatus",
+          "params": [],
+          "returnType": "Map<OrderStatus, Long>",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "getOrder",
+          "params": [
+            "id"
+          ],
+          "returnType": "Order",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "history",
+          "params": [
+            "orderId"
+          ],
+          "returnType": "List<OrderStatusHistory>",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "changeStatus",
+          "params": [
+            "id",
+            "target",
+            "expectedVersion",
+            "user"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "conflict",
+          "params": [],
+          "returnType": "BusinessException",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "BatteryService",
+          "methods": [
+            "BatteryService",
+            "initDefaults",
+            "currentMaster",
+            "routeKey",
+            "updateMaster",
+            "parseInt",
+            "simulate",
+            "validateOrders",
+            "confirm",
+            "listOrders",
+            "countByStatus",
+            "getOrder",
+            "history",
+            "changeStatus",
+            "conflict"
+          ],
+          "properties": [
+            "WON_PER_EOK",
+            "MAX_SHIPS",
+            "MAX_MEMO",
+            "factories",
+            "routes",
+            "settings",
+            "orders",
+            "histories",
+            "json"
+          ],
+          "exported": true,
+          "lineCount": 272
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Factory",
+          "specifiers": [
+            "Factory"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Order",
+          "specifiers": [
+            "Order"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatus",
+          "specifiers": [
+            "OrderStatus"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatusHistory",
+          "specifiers": [
+            "OrderStatusHistory"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Route",
+          "specifiers": [
+            "Route"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Setting",
+          "specifiers": [
+            "Setting"
+          ]
+        },
+        {
+          "source": "com.example.demo.repository.MasterRepositories.FactoryRepository",
+          "specifiers": [
+            "FactoryRepository"
+          ]
+        },
+        {
+          "source": "com.example.demo.repository.MasterRepositories.RouteRepository",
+          "specifiers": [
+            "RouteRepository"
+          ]
+        },
+        {
+          "source": "com.example.demo.repository.MasterRepositories.SettingRepository",
+          "specifiers": [
+            "SettingRepository"
+          ]
+        },
+        {
+          "source": "com.example.demo.repository.OrderRepositories.OrderRepository",
+          "specifiers": [
+            "OrderRepository"
+          ]
+        },
+        {
+          "source": "com.example.demo.repository.OrderRepositories.OrderStatusHistoryRepository",
+          "specifiers": [
+            "OrderStatusHistoryRepository"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Master",
+          "specifiers": [
+            "Master"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Plan",
+          "specifiers": [
+            "Plan"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Planner",
+          "specifiers": [
+            "Planner"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.StoredPlan",
+          "specifiers": [
+            "StoredPlan"
+          ]
+        },
+        {
+          "source": "java.math.BigDecimal",
+          "specifiers": [
+            "BigDecimal"
+          ]
+        },
+        {
+          "source": "java.time.LocalDateTime",
+          "specifiers": [
+            "LocalDateTime"
+          ]
+        },
+        {
+          "source": "java.util.ArrayList",
+          "specifiers": [
+            "ArrayList"
+          ]
+        },
+        {
+          "source": "java.util.Comparator",
+          "specifiers": [
+            "Comparator"
+          ]
+        },
+        {
+          "source": "java.util.EnumMap",
+          "specifiers": [
+            "EnumMap"
+          ]
+        },
+        {
+          "source": "java.util.HashMap",
+          "specifiers": [
+            "HashMap"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        },
+        {
+          "source": "org.springframework.orm.ObjectOptimisticLockingFailureException",
+          "specifiers": [
+            "ObjectOptimisticLockingFailureException"
+          ]
+        },
+        {
+          "source": "org.springframework.stereotype.Service",
+          "specifiers": [
+            "Service"
+          ]
+        },
+        {
+          "source": "org.springframework.transaction.annotation.Transactional",
+          "specifiers": [
+            "Transactional"
+          ]
+        },
+        {
+          "source": "tools.jackson.databind.ObjectMapper",
+          "specifiers": [
+            "ObjectMapper"
+          ]
+        }
+      ],
+      "exports": [
+        "WON_PER_EOK",
+        "BatteryService",
+        "initDefaults",
+        "currentMaster",
+        "routeKey",
+        "updateMaster",
+        "simulate",
+        "confirm",
+        "listOrders",
+        "countByStatus",
+        "getOrder",
+        "history",
+        "changeStatus",
+        "BatteryService"
+      ],
+      "totalLines": 304,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/service/BusinessException.java": {
+      "filePath": "src/main/java/com/example/demo/service/BusinessException.java",
+      "contentHash": "dbf1250888c9926c74086755baeabd3e40eb2600134610593aa017b4413cd9cf",
+      "functions": [
+        {
+          "name": "BusinessException",
+          "params": [
+            "message"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "BusinessException",
+          "params": [
+            "message",
+            "conflict"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "BusinessException",
+          "params": [
+            "messages"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "isConflict",
+          "params": [],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getMessages",
+          "params": [],
+          "returnType": "List<String>",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "BusinessException",
+          "methods": [
+            "BusinessException",
+            "BusinessException",
+            "BusinessException",
+            "isConflict",
+            "getMessages"
+          ],
+          "properties": [
+            "conflict",
+            "messages"
+          ],
+          "exported": true,
+          "lineCount": 29
+        }
+      ],
+      "imports": [
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        }
+      ],
+      "exports": [
+        "BusinessException",
+        "BusinessException",
+        "BusinessException",
+        "isConflict",
+        "getMessages",
+        "BusinessException"
+      ],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/simulation/Master.java": {
+      "filePath": "src/main/java/com/example/demo/simulation/Master.java",
+      "contentHash": "414f02ee7090ef0fc946984c2ed80d7cbc16c6d6f415ba899fda20e4bf3b3aba",
+      "functions": [
+        {
+          "name": "factory",
+          "params": [
+            "country"
+          ],
+          "returnType": "FactoryParam",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "days",
+          "params": [
+            "a",
+            "b"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [
+        {
+          "name": "Master",
+          "methods": [
+            "factory",
+            "days"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 25
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        }
+      ],
+      "exports": [
+        "factory",
+        "days",
+        "Master"
+      ],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/simulation/Plan.java": {
+      "filePath": "src/main/java/com/example/demo/simulation/Plan.java",
+      "contentHash": "1a5c90ad87b7681bf1393f61ea66bf929a00478f15d24d4e9f3f0d36cf4a4012",
+      "functions": [],
+      "classes": [
+        {
+          "name": "Plan",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        }
+      ],
+      "exports": [
+        "Plan"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/simulation/Planner.java": {
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "contentHash": "84ca4d48fd35c07f12f63bcd236ac8e82035b83ac29856055277df327913f7b1",
+      "functions": [
+        {
+          "name": "Planner",
+          "params": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "visits",
+          "params": [
+            "master",
+            "orders"
+          ],
+          "returnType": "Map<Country, Integer>",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "plan",
+          "params": [
+            "master",
+            "orders"
+          ],
+          "returnType": "List<Plan>",
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "amounts",
+          "params": [
+            "master",
+            "orders",
+            "active"
+          ],
+          "returnType": "Map<Country, int[]>",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "partitions",
+          "params": [
+            "items",
+            "maxGroups"
+          ],
+          "returnType": "List<List<List<Country>>>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "partition",
+          "params": [
+            "items",
+            "idx",
+            "cur",
+            "maxGroups",
+            "out"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "sortGroups",
+          "params": [
+            "master",
+            "groups"
+          ],
+          "returnType": "List<List<Country>>",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "tripStructures",
+          "params": [
+            "master",
+            "groups",
+            "amounts"
+          ],
+          "returnType": "List<List<List<List<Country>>>>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "combine",
+          "params": [
+            "options",
+            "idx",
+            "cur",
+            "out"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "groupStructures",
+          "params": [
+            "master",
+            "group",
+            "amounts"
+          ],
+          "returnType": "List<List<List<Country>>>",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "tripIndexes",
+          "params": [
+            "trips",
+            "visits",
+            "pattern"
+          ],
+          "returnType": "int[]",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "shortestOrder",
+          "params": [
+            "master",
+            "stops"
+          ],
+          "returnType": "List<Country>",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "loopDays",
+          "params": [
+            "master",
+            "order"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "permutations",
+          "params": [
+            "items"
+          ],
+          "returnType": "List<List<Country>>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "permute",
+          "params": [
+            "a",
+            "k",
+            "out"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "nearest",
+          "params": [
+            "master",
+            "orders",
+            "amounts",
+            "active",
+            "ships"
+          ],
+          "returnType": "Candidate",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "schedule",
+          "params": [
+            "master",
+            "orders",
+            "amounts",
+            "shipTrips"
+          ],
+          "returnType": "Candidate",
+          "exported": false,
+          "lineCount": 50
+        },
+        {
+          "name": "ceilDiv",
+          "params": [
+            "a",
+            "b"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "toPlan",
+          "params": [
+            "master",
+            "orders",
+            "type",
+            "label",
+            "cand"
+          ],
+          "returnType": "Plan",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "pickups",
+          "params": [
+            "cand",
+            "c"
+          ],
+          "returnType": "Map<Integer, Integer>",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "simulateFactory",
+          "params": [
+            "f",
+            "ordered",
+            "pickups",
+            "stock",
+            "production"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "visitedCountries",
+          "params": [
+            "plan"
+          ],
+          "returnType": "TreeSet<Country>",
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "classes": [
+        {
+          "name": "Planner",
+          "methods": [
+            "Planner",
+            "visits",
+            "plan",
+            "amounts",
+            "partitions",
+            "partition",
+            "sortGroups",
+            "tripStructures",
+            "combine",
+            "groupStructures",
+            "tripIndexes",
+            "shortestOrder",
+            "loopDays",
+            "permutations",
+            "permute",
+            "nearest",
+            "schedule",
+            "ceilDiv",
+            "toPlan",
+            "pickups",
+            "simulateFactory",
+            "visitedCountries"
+          ],
+          "properties": [
+            "COST",
+            "FAST",
+            "NEAR",
+            "MAX_TOTAL_K"
+          ],
+          "exported": true,
+          "lineCount": 393
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Master.FactoryParam",
+          "specifiers": [
+            "FactoryParam"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Plan.ShipPlan",
+          "specifiers": [
+            "ShipPlan"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Plan.Stop",
+          "specifiers": [
+            "Stop"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Plan.Trip",
+          "specifiers": [
+            "Trip"
+          ]
+        },
+        {
+          "source": "java.util.ArrayList",
+          "specifiers": [
+            "ArrayList"
+          ]
+        },
+        {
+          "source": "java.util.Comparator",
+          "specifiers": [
+            "Comparator"
+          ]
+        },
+        {
+          "source": "java.util.EnumMap",
+          "specifiers": [
+            "EnumMap"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        },
+        {
+          "source": "java.util.TreeSet",
+          "specifiers": [
+            "TreeSet"
+          ]
+        }
+      ],
+      "exports": [
+        "COST",
+        "FAST",
+        "NEAR",
+        "MAX_TOTAL_K",
+        "visits",
+        "plan",
+        "Planner"
+      ],
+      "totalLines": 420,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/java/com/example/demo/simulation/StoredPlan.java": {
+      "filePath": "src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "contentHash": "048464f52153dc8ecb5c5ce79ed56757724a8cdc0bc35bce63fb7dc7579163b9",
+      "functions": [],
+      "classes": [
+        {
+          "name": "StoredPlan",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        }
+      ],
+      "exports": [
+        "StoredPlan"
+      ],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/resources/application.properties": {
+      "filePath": "src/main/resources/application.properties",
+      "contentHash": "76cef0c46ab0a5cdf3fdcf7569e35c3c781824f7d94729cc1efc97fe6b4f2ea5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/static/css/app.css": {
+      "filePath": "src/main/resources/static/css/app.css",
+      "contentHash": "f6dab381bfb9248507fba0a950206371b621d0aa1759124604b070208878ec05",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 155,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/static/js/anim.js": {
+      "filePath": "src/main/resources/static/js/anim.js",
+      "contentHash": "eb25b655c6843f145977aa7c4cb1e8c87b4df817b96138266da6d5d0cd90ccb5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 244,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/resources/static/js/common.js": {
+      "filePath": "src/main/resources/static/js/common.js",
+      "contentHash": "5db05b667c754ca8020498e25305909279faf4ea0694bf1c565b46a86c79ba3c",
+      "functions": [
+        {
+          "name": "fmt",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "eok",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "postJson",
+          "params": [
+            "url",
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/resources/static/js/order-new.js": {
+      "filePath": "src/main/resources/static/js/order-new.js",
+      "contentHash": "32955fb92e149db378a51dd1c2119652a59177466ebd7278095c139c44d00943",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 180,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/resources/static/js/planview.js": {
+      "filePath": "src/main/resources/static/js/planview.js",
+      "contentHash": "113d47e6f0d6e36a6d5a5000cf1c092e74616c11702246d52afe89ff9ffa27fb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 89,
+      "hasStructuralAnalysis": true
+    },
+    "src/main/resources/templates/fragments.html": {
+      "filePath": "src/main/resources/templates/fragments.html",
+      "contentHash": "010a4a2500982ad3a3ea9c4cc3ef71789806219fadf5a105c00be2fb2fe25c3a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/templates/login.html": {
+      "filePath": "src/main/resources/templates/login.html",
+      "contentHash": "127fd616424155ab300c833225dd39d86356e888ea53949de99e2f0df43c5899",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/templates/master.html": {
+      "filePath": "src/main/resources/templates/master.html",
+      "contentHash": "f5d2c02926d50eda979add0a296830cccb65aa6d577de8f49c311e899699aae3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/templates/order-detail.html": {
+      "filePath": "src/main/resources/templates/order-detail.html",
+      "contentHash": "4bf322d3caa6187374f1b380b85e58419592ba1ee5d06dc8bc6597f58a3bb7f6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 76,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/templates/order-new.html": {
+      "filePath": "src/main/resources/templates/order-new.html",
+      "contentHash": "1ef47bd39ba9485f290c4bd74e49845467e555967fd5fb57ce536a76352a40a5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": false
+    },
+    "src/main/resources/templates/orders.html": {
+      "filePath": "src/main/resources/templates/orders.html",
+      "contentHash": "f957bb24d0c31ffe8c030ccd8e62ae7f141a7ce5dddfe96b2bf198fa4f4a218e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": false
+    },
+    "src/test/java/com/example/demo/DemoApplicationTests.java": {
+      "filePath": "src/test/java/com/example/demo/DemoApplicationTests.java",
+      "contentHash": "9855166762057ff09cb367cfa1068d38f96aba5d8aec71851fa366381d06f788",
+      "functions": [
+        {
+          "name": "contextLoads",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "DemoApplicationTests",
+          "methods": [
+            "contextLoads"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.test.context.SpringBootTest",
+          "specifiers": [
+            "SpringBootTest"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/java/com/example/demo/OrderFlowTests.java": {
+      "filePath": "src/test/java/com/example/demo/OrderFlowTests.java",
+      "contentHash": "309f2e66fae055175cd02dc135e0b9aa17b70d7923785364ca6b758f219d15e6",
+      "functions": [
+        {
+          "name": "login",
+          "params": [],
+          "returnType": "MockHttpSession",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "anonymousUserIsSentToLogin",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "wrongPasswordIsRejected",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "pagesRender",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "simulateReturnsThreeOptions",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "emptyOrderIsRejectedWithReason",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "confirm",
+          "params": [
+            "s"
+          ],
+          "returnType": "long",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "confirmThenDetailAndStatusFlow",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "confirmFailsWhenMasterChangedAfterSimulation",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "masterUpdateBumpsVersionAndKeepsConfirmedPlans",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "invalidMasterIsNotSaved",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderFlowTests",
+          "methods": [
+            "login",
+            "anonymousUserIsSentToLogin",
+            "wrongPasswordIsRejected",
+            "pagesRender",
+            "simulateReturnsThreeOptions",
+            "emptyOrderIsRejectedWithReason",
+            "confirm",
+            "confirmThenDetailAndStatusFlow",
+            "confirmFailsWhenMasterChangedAfterSimulation",
+            "masterUpdateBumpsVersionAndKeepsConfirmedPlans",
+            "invalidMasterIsNotSaved"
+          ],
+          "properties": [
+            "ORDERS",
+            "mvc",
+            "orderService"
+          ],
+          "exported": false,
+          "lineCount": 148
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.assertj.core.api.Assertions.assertThat",
+          "specifiers": [
+            "assertThat"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get",
+          "specifiers": [
+            "get"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post",
+          "specifiers": [
+            "post"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath",
+          "specifiers": [
+            "jsonPath"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl",
+          "specifiers": [
+            "redirectedUrl"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.result.MockMvcResultMatchers.status",
+          "specifiers": [
+            "status"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.OrderStatus",
+          "specifiers": [
+            "OrderStatus"
+          ]
+        },
+        {
+          "source": "com.example.demo.service.BusinessException",
+          "specifiers": [
+            "BusinessException"
+          ]
+        },
+        {
+          "source": "com.example.demo.service.BatteryService",
+          "specifiers": [
+            "BatteryService"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        },
+        {
+          "source": "org.springframework.beans.factory.annotation.Autowired",
+          "specifiers": [
+            "Autowired"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.test.context.SpringBootTest",
+          "specifiers": [
+            "SpringBootTest"
+          ]
+        },
+        {
+          "source": "org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc",
+          "specifiers": [
+            "AutoConfigureMockMvc"
+          ]
+        },
+        {
+          "source": "org.springframework.http.MediaType",
+          "specifiers": [
+            "MediaType"
+          ]
+        },
+        {
+          "source": "org.springframework.mock.web.MockHttpSession",
+          "specifiers": [
+            "MockHttpSession"
+          ]
+        },
+        {
+          "source": "org.springframework.test.annotation.DirtiesContext",
+          "specifiers": [
+            "DirtiesContext"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.MockMvc",
+          "specifiers": [
+            "MockMvc"
+          ]
+        },
+        {
+          "source": "org.springframework.test.web.servlet.MvcResult",
+          "specifiers": [
+            "MvcResult"
+          ]
+        },
+        {
+          "source": "org.assertj.core.api.Assertions.assertThatThrownBy",
+          "specifiers": [
+            "assertThatThrownBy"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 173,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/java/com/example/demo/simulation/PlannerTest.java": {
+      "filePath": "src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "contentHash": "829896fa8c7fca1ca892b6152aa4082ef5eea60c77d88929ff065d2691095a9a",
+      "functions": [
+        {
+          "name": "master",
+          "params": [
+            "ships"
+          ],
+          "returnType": "Master",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "orders",
+          "params": [
+            "china",
+            "japan",
+            "vietnam",
+            "indonesia"
+          ],
+          "returnType": "Map<Country, Integer>",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "visitsAreCeilOfOrderOverStockLimit",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "everyOptionCollectsExactlyWhatWasOrdered",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "eachCountryIsVisitedByOneShipOnly",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "productionCostIsCellsTimesUnitCost",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "singleSmallOrderTakesProductionPlusRoundTrip",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "shipDepartsLateSoItDoesNotWaitAtPort",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "overStockLimitOrderIsCollectedInSeveralRoundTrips",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "productionStopsAtStockLimitUntilPickup",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "costOptionIsNotMoreExpensiveAndFastOptionIsNotSlower",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "usesAtMostAvailableShips",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "rejectsEmptyOrder",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "defaultOrderSummary",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 12
+        }
+      ],
+      "classes": [
+        {
+          "name": "PlannerTest",
+          "methods": [
+            "master",
+            "orders",
+            "visitsAreCeilOfOrderOverStockLimit",
+            "everyOptionCollectsExactlyWhatWasOrdered",
+            "eachCountryIsVisitedByOneShipOnly",
+            "productionCostIsCellsTimesUnitCost",
+            "singleSmallOrderTakesProductionPlusRoundTrip",
+            "shipDepartsLateSoItDoesNotWaitAtPort",
+            "overStockLimitOrderIsCollectedInSeveralRoundTrips",
+            "productionStopsAtStockLimitUntilPickup",
+            "costOptionIsNotMoreExpensiveAndFastOptionIsNotSlower",
+            "usesAtMostAvailableShips",
+            "rejectsEmptyOrder",
+            "defaultOrderSummary"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 143
+        }
+      ],
+      "imports": [
+        {
+          "source": "org.assertj.core.api.Assertions.assertThat",
+          "specifiers": [
+            "assertThat"
+          ]
+        },
+        {
+          "source": "org.assertj.core.api.Assertions.assertThatThrownBy",
+          "specifiers": [
+            "assertThatThrownBy"
+          ]
+        },
+        {
+          "source": "com.example.demo.entity.Country",
+          "specifiers": [
+            "Country"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Master.FactoryParam",
+          "specifiers": [
+            "FactoryParam"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Master.RouteParam",
+          "specifiers": [
+            "RouteParam"
+          ]
+        },
+        {
+          "source": "com.example.demo.simulation.Plan.Stop",
+          "specifiers": [
+            "Stop"
+          ]
+        },
+        {
+          "source": "java.util.EnumMap",
+          "specifiers": [
+            "EnumMap"
+          ]
+        },
+        {
+          "source": "java.util.List",
+          "specifiers": [
+            "List"
+          ]
+        },
+        {
+          "source": "java.util.Map",
+          "specifiers": [
+            "Map"
+          ]
+        },
+        {
+          "source": "org.junit.jupiter.api.Test",
+          "specifiers": [
+            "Test"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 158,
+      "hasStructuralAnalysis": true
+    },
+    "src/test/resources/application.properties": {
+      "filePath": "src/test/resources/application.properties",
+      "contentHash": "c462f445a865599d80869960eba2304dac4d7d4096d67e56c1f4b4e1cbae9a4c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": false
+    }
+  }
+}

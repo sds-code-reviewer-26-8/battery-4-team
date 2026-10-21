@@ -1,0 +1,2621 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "battery-4-team",
+    "languages": [
+      "css",
+      "html",
+      "java",
+      "javascript",
+      "json",
+      "kotlin",
+      "markdown",
+      "properties"
+    ],
+    "frameworks": [
+      "Spring Boot",
+      "Spring MVC",
+      "Spring Data JPA",
+      "Thymeleaf",
+      "H2",
+      "JUnit"
+    ],
+    "description": "Spring Boot + Thymeleaf 기반 애플리케이션으로, 해외 4개 공장에서 배터리 셀을 주문하기 위한 선박 경로를 시뮬레이션하고 확정된 주문을 관리합니다.",
+    "analyzedAt": "2026-10-21T01:35:20.362230+00:00",
+    "gitCommitHash": "712ec6f3cf128187ec6565045b9826ef1a421ef5"
+  },
+  "nodes": [
+    {
+      "id": "file:src/main/java/com/example/demo/config/DataInitializer.java",
+      "type": "file",
+      "name": "DataInitializer.java",
+      "filePath": "src/main/java/com/example/demo/config/DataInitializer.java",
+      "summary": "애플리케이션 시작 시 BatteryService.initDefaults를 호출해 기본 마스터 데이터를 초기화하는 CommandLineRunner입니다.",
+      "tags": [
+        "config",
+        "초기화",
+        "spring",
+        "시작-시-실행"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/config/DataInitializer.java:DataInitializer",
+      "type": "class",
+      "name": "DataInitializer",
+      "filePath": "src/main/java/com/example/demo/config/DataInitializer.java",
+      "lineRange": [
+        8,
+        21
+      ],
+      "summary": "시작 시 기본 마스터 데이터(공장, 경로, 설정)를 시딩하는 Spring 컴포넌트입니다.",
+      "tags": [
+        "config",
+        "초기화",
+        "spring"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/Factory.java",
+      "type": "file",
+      "name": "Factory.java",
+      "filePath": "src/main/java/com/example/demo/entity/Factory.java",
+      "summary": "공장(국가)별 일 최대 생산량, 재고 한도, 단가를 담는 JPA 엔티티입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa",
+        "마스터-데이터"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/Factory.java:Factory",
+      "type": "class",
+      "name": "Factory",
+      "filePath": "src/main/java/com/example/demo/entity/Factory.java",
+      "lineRange": [
+        10,
+        67
+      ],
+      "summary": "공장의 생산 능력과 비용 정보를 보관하는 엔티티 클래스입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/Route.java",
+      "type": "file",
+      "name": "Route.java",
+      "filePath": "src/main/java/com/example/demo/entity/Route.java",
+      "summary": "국가 간 선박 이동 경로와 소요 일수를 저장하는 JPA 엔티티입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa",
+        "경로"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/Route.java:Route",
+      "type": "class",
+      "name": "Route",
+      "filePath": "src/main/java/com/example/demo/entity/Route.java",
+      "lineRange": [
+        14,
+        61
+      ],
+      "summary": "출발국, 도착국, 이동 일수를 가진 경로 엔티티입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/Setting.java",
+      "type": "file",
+      "name": "Setting.java",
+      "filePath": "src/main/java/com/example/demo/entity/Setting.java",
+      "summary": "선박 수, 선박 일일 비용, 마스터 버전을 관리하는 단일 설정 JPA 엔티티입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa",
+        "설정"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/Setting.java:Setting",
+      "type": "class",
+      "name": "Setting",
+      "filePath": "src/main/java/com/example/demo/entity/Setting.java",
+      "lineRange": [
+        9,
+        61
+      ],
+      "summary": "선박 수/비용 설정과 마스터 버전 증가(bumpMasterVersion)를 제공하는 엔티티입니다.",
+      "tags": [
+        "entity",
+        "설정",
+        "jpa"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "type": "file",
+      "name": "MasterRepositories.java",
+      "filePath": "src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "summary": "Country, Factory, Route, Setting 마스터 엔티티용 Spring Data JPA 리포지토리를 모아 정의한 파일입니다.",
+      "tags": [
+        "repository",
+        "jpa",
+        "spring-data",
+        "마스터-데이터"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/repository/MasterRepositories.java:MasterRepositories",
+      "type": "class",
+      "name": "MasterRepositories",
+      "filePath": "src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "lineRange": [
+        9,
+        22
+      ],
+      "summary": "마스터 엔티티별 리포지토리 인터페이스를 중첩 선언하는 컨테이너 클래스입니다.",
+      "tags": [
+        "repository",
+        "jpa",
+        "spring-data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "type": "file",
+      "name": "BatteryService.java",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "summary": "마스터 데이터 관리, 시뮬레이션 실행, 주문 확정 및 상태 변경, 이력 조회를 담당하는 핵심 서비스입니다.",
+      "tags": [
+        "service",
+        "비즈니스-로직",
+        "주문",
+        "시뮬레이션",
+        "transaction"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "type": "class",
+      "name": "BatteryService",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        32,
+        303
+      ],
+      "summary": "마스터 갱신, Planner 시뮬레이션, 주문 확정/검증, 상태 전이를 조율하는 서비스 클래스입니다.",
+      "tags": [
+        "service",
+        "주문",
+        "시뮬레이션"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:initDefaults",
+      "type": "function",
+      "name": "initDefaults",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        64,
+        86
+      ],
+      "summary": "기본 국가, 공장, 경로, 설정 데이터를 초기 시딩합니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:currentMaster",
+      "type": "function",
+      "name": "currentMaster",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        88,
+        101
+      ],
+      "summary": "DB의 공장/경로/설정으로 시뮬레이션용 Master 객체를 구성합니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:updateMaster",
+      "type": "function",
+      "name": "updateMaster",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        112,
+        171
+      ],
+      "summary": "관리자 입력으로 마스터 데이터를 검증 후 갱신하고 버전을 올립니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:simulate",
+      "type": "function",
+      "name": "simulate",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        190,
+        195
+      ],
+      "summary": "주문 입력과 전략에 따라 Planner로 계획을 시뮬레이션합니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:validateOrders",
+      "type": "function",
+      "name": "validateOrders",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        197,
+        216
+      ],
+      "summary": "주문 수량 입력의 유효성을 검증합니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:confirm",
+      "type": "function",
+      "name": "confirm",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        224,
+        248
+      ],
+      "summary": "시뮬레이션 계획을 확정 주문으로 저장하고 이력을 기록합니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:changeStatus",
+      "type": "function",
+      "name": "changeStatus",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        277,
+        298
+      ],
+      "summary": "주문 상태 전이를 검증하고 낙관적 락 충돌을 처리하며 이력을 남깁니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/service/BatteryService.java:parseInt",
+      "type": "function",
+      "name": "parseInt",
+      "filePath": "src/main/java/com/example/demo/service/BatteryService.java",
+      "lineRange": [
+        173,
+        186
+      ],
+      "summary": "문자열 입력을 정수로 안전하게 변환하는 보조 메서드입니다.",
+      "tags": [
+        "service",
+        "주문",
+        "비즈니스-로직"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "type": "file",
+      "name": "LoginInterceptor.java",
+      "filePath": "src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "summary": "세션에 로그인 사용자가 없으면 로그인 페이지로 리다이렉트하는 Spring MVC 인터셉터입니다.",
+      "tags": [
+        "interceptor",
+        "인증",
+        "세션",
+        "middleware"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/config/LoginInterceptor.java:LoginInterceptor",
+      "type": "class",
+      "name": "LoginInterceptor",
+      "filePath": "src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "lineRange": [
+        9,
+        27
+      ],
+      "summary": "HandlerInterceptor 구현체로 SESSION_USER 세션 속성을 확인해 미인증 요청을 차단합니다.",
+      "tags": [
+        "interceptor",
+        "인증",
+        "세션"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "type": "file",
+      "name": "AppController.java",
+      "filePath": "src/main/java/com/example/demo/controller/AppController.java",
+      "summary": "로그인/로그아웃, 주문 목록·상세, 상태 변경, 마스터 데이터 관리, 시뮬레이션 및 주문 확정 API를 제공하는 메인 MVC 컨트롤러입니다.",
+      "tags": [
+        "controller",
+        "api-handler",
+        "thymeleaf",
+        "주문",
+        "tested"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Spring MVC 컨트롤러로 Thymeleaf 뷰와 JSON API를 함께 처리합니다."
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/controller/AppController.java:AppController",
+      "type": "class",
+      "name": "AppController",
+      "filePath": "src/main/java/com/example/demo/controller/AppController.java",
+      "lineRange": [
+        27,
+        198
+      ],
+      "summary": "BatteryService를 위임 호출하여 화면 렌더링과 시뮬레이션/확정 JSON 응답, BusinessException 오류 응답 변환을 담당합니다.",
+      "tags": [
+        "controller",
+        "api-handler",
+        "주문"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "type": "file",
+      "name": "OrderStatus.java",
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatus.java",
+      "summary": "주문 상태(enum)와 한국어 라벨, 다음 상태 및 전이 가능 여부 판단 로직을 정의합니다.",
+      "tags": [
+        "enum",
+        "data-model",
+        "상태-전이",
+        "주문",
+        "tested"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/OrderStatus.java:OrderStatus",
+      "type": "class",
+      "name": "OrderStatus",
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatus.java",
+      "lineRange": [
+        5,
+        32
+      ],
+      "summary": "주문 상태 enum으로 getLabel, next, canChangeTo로 상태 흐름을 제어합니다.",
+      "tags": [
+        "enum",
+        "상태-전이",
+        "data-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "type": "file",
+      "name": "BusinessException.java",
+      "filePath": "src/main/java/com/example/demo/service/BusinessException.java",
+      "summary": "비즈니스 규칙 위반을 나타내는 예외로 다중 메시지와 충돌(conflict) 여부를 담습니다.",
+      "tags": [
+        "exception",
+        "error-handling",
+        "service",
+        "tested"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/service/BusinessException.java:BusinessException",
+      "type": "class",
+      "name": "BusinessException",
+      "filePath": "src/main/java/com/example/demo/service/BusinessException.java",
+      "lineRange": [
+        6,
+        34
+      ],
+      "summary": "여러 오류 메시지와 충돌 플래그를 보유하는 런타임 예외입니다.",
+      "tags": [
+        "exception",
+        "error-handling",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "type": "file",
+      "name": "Master.java",
+      "filePath": "src/main/java/com/example/demo/simulation/Master.java",
+      "summary": "공장별 생산·운송 마스터 데이터를 담는 시뮬레이션용 모델로 공장 조회와 일수 계산을 제공합니다.",
+      "tags": [
+        "simulation",
+        "data-model",
+        "마스터데이터",
+        "tested"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/simulation/Master.java:Master",
+      "type": "class",
+      "name": "Master",
+      "filePath": "src/main/java/com/example/demo/simulation/Master.java",
+      "lineRange": [
+        7,
+        31
+      ],
+      "summary": "국가별 factory 조회와 days 계산을 제공하는 시뮬레이션 마스터 데이터 클래스입니다.",
+      "tags": [
+        "simulation",
+        "data-model",
+        "마스터데이터"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "type": "file",
+      "name": "OrderFlowTests.java",
+      "filePath": "src/test/java/com/example/demo/OrderFlowTests.java",
+      "summary": "로그인, 시뮬레이션, 주문 확정, 상태 변경, 마스터 갱신 등 주문 흐름 전반을 검증하는 통합 테스트입니다.",
+      "tags": [
+        "test",
+        "integration-test",
+        "spring-boot",
+        "주문"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Spring Boot 테스트로 MockMvc 기반 end-to-end 흐름을 검증합니다."
+    },
+    {
+      "id": "class:src/test/java/com/example/demo/OrderFlowTests.java:OrderFlowTests",
+      "type": "class",
+      "name": "OrderFlowTests",
+      "filePath": "src/test/java/com/example/demo/OrderFlowTests.java",
+      "lineRange": [
+        25,
+        172
+      ],
+      "summary": "로그인 리다이렉트부터 확정 실패, 마스터 버전 증가까지 11개 시나리오를 검증하는 테스트 클래스입니다.",
+      "tags": [
+        "test",
+        "integration-test",
+        "주문"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "file",
+      "name": "Country.java",
+      "filePath": "src/main/java/com/example/demo/entity/Country.java",
+      "summary": "한국과 4개 해외 공장 국가(중국, 일본, 베트남, 인도네시아)를 정의하는 enum으로, 한글 라벨과 공장 여부 판별 기능을 제공합니다.",
+      "tags": [
+        "enum",
+        "data-model",
+        "domain",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/Country.java:Country",
+      "type": "class",
+      "name": "Country",
+      "filePath": "src/main/java/com/example/demo/entity/Country.java",
+      "summary": "국가 enum. 한글 라벨을 보관하고 한국을 제외한 공장 국가 목록을 반환합니다.",
+      "tags": [
+        "enum",
+        "data-model",
+        "domain"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        6,
+        30
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/entity/Country.java:factories",
+      "type": "function",
+      "name": "factories",
+      "filePath": "src/main/java/com/example/demo/entity/Country.java",
+      "summary": "한국을 제외한 공장 국가 목록을 반환하는 정적 메서드입니다.",
+      "tags": [
+        "utility",
+        "domain",
+        "factory"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        27,
+        29
+      ]
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "type": "file",
+      "name": "Plan.java",
+      "filePath": "src/main/java/com/example/demo/simulation/Plan.java",
+      "summary": "하나의 선박 경로 계획을 표현하는 record로, 총 일수/비용, 선박별 왕복(Trip)과 방문(Stop), 국가별 재고·생산량 시계열을 담습니다.",
+      "tags": [
+        "data-model",
+        "record",
+        "simulation",
+        "type-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/simulation/Plan.java:Plan",
+      "type": "class",
+      "name": "Plan",
+      "filePath": "src/main/java/com/example/demo/simulation/Plan.java",
+      "summary": "경로 계획 결과 record와 중첩 record(ShipPlan, Trip, Stop)를 정의합니다.",
+      "tags": [
+        "data-model",
+        "record",
+        "simulation"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        15,
+        25
+      ]
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "type": "file",
+      "name": "Planner.java",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "주문 수량으로부터 비용 최소/최단 기간/근접 방문 등 여러 선박 경로 옵션을 생성하는 핵심 시뮬레이션 엔진입니다. 방문 분할, 순열 탐색, 일정 수립, 재고·생산 시뮬레이션을 수행합니다.",
+      "tags": [
+        "simulation",
+        "algorithm",
+        "planner",
+        "business-logic",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/simulation/Planner.java:Planner",
+      "type": "class",
+      "name": "Planner",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "정적 메서드만 가진 유틸리티형 플래너 클래스로 COST/FAST/NEAR 옵션 계획을 계산합니다.",
+      "tags": [
+        "simulation",
+        "algorithm",
+        "utility"
+      ],
+      "complexity": "complex",
+      "lineRange": [
+        27,
+        419
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:visits",
+      "type": "function",
+      "name": "visits",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "국가별 주문량을 재고 한도로 나눈 올림값으로 방문 횟수를 계산합니다.",
+      "tags": [
+        "calculation",
+        "simulation"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        39,
+        47
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:plan",
+      "type": "function",
+      "name": "plan",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "마스터 설정과 주문을 받아 여러 경로 옵션의 Plan 목록을 생성하는 공개 진입 메서드입니다.",
+      "tags": [
+        "entry-point",
+        "simulation",
+        "algorithm"
+      ],
+      "complexity": "complex",
+      "lineRange": [
+        49,
+        82
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:nearest",
+      "type": "function",
+      "name": "nearest",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "가까운 국가부터 방문하는 근접 방문 후보 일정을 구성합니다.",
+      "tags": [
+        "algorithm",
+        "simulation"
+      ],
+      "complexity": "moderate",
+      "lineRange": [
+        255,
+        286
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:schedule",
+      "type": "function",
+      "name": "schedule",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "방문 구조를 선박에 배정하여 출항·도착 일정과 운송비를 계산하는 후보를 만듭니다.",
+      "tags": [
+        "algorithm",
+        "scheduling",
+        "simulation"
+      ],
+      "complexity": "complex",
+      "lineRange": [
+        295,
+        345
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:toPlan",
+      "type": "function",
+      "name": "toPlan",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "내부 후보를 비용과 재고 시계열이 포함된 Plan으로 변환합니다.",
+      "tags": [
+        "mapper",
+        "simulation"
+      ],
+      "complexity": "moderate",
+      "lineRange": [
+        352,
+        369
+      ]
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/simulation/Planner.java:simulateFactory",
+      "type": "function",
+      "name": "simulateFactory",
+      "filePath": "src/main/java/com/example/demo/simulation/Planner.java",
+      "summary": "공장별 일자 단위 생산과 재고 한도, 수거를 반영해 재고 배열을 시뮬레이션합니다.",
+      "tags": [
+        "simulation",
+        "production"
+      ],
+      "complexity": "moderate",
+      "lineRange": [
+        386,
+        412
+      ]
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "type": "file",
+      "name": "StoredPlan.java",
+      "filePath": "src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "summary": "주문 확정 시점의 마스터 값, 국가별 주문량·방문 횟수, 선택된 경로를 묶어 저장하는 스냅샷 record입니다.",
+      "tags": [
+        "data-model",
+        "record",
+        "snapshot",
+        "persistence"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/simulation/StoredPlan.java:StoredPlan",
+      "type": "class",
+      "name": "StoredPlan",
+      "filePath": "src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "summary": "주문에 저장되는 계획 스냅샷 record입니다.",
+      "tags": [
+        "data-model",
+        "record",
+        "snapshot"
+      ],
+      "complexity": "simple",
+      "lineRange": [
+        8,
+        8
+      ]
+    },
+    {
+      "id": "file:src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "type": "file",
+      "name": "PlannerTest.java",
+      "filePath": "src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "summary": "Planner의 방문 횟수, 수거량 일치, 비용·기간 옵션 비교, 재고 한도, 선박 수 제한 등을 검증하는 JUnit 테스트입니다.",
+      "tags": [
+        "test",
+        "junit",
+        "simulation",
+        "unit-test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/Order.java",
+      "type": "file",
+      "name": "Order.java",
+      "filePath": "src/main/java/com/example/demo/entity/Order.java",
+      "summary": "확정된 배터리 셀 주문을 나타내는 JPA 엔티티로, 경로·비용·상태·계획 JSON과 억 단위 비용 변환 헬퍼를 포함합니다.",
+      "tags": [
+        "entity",
+        "jpa",
+        "data-model",
+        "order"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/Order.java:Order",
+      "type": "class",
+      "name": "Order",
+      "filePath": "src/main/java/com/example/demo/entity/Order.java",
+      "lineRange": [
+        15,
+        154
+      ],
+      "summary": "주문 정보(확정 시각, 경로 유형, 생산/배송/총 비용, 상태, 버전)를 담는 엔티티 클래스입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "jpa"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "type": "file",
+      "name": "OrderStatusHistory.java",
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "summary": "주문 상태 변경 이력(이전/이후 상태, 변경자, 시각)을 저장하는 JPA 엔티티입니다.",
+      "tags": [
+        "entity",
+        "jpa",
+        "audit",
+        "history"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/entity/OrderStatusHistory.java:OrderStatusHistory",
+      "type": "class",
+      "name": "OrderStatusHistory",
+      "filePath": "src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "lineRange": [
+        13,
+        73
+      ],
+      "summary": "주문 상태 전이 한 건을 기록하는 이력 엔티티 클래스입니다.",
+      "tags": [
+        "entity",
+        "data-model",
+        "audit"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "type": "file",
+      "name": "OrderRepositories.java",
+      "filePath": "src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "summary": "Order와 OrderStatusHistory용 Spring Data JpaRepository 인터페이스를 한 파일에 모아 정의합니다.",
+      "tags": [
+        "repository",
+        "spring-data",
+        "jpa",
+        "data-access"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/repository/OrderRepositories.java:OrderRepositories",
+      "type": "class",
+      "name": "OrderRepositories",
+      "filePath": "src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "lineRange": [
+        9,
+        27
+      ],
+      "summary": "중첩 리포지토리 인터페이스(OrderRepository, OrderStatusHistoryRepository)를 담는 final 컨테이너 클래스입니다.",
+      "tags": [
+        "repository",
+        "container",
+        "spring-data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/resources/templates/fragments.html",
+      "type": "file",
+      "name": "fragments.html",
+      "filePath": "src/main/resources/templates/fragments.html",
+      "summary": "Thymeleaf 공통 fragment 파일로, 페이지 head(title)와 상단 내비게이션 header(active)를 정의하여 모든 화면에서 재사용합니다.",
+      "tags": [
+        "thymeleaf",
+        "fragment",
+        "layout",
+        "navigation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/resources/templates/login.html",
+      "type": "file",
+      "name": "login.html",
+      "filePath": "src/main/resources/templates/login.html",
+      "summary": "아이디/비밀번호 입력 폼과 오류 메시지를 보여주는 로그인 페이지 템플릿입니다.",
+      "tags": [
+        "thymeleaf",
+        "login",
+        "form",
+        "authentication"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/resources/templates/master.html",
+      "type": "file",
+      "name": "master.html",
+      "filePath": "src/main/resources/templates/master.html",
+      "summary": "공장 생산량/재고/원가, 선박 척수와 운항비, 국가 간 항로 일수 매트릭스를 편집하는 마스터 데이터 관리 화면입니다.",
+      "tags": [
+        "thymeleaf",
+        "master-data",
+        "form",
+        "configuration-ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/resources/templates/order-detail.html",
+      "type": "file",
+      "name": "order-detail.html",
+      "filePath": "src/main/resources/templates/order-detail.html",
+      "summary": "확정된 주문의 메타 정보, 상태 변경 폼, 상태 이력, 저장된 계획 요약과 지도 애니메이션을 보여주는 주문 상세 화면입니다.",
+      "tags": [
+        "thymeleaf",
+        "order",
+        "detail-view",
+        "animation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/resources/templates/order-new.html",
+      "type": "file",
+      "name": "order-new.html",
+      "filePath": "src/main/resources/templates/order-new.html",
+      "summary": "수량 게이지 입력, 시뮬레이션 실행, 결과 확인, 주문 확정까지 3단계로 진행되는 주문 추가 화면이며 로직은 order-new.js가 담당합니다.",
+      "tags": [
+        "thymeleaf",
+        "order",
+        "simulation",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/resources/templates/orders.html",
+      "type": "file",
+      "name": "orders.html",
+      "filePath": "src/main/resources/templates/orders.html",
+      "summary": "상태별 필터 칩과 주문 목록 테이블을 제공하는 주문 목록 화면입니다.",
+      "tags": [
+        "thymeleaf",
+        "order",
+        "list-view",
+        "filter"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:.claude/settings.json",
+      "type": "config",
+      "name": "settings.json",
+      "filePath": ".claude/settings.json",
+      "summary": "Claude Code 설정 파일로 understand-anything 플러그인을 활성화합니다.",
+      "tags": [
+        "configuration",
+        "claude-code",
+        "plugin"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.gitattributes",
+      "type": "file",
+      "name": ".gitattributes",
+      "filePath": ".gitattributes",
+      "summary": "Git 속성 설정 파일로 줄바꿈 처리 규칙 등을 지정합니다.",
+      "tags": [
+        "configuration",
+        "git",
+        "line-endings"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.ua/config.json",
+      "type": "config",
+      "name": "config.json",
+      "filePath": ".ua/config.json",
+      "summary": "Understand-Anything 분석 도구의 프로젝트 설정 파일입니다.",
+      "tags": [
+        "configuration",
+        "tooling",
+        "metadata"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "Claude Code용 프로젝트 가이드로 빌드/테스트 명령어와 simulation, service, controller, config 구조를 설명합니다.",
+      "tags": [
+        "documentation",
+        "architecture",
+        "guide",
+        "onboarding"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:build.gradle.kts",
+      "type": "file",
+      "name": "build.gradle.kts",
+      "filePath": "build.gradle.kts",
+      "summary": "Spring Boot, Thymeleaf, JPA, H2 의존성과 Java 17 툴체인을 정의하는 Gradle Kotlin DSL 빌드 스크립트입니다.",
+      "tags": [
+        "build-system",
+        "gradle",
+        "dependencies",
+        "configuration"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Gradle Kotlin DSL 사용"
+    },
+    {
+      "id": "file:docs/basic_guide.html",
+      "type": "file",
+      "name": "basic_guide.html",
+      "filePath": "docs/basic_guide.html",
+      "summary": "프로젝트 기본 사용법을 안내하는 정적 HTML 가이드 페이지입니다.",
+      "tags": [
+        "documentation",
+        "html",
+        "guide"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:gradle/wrapper/gradle-wrapper.jar",
+      "type": "file",
+      "name": "gradle-wrapper.jar",
+      "filePath": "gradle/wrapper/gradle-wrapper.jar",
+      "summary": "Gradle Wrapper 실행용 바이너리 JAR로 Gradle을 자동 다운로드하여 실행합니다.",
+      "tags": [
+        "build-system",
+        "binary",
+        "gradle-wrapper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:gradle/wrapper/gradle-wrapper.properties",
+      "type": "config",
+      "name": "gradle-wrapper.properties",
+      "filePath": "gradle/wrapper/gradle-wrapper.properties",
+      "summary": "Gradle Wrapper가 사용할 Gradle 배포 버전과 다운로드 URL을 지정합니다.",
+      "tags": [
+        "configuration",
+        "gradle",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:gradlew",
+      "type": "file",
+      "name": "gradlew",
+      "filePath": "gradlew",
+      "summary": "Unix 계열용 Gradle Wrapper 실행 셸 스크립트입니다.",
+      "tags": [
+        "build-system",
+        "shell-script",
+        "gradle-wrapper"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:gradlew.bat",
+      "type": "file",
+      "name": "gradlew.bat",
+      "filePath": "gradlew.bat",
+      "summary": "Windows용 Gradle Wrapper 실행 배치 스크립트입니다.",
+      "tags": [
+        "build-system",
+        "batch-script",
+        "gradle-wrapper"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:settings.gradle.kts",
+      "type": "file",
+      "name": "settings.gradle.kts",
+      "filePath": "settings.gradle.kts",
+      "summary": "Gradle 프로젝트 이름을 정의하는 설정 스크립트입니다.",
+      "tags": [
+        "build-system",
+        "gradle",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "type": "file",
+      "name": "DemoApplication.java",
+      "filePath": "src/main/java/com/example/demo/DemoApplication.java",
+      "summary": "Spring Boot 애플리케이션의 진입점으로 main 메서드에서 SpringApplication을 실행합니다.",
+      "tags": [
+        "entry-point",
+        "spring-boot",
+        "bootstrap",
+        "tested"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
+      "type": "class",
+      "name": "DemoApplication",
+      "filePath": "src/main/java/com/example/demo/DemoApplication.java",
+      "lineRange": [
+        6,
+        13
+      ],
+      "summary": "@SpringBootApplication이 적용된 애플리케이션 시작 클래스입니다.",
+      "tags": [
+        "entry-point",
+        "spring-boot"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/DemoApplication.java:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/main/java/com/example/demo/DemoApplication.java",
+      "lineRange": [
+        9,
+        11
+      ],
+      "summary": "SpringApplication.run을 호출해 애플리케이션을 기동합니다.",
+      "tags": [
+        "entry-point",
+        "bootstrap"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/config/JpaConfig.java",
+      "type": "file",
+      "name": "JpaConfig.java",
+      "filePath": "src/main/java/com/example/demo/config/JpaConfig.java",
+      "summary": "JPA 리포지토리 스캔 패키지와 중첩 리포지토리 허용을 설정하는 구성 클래스입니다.",
+      "tags": [
+        "configuration",
+        "jpa",
+        "spring"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/config/JpaConfig.java:JpaConfig",
+      "type": "class",
+      "name": "JpaConfig",
+      "filePath": "src/main/java/com/example/demo/config/JpaConfig.java",
+      "lineRange": [
+        6,
+        9
+      ],
+      "summary": "@EnableJpaRepositories로 repository 패키지를 활성화합니다.",
+      "tags": [
+        "configuration",
+        "jpa"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/java/com/example/demo/config/WebConfig.java",
+      "type": "file",
+      "name": "WebConfig.java",
+      "filePath": "src/main/java/com/example/demo/config/WebConfig.java",
+      "summary": "LoginInterceptor를 전체 경로에 등록하고 로그인, 정적 리소스 경로는 제외하는 MVC 설정입니다.",
+      "tags": [
+        "configuration",
+        "spring-mvc",
+        "interceptor",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/main/java/com/example/demo/config/WebConfig.java:WebConfig",
+      "type": "class",
+      "name": "WebConfig",
+      "filePath": "src/main/java/com/example/demo/config/WebConfig.java",
+      "lineRange": [
+        7,
+        16
+      ],
+      "summary": "WebMvcConfigurer를 구현하여 웹 설정을 제공합니다.",
+      "tags": [
+        "configuration",
+        "spring-mvc"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/java/com/example/demo/config/WebConfig.java:addInterceptors",
+      "type": "function",
+      "name": "addInterceptors",
+      "filePath": "src/main/java/com/example/demo/config/WebConfig.java",
+      "lineRange": [
+        10,
+        15
+      ],
+      "summary": "로그인 인터셉터를 등록하고 /login, /css, /js, /images 등을 제외합니다.",
+      "tags": [
+        "interceptor",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:src/main/resources/application.properties",
+      "type": "config",
+      "name": "application.properties",
+      "filePath": "src/main/resources/application.properties",
+      "summary": "H2 파일 DB, JPA ddl-auto=update, Thymeleaf 캐시 비활성화 등 운영 설정입니다.",
+      "tags": [
+        "configuration",
+        "spring-boot",
+        "h2",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/resources/static/css/app.css",
+      "type": "file",
+      "name": "app.css",
+      "filePath": "src/main/resources/static/css/app.css",
+      "summary": "애플리케이션 전체 화면의 레이아웃, 표, 버튼, 폼 등을 스타일링하는 CSS입니다.",
+      "tags": [
+        "stylesheet",
+        "css",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/main/resources/static/js/anim.js",
+      "type": "file",
+      "name": "anim.js",
+      "filePath": "src/main/resources/static/js/anim.js",
+      "summary": "BatteryAnim 모듈로 지도 이미지 위에서 선박 이동 경로 애니메이션을 렌더링합니다.",
+      "tags": [
+        "animation",
+        "frontend",
+        "visualization",
+        "module"
+      ],
+      "complexity": "complex",
+      "languageNotes": "IIFE 모듈 패턴으로 전역 BatteryAnim 노출"
+    },
+    {
+      "id": "file:src/main/resources/static/js/common.js",
+      "type": "file",
+      "name": "common.js",
+      "filePath": "src/main/resources/static/js/common.js",
+      "summary": "국가 라벨, 숫자/억원 포맷 및 JSON POST 헬퍼 등 페이지 공통 유틸리티입니다.",
+      "tags": [
+        "utility",
+        "frontend",
+        "formatting",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/resources/static/js/common.js:fmt",
+      "type": "function",
+      "name": "fmt",
+      "filePath": "src/main/resources/static/js/common.js",
+      "lineRange": [
+        5,
+        5
+      ],
+      "summary": "숫자를 ko-KR 로케일 문자열로 변환합니다.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/resources/static/js/common.js:eok",
+      "type": "function",
+      "name": "eok",
+      "filePath": "src/main/resources/static/js/common.js",
+      "lineRange": [
+        8,
+        8
+      ],
+      "summary": "원 단위를 억 원 단위 문자열로 변환합니다.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/main/resources/static/js/common.js:postJson",
+      "type": "function",
+      "name": "postJson",
+      "filePath": "src/main/resources/static/js/common.js",
+      "lineRange": [
+        11,
+        31
+      ],
+      "summary": "JSON POST 요청을 보내고 오류 응답을 처리하는 fetch 래퍼입니다.",
+      "tags": [
+        "utility",
+        "api-client",
+        "fetch"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/main/resources/static/js/order-new.js",
+      "type": "file",
+      "name": "order-new.js",
+      "filePath": "src/main/resources/static/js/order-new.js",
+      "summary": "신규 주문 화면에서 공장별 수량 입력, 시뮬레이션 호출, 계획 선택 및 주문 확정을 처리합니다.",
+      "tags": [
+        "frontend",
+        "event-handler",
+        "order",
+        "api-client"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/main/resources/static/js/planview.js",
+      "type": "file",
+      "name": "planview.js",
+      "filePath": "src/main/resources/static/js/planview.js",
+      "summary": "PlanView 모듈로 시뮬레이션된 비용/일정 계획을 화면에 렌더링합니다.",
+      "tags": [
+        "frontend",
+        "rendering",
+        "component",
+        "module"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "IIFE 모듈 패턴"
+    },
+    {
+      "id": "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+      "type": "file",
+      "name": "DemoApplicationTests.java",
+      "filePath": "src/test/java/com/example/demo/DemoApplicationTests.java",
+      "summary": "Spring 컨텍스트가 정상 로딩되는지 확인하는 스모크 테스트입니다.",
+      "tags": [
+        "test",
+        "spring-boot",
+        "smoke-test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:src/test/java/com/example/demo/DemoApplicationTests.java:DemoApplicationTests",
+      "type": "class",
+      "name": "DemoApplicationTests",
+      "filePath": "src/test/java/com/example/demo/DemoApplicationTests.java",
+      "lineRange": [
+        6,
+        13
+      ],
+      "summary": "@SpringBootTest 기반 컨텍스트 로딩 테스트 클래스입니다.",
+      "tags": [
+        "test",
+        "spring-boot"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/test/java/com/example/demo/DemoApplicationTests.java:contextLoads",
+      "type": "function",
+      "name": "contextLoads",
+      "filePath": "src/test/java/com/example/demo/DemoApplicationTests.java",
+      "lineRange": [
+        9,
+        11
+      ],
+      "summary": "애플리케이션 컨텍스트가 오류 없이 시작되는지 검증합니다.",
+      "tags": [
+        "test",
+        "smoke-test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:src/test/resources/application.properties",
+      "type": "config",
+      "name": "application.properties",
+      "filePath": "src/test/resources/application.properties",
+      "summary": "테스트용 인메모리 H2 DB와 create-drop 설정입니다.",
+      "tags": [
+        "configuration",
+        "test",
+        "h2"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/main/java/com/example/demo/config/DataInitializer.java",
+      "target": "class:src/main/java/com/example/demo/config/DataInitializer.java:DataInitializer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/DataInitializer.java",
+      "target": "class:src/main/java/com/example/demo/config/DataInitializer.java:DataInitializer",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Factory.java",
+      "target": "class:src/main/java/com/example/demo/entity/Factory.java:Factory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Factory.java",
+      "target": "class:src/main/java/com/example/demo/entity/Factory.java:Factory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Route.java",
+      "target": "class:src/main/java/com/example/demo/entity/Route.java:Route",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Route.java",
+      "target": "class:src/main/java/com/example/demo/entity/Route.java:Route",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Setting.java",
+      "target": "class:src/main/java/com/example/demo/entity/Setting.java:Setting",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Setting.java",
+      "target": "class:src/main/java/com/example/demo/entity/Setting.java:Setting",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "class:src/main/java/com/example/demo/repository/MasterRepositories.java:MasterRepositories",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "class:src/main/java/com/example/demo/repository/MasterRepositories.java:MasterRepositories",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:initDefaults",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:currentMaster",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:updateMaster",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:simulate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:validateOrders",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:confirm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:changeStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "function:src/main/java/com/example/demo/service/BatteryService.java:parseInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/DataInitializer.java",
+      "target": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Factory.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Route.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Setting.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/Factory.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/Order.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/Route.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/entity/Setting.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "class:src/main/java/com/example/demo/config/DataInitializer.java:DataInitializer",
+      "target": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "target": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "target": "class:src/main/java/com/example/demo/config/LoginInterceptor.java:LoginInterceptor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "target": "class:src/main/java/com/example/demo/config/LoginInterceptor.java:LoginInterceptor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "class:src/main/java/com/example/demo/controller/AppController.java:AppController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "class:src/main/java/com/example/demo/controller/AppController.java:AppController",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "target": "class:src/main/java/com/example/demo/entity/OrderStatus.java:OrderStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "target": "class:src/main/java/com/example/demo/entity/OrderStatus.java:OrderStatus",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "target": "class:src/main/java/com/example/demo/service/BusinessException.java:BusinessException",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "target": "class:src/main/java/com/example/demo/service/BusinessException.java:BusinessException",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Master.java:Master",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Master.java:Master",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "target": "class:src/test/java/com/example/demo/OrderFlowTests.java:OrderFlowTests",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "target": "class:src/test/java/com/example/demo/OrderFlowTests.java:OrderFlowTests",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/entity/Order.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "target": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "target": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "class:src/main/java/com/example/demo/controller/AppController.java:AppController",
+      "target": "class:src/main/java/com/example/demo/service/BatteryService.java:BatteryService",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/controller/AppController.java",
+      "target": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "target": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BusinessException.java",
+      "target": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "target": "file:src/test/java/com/example/demo/OrderFlowTests.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "target": "file:src/main/java/com/example/demo/entity/Country.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Country.java",
+      "target": "class:src/main/java/com/example/demo/entity/Country.java:Country",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Country.java",
+      "target": "class:src/main/java/com/example/demo/entity/Country.java:Country",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Country.java",
+      "target": "function:src/main/java/com/example/demo/entity/Country.java:factories",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Country.java",
+      "target": "function:src/main/java/com/example/demo/entity/Country.java:factories",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Plan.java:Plan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Plan.java:Plan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "target": "class:src/main/java/com/example/demo/simulation/StoredPlan.java:StoredPlan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "target": "class:src/main/java/com/example/demo/simulation/StoredPlan.java:StoredPlan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Planner.java:Planner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "class:src/main/java/com/example/demo/simulation/Planner.java:Planner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:visits",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:visits",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:plan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:plan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:nearest",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:schedule",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:toPlan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:toPlan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "function:src/main/java/com/example/demo/simulation/Planner.java:simulateFactory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Plan.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Master.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "target": "file:src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/simulation/PlannerTest.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/service/BatteryService.java",
+      "target": "file:src/main/java/com/example/demo/simulation/Planner.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Order.java",
+      "target": "class:src/main/java/com/example/demo/entity/Order.java:Order",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/Order.java",
+      "target": "class:src/main/java/com/example/demo/entity/Order.java:Order",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "target": "class:src/main/java/com/example/demo/entity/OrderStatusHistory.java:OrderStatusHistory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "target": "class:src/main/java/com/example/demo/entity/OrderStatusHistory.java:OrderStatusHistory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "class:src/main/java/com/example/demo/repository/OrderRepositories.java:OrderRepositories",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "class:src/main/java/com/example/demo/repository/OrderRepositories.java:OrderRepositories",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Order.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/repository/OrderRepositories.java",
+      "target": "file:src/main/java/com/example/demo/entity/Order.java",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/login.html",
+      "target": "file:src/main/resources/templates/fragments.html",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/master.html",
+      "target": "file:src/main/resources/templates/fragments.html",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/order-detail.html",
+      "target": "file:src/main/resources/templates/fragments.html",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/order-new.html",
+      "target": "file:src/main/resources/templates/fragments.html",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/orders.html",
+      "target": "file:src/main/resources/templates/fragments.html",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "target": "class:src/main/java/com/example/demo/DemoApplication.java:DemoApplication",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "target": "function:src/main/java/com/example/demo/DemoApplication.java:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/JpaConfig.java",
+      "target": "class:src/main/java/com/example/demo/config/JpaConfig.java:JpaConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/WebConfig.java",
+      "target": "class:src/main/java/com/example/demo/config/WebConfig.java:WebConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/config/WebConfig.java",
+      "target": "function:src/main/java/com/example/demo/config/WebConfig.java:addInterceptors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/resources/static/js/common.js",
+      "target": "function:src/main/resources/static/js/common.js:fmt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/resources/static/js/common.js",
+      "target": "function:src/main/resources/static/js/common.js:eok",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/resources/static/js/common.js",
+      "target": "function:src/main/resources/static/js/common.js:postJson",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+      "target": "class:src/test/java/com/example/demo/DemoApplicationTests.java:DemoApplicationTests",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+      "target": "function:src/test/java/com/example/demo/DemoApplicationTests.java:contextLoads",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "target": "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:src/test/resources/application.properties",
+      "target": "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:src/main/resources/application.properties",
+      "target": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:build.gradle.kts",
+      "target": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:gradle/wrapper/gradle-wrapper.properties",
+      "target": "file:gradlew",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:src/main/java/com/example/demo/DemoApplication.java",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:src/main/resources/static/js/planview.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "file:src/main/resources/static/js/anim.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:src/main/resources/static/js/order-new.js",
+      "target": "file:src/main/resources/static/js/common.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/static/js/order-new.js",
+      "target": "file:src/main/resources/static/js/planview.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/static/js/order-new.js",
+      "target": "file:src/main/resources/static/js/anim.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/main/resources/templates/order-detail.html",
+      "target": "file:src/main/resources/static/js/common.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-detail.html",
+      "target": "file:src/main/resources/static/js/anim.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-detail.html",
+      "target": "file:src/main/resources/static/js/planview.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-new.html",
+      "target": "file:src/main/resources/static/js/common.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-new.html",
+      "target": "file:src/main/resources/static/js/anim.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-new.html",
+      "target": "file:src/main/resources/static/js/planview.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/main/resources/templates/order-new.html",
+      "target": "file:src/main/resources/static/js/order-new.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:test",
+      "name": "테스트 계층",
+      "description": "JUnit 기반 주문 흐름 통합 테스트, Planner 단위 테스트 및 테스트용 설정",
+      "nodeIds": [
+        "file:src/test/java/com/example/demo/OrderFlowTests.java",
+        "file:src/test/java/com/example/demo/simulation/PlannerTest.java",
+        "file:src/test/java/com/example/demo/DemoApplicationTests.java",
+        "config:src/test/resources/application.properties"
+      ]
+    },
+    {
+      "id": "layer:ui",
+      "name": "UI 템플릿 및 정적 리소스",
+      "description": "Thymeleaf 화면 템플릿과 CSS/JS 정적 자산으로 로그인, 주문, 마스터 화면을 구성",
+      "nodeIds": [
+        "file:src/main/resources/templates/fragments.html",
+        "file:src/main/resources/templates/login.html",
+        "file:src/main/resources/templates/master.html",
+        "file:src/main/resources/templates/order-detail.html",
+        "file:src/main/resources/templates/order-new.html",
+        "file:src/main/resources/templates/orders.html",
+        "file:src/main/resources/static/css/app.css",
+        "file:src/main/resources/static/js/anim.js",
+        "file:src/main/resources/static/js/common.js",
+        "file:src/main/resources/static/js/order-new.js",
+        "file:src/main/resources/static/js/planview.js"
+      ]
+    },
+    {
+      "id": "layer:controller",
+      "name": "웹 컨트롤러 계층",
+      "description": "HTTP 요청을 받아 서비스를 호출하고 Thymeleaf 뷰를 반환하는 Spring MVC 컨트롤러",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/controller/AppController.java"
+      ]
+    },
+    {
+      "id": "layer:service",
+      "name": "서비스 계층",
+      "description": "주문 생성·확정 등 배터리 주문 비즈니스 로직과 업무 예외 처리",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/service/BatteryService.java",
+        "file:src/main/java/com/example/demo/service/BusinessException.java"
+      ]
+    },
+    {
+      "id": "layer:simulation",
+      "name": "경로 시뮬레이션",
+      "description": "4개 해외 공장으로부터 선박 경로를 계산하고 주문 계획을 만드는 Planner 및 관련 모델",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/simulation/Master.java",
+        "file:src/main/java/com/example/demo/simulation/Plan.java",
+        "file:src/main/java/com/example/demo/simulation/Planner.java",
+        "file:src/main/java/com/example/demo/simulation/StoredPlan.java"
+      ]
+    },
+    {
+      "id": "layer:data",
+      "name": "데이터 계층",
+      "description": "JPA 엔티티와 Spring Data 리포지토리로 공장, 경로, 주문 및 상태 이력을 영속화",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/entity/Factory.java",
+        "file:src/main/java/com/example/demo/entity/Route.java",
+        "file:src/main/java/com/example/demo/entity/Setting.java",
+        "file:src/main/java/com/example/demo/repository/MasterRepositories.java",
+        "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+        "file:src/main/java/com/example/demo/entity/Country.java",
+        "file:src/main/java/com/example/demo/entity/Order.java",
+        "file:src/main/java/com/example/demo/entity/OrderStatusHistory.java",
+        "file:src/main/java/com/example/demo/repository/OrderRepositories.java"
+      ]
+    },
+    {
+      "id": "layer:app-config",
+      "name": "애플리케이션 구성",
+      "description": "Spring Boot 진입점, JPA/웹 설정, 로그인 인터셉터 및 초기 데이터 적재",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/config/DataInitializer.java",
+        "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+        "file:src/main/java/com/example/demo/DemoApplication.java",
+        "file:src/main/java/com/example/demo/config/JpaConfig.java",
+        "file:src/main/java/com/example/demo/config/WebConfig.java"
+      ]
+    },
+    {
+      "id": "layer:documentation",
+      "name": "문서",
+      "description": "프로젝트 가이드(CLAUDE.md)와 기본 안내 페이지",
+      "nodeIds": [
+        "document:CLAUDE.md",
+        "file:docs/basic_guide.html"
+      ]
+    },
+    {
+      "id": "layer:build-config",
+      "name": "빌드 및 프로젝트 설정",
+      "description": "Gradle 빌드 스크립트·래퍼, application.properties 및 도구 설정 파일",
+      "nodeIds": [
+        "config:.claude/settings.json",
+        "file:.gitattributes",
+        "config:.ua/config.json",
+        "file:build.gradle.kts",
+        "file:gradle/wrapper/gradle-wrapper.jar",
+        "config:gradle/wrapper/gradle-wrapper.properties",
+        "file:gradlew",
+        "file:gradlew.bat",
+        "file:settings.gradle.kts",
+        "config:src/main/resources/application.properties"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "프로젝트 한눈에 보기",
+      "description": "CLAUDE.md는 이 프로젝트의 빌드/테스트 명령어와 simulation, service, controller, config 구조를 설명하는 안내서입니다. 이 앱은 해외 4개 공장에서 배터리 셀을 주문할 때 선박 경로를 시뮬레이션하고 확정된 주문을 관리합니다. 먼저 이 문서를 읽고 전체 그림을 잡은 뒤 다음 단계로 넘어가세요.",
+      "nodeIds": [
+        "document:CLAUDE.md",
+        "file:src/main/java/com/example/demo/DemoApplication.java"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "요청이 들어오는 길",
+      "description": "DemoApplication에서 앱이 시작되면 WebConfig가 LoginInterceptor를 모든 경로에 등록합니다. 로그인 세션이 없으면 로그인 페이지로 보내므로, 모든 화면은 로그인을 거쳐야 합니다. AppController는 로그인, 주문 목록/상세, 마스터 관리, 시뮬레이션과 주문 확정 요청을 받아 서비스로 넘기는 창구입니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/config/WebConfig.java",
+        "file:src/main/java/com/example/demo/config/LoginInterceptor.java",
+        "file:src/main/java/com/example/demo/controller/AppController.java"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "화면과 브라우저 스크립트",
+      "description": "화면은 Thymeleaf 템플릿이 만들고, fragments.html의 공통 head와 내비게이션을 모든 페이지가 재사용합니다. 주문 추가 화면(order-new.html)은 수량 입력, 시뮬레이션, 주문 확정의 3단계로 진행되며 실제 동작은 order-new.js가 맡습니다. 결과 표시는 planview.js와 anim.js가 담당합니다.",
+      "nodeIds": [
+        "file:src/main/resources/templates/fragments.html",
+        "file:src/main/resources/templates/order-new.html",
+        "file:src/main/resources/static/js/order-new.js",
+        "file:src/main/resources/static/js/planview.js"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "데이터 모델",
+      "description": "Country는 한국과 4개 해외 공장 국가를 정의하는 enum이며 여러 파일이 가장 많이 참조합니다. Factory, Route, Setting은 공장 생산량, 항로 일수, 선박 수와 마스터 버전을 담는 마스터 데이터이고, Order와 OrderStatus는 확정된 주문과 상태 흐름을 나타냅니다. 이 엔티티들은 repository 파일의 Spring Data JPA 인터페이스로 저장됩니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/entity/Country.java",
+        "file:src/main/java/com/example/demo/entity/Setting.java",
+        "file:src/main/java/com/example/demo/entity/Order.java",
+        "file:src/main/java/com/example/demo/entity/OrderStatus.java",
+        "file:src/main/java/com/example/demo/repository/OrderRepositories.java"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "핵심 서비스 BatteryService",
+      "description": "BatteryService는 마스터 데이터 관리, 시뮬레이션 실행, 주문 확정과 상태 변경, 이력 조회를 한곳에서 처리하는 핵심 서비스입니다. 컨트롤러는 이 서비스를 호출하기만 하고, 업무 규칙 위반은 BusinessException으로 전달됩니다. DataInitializer는 앱 시작 때 기본 마스터 데이터를 채워 줍니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/service/BatteryService.java",
+        "file:src/main/java/com/example/demo/service/BusinessException.java",
+        "file:src/main/java/com/example/demo/config/DataInitializer.java"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "경로 시뮬레이션 엔진",
+      "description": "Planner는 주문 수량으로 비용 최소, 최단 기간 등 여러 선박 경로 옵션을 만드는 핵심 엔진입니다. Master는 시뮬레이션에 쓰는 공장/운송 데이터이고, Plan은 선박별 왕복과 방문, 재고와 생산량 시계열을 담은 결과입니다. 4단계의 마스터 값이 여기서 계산의 입력이 됩니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/simulation/Planner.java",
+        "file:src/main/java/com/example/demo/simulation/Master.java",
+        "file:src/main/java/com/example/demo/simulation/Plan.java"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "안전장치 1: 서버 재계산과 스냅샷",
+      "description": "주문을 확정할 때 BatteryService가 서버에서 계획을 다시 계산하는 구조라서, 화면이 보낸 값을 그대로 믿지 않습니다. 확정 시점의 마스터 값과 선택한 경로는 StoredPlan 스냅샷으로 Order에 저장되어, 나중에 마스터가 바뀌어도 당시 계획을 확인할 수 있습니다. 통합 테스트 OrderFlowTests가 이 주문 흐름을 검증합니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/service/BatteryService.java",
+        "file:src/main/java/com/example/demo/simulation/StoredPlan.java",
+        "file:src/test/java/com/example/demo/OrderFlowTests.java"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "안전장치 2: 마스터 버전과 낙관적 락",
+      "description": "Setting 엔티티는 마스터 버전을 관리하므로, 시뮬레이션 이후 마스터가 바뀌었는지 확정 때 비교할 수 있습니다. 버전이 어긋나거나 동시에 수정이 충돌하면 BusinessException이 충돌 여부와 함께 메시지를 전달합니다. 마스터 편집은 master.html 화면에서 이뤄집니다.",
+      "nodeIds": [
+        "file:src/main/java/com/example/demo/entity/Setting.java",
+        "file:src/main/java/com/example/demo/service/BusinessException.java",
+        "file:src/main/resources/templates/master.html"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "설정과 테스트",
+      "description": "application.properties는 H2 파일 DB와 JPA 설정을 정하고, build.gradle.kts는 Spring Boot, Thymeleaf, JPA, H2 의존성과 Java 17 툴체인을 정의합니다. PlannerTest는 방문 횟수, 재고 한도, 선박 수 제한 같은 시뮬레이션 규칙을 검증합니다. 코드를 바꾼 뒤에는 이 테스트들로 확인하세요.",
+      "nodeIds": [
+        "config:src/main/resources/application.properties",
+        "file:build.gradle.kts",
+        "file:src/test/java/com/example/demo/simulation/PlannerTest.java"
+      ]
+    }
+  ]
+}
