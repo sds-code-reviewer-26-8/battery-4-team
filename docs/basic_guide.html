@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>배터리 주문 계획 기본 가이드</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --ink: #1f2933; --sub: #5b6770; --line: #d9e0e7;
+    --main: #1b6ef3; --main-soft: #e6efff; --ok: #1a8a4a; --warn: #c2570c; --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14181d; --card: #1d232a; --ink: #e8edf2; --sub: #9aa7b2; --line: #333c45;
+      --main: #5b9bff; --main-soft: #1e2e4a; --ok: #4cc27f; --warn: #f0903f; --bad: #ef7b6e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; line-height: 1.6; }
+  header { padding: 24px 16px 8px; max-width: 880px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p { margin: 0; color: var(--sub); }
+  main { max-width: 880px; margin: 0 auto; padding: 0 16px 48px; }
+  [role=tablist] { display: flex; gap: 6px; margin: 16px 0; flex-wrap: wrap; }
+  [role=tab] { flex: 1 1 0; min-width: 140px; padding: 12px 14px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); border-radius: 10px; cursor: pointer; font: inherit; text-align: left; }
+  [role=tab] small { display: block; color: var(--sub); }
+  [role=tab][aria-selected=true] { background: var(--main); border-color: var(--main); color: #fff; }
+  [role=tab][aria-selected=true] small { color: #dbe8ff; }
+  [role=tabpanel] { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  [role=tabpanel][hidden] { display: none; }
+  h2 { margin-top: 0; font-size: 1.25rem; }
+  h3 { margin: 22px 0 8px; font-size: 1.05rem; }
+  .lead { font-size: 1.05rem; }
+  .note { background: var(--main-soft); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--bg); }
+  .box b { display: block; }
+  button.btn { font: inherit; border: 1px solid var(--main); background: var(--main); color: #fff;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+  button.btn.ghost { background: transparent; color: var(--main); }
+  button.btn:disabled { opacity: .4; cursor: not-allowed; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  select, input[type=range] { font: inherit; }
+  select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  input[type=range] { flex: 1 1 220px; }
+
+  /* 1 탭: 흐름 */
+  .steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+  .step { flex: 1 1 130px; border: 2px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer;
+    background: var(--bg); font: inherit; color: var(--ink); text-align: left; }
+  .step.on { border-color: var(--main); background: var(--main-soft); }
+  .step .no { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: var(--main);
+    color: #fff; text-align: center; line-height: 24px; margin-right: 6px; font-size: .85rem; }
+  #stepText { min-height: 84px; }
+
+  /* 2 탭: 창고 */
+  .stage { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin: 14px 0; }
+  .warehouse { width: 120px; height: 150px; border: 3px solid var(--sub); border-radius: 6px; position: relative;
+    background: var(--bg); overflow: hidden; }
+  .warehouse .fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--main); height: 0; transition: height .25s; }
+  .warehouse.full { border-color: var(--warn); }
+  .warehouse.full .fill { background: var(--warn); }
+  .ship { font-size: 2.4rem; transition: transform .6s; }
+  .ship.gone { transform: translateX(80px); opacity: .25; }
+  .stat { min-width: 150px; }
+  .stat div { margin: 2px 0; }
+  .log { max-height: 160px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+    background: var(--bg); font-size: .92rem; }
+  .log p { margin: 2px 0; }
+
+  /* 3 탭 */
+  .plan { border: 2px solid var(--line); border-radius: 10px; padding: 12px; }
+  .plan.pick { border-color: var(--ok); background: var(--main-soft); }
+  .badge { display: inline-block; font-size: .8rem; padding: 1px 8px; border-radius: 99px; background: var(--ok); color: #fff; }
+  .flow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+  .state { padding: 8px 14px; border-radius: 99px; border: 2px solid var(--line); background: var(--bg); }
+  .state.now { border-color: var(--main); background: var(--main); color: #fff; font-weight: 700; }
+  .state.end { border-color: var(--sub); }
+  .arrow { color: var(--sub); }
+  .msg { min-height: 1.6em; }
+  .msg.bad { color: var(--bad); }
+  .msg.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <h1>배터리 주문 계획 기본 가이드</h1>
+  <p>3단계로 이 프로그램이 무슨 일을 하는지 이해해 봅니다. 탭을 순서대로 눌러 보세요.</p>
+</header>
+
+<main>
+  <div role="tablist" aria-label="이해 단계">
+    <button role="tab" id="t1" aria-controls="p1" aria-selected="true">1단계<small>무슨 프로그램인가요?</small></button>
+    <button role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1">2단계<small>공장은 어떻게 움직이나요?</small></button>
+    <button role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1">3단계<small>고르고, 확정하고, 관리해요</small></button>
+  </div>
+
+  <!-- ===== 1단계 ===== -->
+  <section role="tabpanel" id="p1" aria-labelledby="t1">
+    <h2>1단계. 무슨 프로그램인가요?</h2>
+    <p class="lead">배터리를 만드는 공장이 <b>외국 4곳</b>에 있습니다. 다 만들어진 배터리는 <b>배로 한국까지</b> 실어 와야 합니다.
+      이 프로그램은 "어디서 몇 개를 만들까?"를 입력하면 <b>배를 어떻게 보내면 좋을지 계획</b>을 대신 계산해 줍니다.</p>
+
+    <h3>공장 4곳 (한국에서 배로 가는 날수)</h3>
+    <div class="grid">
+      <div class="box"><b>🇨🇳 중국</b>한국에서 1일</div>
+      <div class="box"><b>🇯🇵 일본</b>한국에서 2일</div>
+      <div class="box"><b>🇻🇳 베트남</b>한국에서 5일</div>
+      <div class="box"><b>🇮🇩 인도네시아</b>한국에서 7일</div>
+    </div>
+
+    <h3>일이 진행되는 순서 (눌러 보세요)</h3>
+    <div class="steps" id="steps"></div>
+    <div class="note" id="stepText"></div>
+    <div class="row">
+      <button class="btn ghost" id="prevStep">← 이전</button>
+      <button class="btn" id="nextStep">다음 →</button>
+    </div>
+
+    <h3>자주 나오는 말</h3>
+    <div class="grid">
+      <div class="box"><b>K</b>1K = 배터리 셀 1,000개</div>
+      <div class="box"><b>재고 상한</b>공장 창고에 쌓아 둘 수 있는 최대 양</div>
+      <div class="box"><b>기준값</b>공장 능력, 항로 일수, 배 척수처럼 계산에 쓰는 숫자들</div>
+    </div>
+  </section>
+
+  <!-- ===== 2단계 ===== -->
+  <section role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+    <h2>2단계. 공장은 어떻게 움직이나요?</h2>
+    <p class="lead">공장은 매일 정해진 양을 만들어 <b>창고</b>에 쌓습니다. 창고가 가득 차면 <b>배가 와서 싣고 갈 때까지 생산이 멈춥니다.</b>
+      직접 해 보면서 확인해 보세요.</p>
+
+    <div class="row">
+      <label>공장 <select id="fac"></select></label>
+      <label>주문량 <b id="qtyLabel"></b></label>
+    </div>
+    <div class="row"><input type="range" id="qty" min="100" max="20000" step="100" value="3000" aria-label="주문량(K)"></div>
+
+    <div class="grid" id="facInfo"></div>
+
+    <div class="stage">
+      <div>
+        <div class="warehouse" id="wh"><div class="fill" id="fill"></div></div>
+        <div style="text-align:center">창고</div>
+      </div>
+      <div class="ship" id="ship" aria-hidden="true">🚢</div>
+      <div class="stat">
+        <div>지금 <b id="day">0</b>일째</div>
+        <div>창고 <b id="stock">0</b>K</div>
+        <div>더 만들어야 할 양 <b id="remain">0</b>K</div>
+        <div>배가 싣고 간 양 <b id="shipped">0</b>K</div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="play">▶ 하루씩 진행</button>
+      <button class="btn ghost" id="auto">자동 재생</button>
+      <button class="btn ghost" id="reset">처음으로</button>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="note">단순화한 체험입니다. 실제 프로그램은 배가 창고가 차는 날에 맞춰 오도록 출발 날짜를 계산합니다.
+      여기서는 창고가 가득 차거나 주문을 다 만들면 배가 바로 싣고 간다고 가정했습니다.</div>
+  </section>
+
+  <!-- ===== 3단계 ===== -->
+  <section role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+    <h2>3단계. 고르고, 확정하고, 관리해요</h2>
+
+    <h3>① 세 가지 방법 중 무엇을 고를까요?</h3>
+    <p>가장 중요한 것을 고르면 어울리는 방법을 알려 드립니다.</p>
+    <div class="row">
+      <button class="btn ghost" data-want="COST">💰 돈을 아끼고 싶어요</button>
+      <button class="btn ghost" data-want="FAST">⏱ 빨리 끝내고 싶어요</button>
+      <button class="btn ghost" data-want="NEAR">📍 단순한 게 좋아요</button>
+    </div>
+    <div class="grid" id="plans">
+      <div class="plan" data-plan="COST"><b>운항비 최소</b><br>배가 다니는 날수를 가장 적게 만드는 방법. 비용은 가장 적지만 시간이 더 걸릴 수 있어요.</div>
+      <div class="plan" data-plan="FAST"><b>가장 빠르게</b><br>모든 주문이 한국에 도착하는 날이 가장 이른 방법. 배를 더 쓰는 만큼 비용이 늘 수 있어요.</div>
+      <div class="plan" data-plan="NEAR"><b>가까운 곳부터</b><br>한국에서 가까운 나라부터 차례로 배에 나눠 맡기는 간단한 방법이에요.</div>
+    </div>
+    <div class="msg" id="planMsg"></div>
+
+    <h3>② 주문의 상태 바꿔 보기</h3>
+    <p>확정한 주문은 아래 순서로만 바뀝니다. 버튼을 눌러 보세요. 규칙에 어긋나면 막혀요.</p>
+    <div class="flow" id="flow"></div>
+    <div class="row" id="stateBtns"></div>
+    <div class="msg" id="stateMsg"></div>
+    <div class="note">취소하면 그 주문은 목록에서 사라집니다. 누가 언제 취소했는지 기록(이력)만 남아요.</div>
+
+    <h3>③ 기준값이 바뀌면?</h3>
+    <p>계산해 보는 사이에 누군가 공장 능력이나 항로 일수 같은 기준값을 바꾸면, 보고 있던 결과는 더 이상 믿을 수 없습니다.</p>
+    <div class="row">
+      <button class="btn ghost" id="changeBase">누군가 기준값을 바꿨어요</button>
+      <button class="btn" id="confirmBtn">이 계획으로 확정하기</button>
+    </div>
+    <div class="msg" id="confirmMsg"></div>
+    <div class="note">그래서 프로그램은 확정할 때 <b>다시 한 번 계산</b>하고, 그 사이 기준값이 바뀌었다면 확정하지 않고 "다시 계산해 주세요"라고 알려 줍니다.
+      또 두 사람이 같은 주문을 동시에 바꾸려 해도 먼저 바꾼 사람만 반영됩니다.</div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => [...document.querySelectorAll(s)];
+
+  /* ---------- 탭 ---------- */
+  const tabs = $$('[role=tab]');
+  function showTab(i) {
+    tabs.forEach((t, k) => {
+      const on = k === i;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => showTab(i));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        const n = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+        showTab(n); tabs[n].focus();
+      }
+    });
+  });
+
+  /* ---------- 1단계: 진행 순서 ---------- */
+  const steps = [
+    ['수량 입력', '각 나라 공장에 몇 K를 만들게 할지 적어요. 예: 중국 3,000K, 일본 3,000K …'],
+    ['계획 계산', '프로그램이 배를 보내는 방법 세 가지를 계산해서 보여 줘요. 걸리는 날수와 비용도 함께요.'],
+    ['하나 고르기', '세 가지를 비교해 보고 상황에 맞는 하나를 골라요. 메모도 남길 수 있어요.'],
+    ['주문 확정', '고른 계획을 주문으로 확정해요. 이때의 계획과 기준값이 그대로 기록돼서, 나중에 기준값이 바뀌어도 그날의 계획을 볼 수 있어요.'],
+    ['상태 관리', '확정 → 진행 → 완료 순서로 주문 상태를 바꿔 가며 관리해요. 중간에 취소도 할 수 있어요.']
+  ];
+  let cur = 0;
+  const stepsBox = $('#steps');
+  steps.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'step';
+    b.innerHTML = `<span class="no">${i + 1}</span>${s[0]}`;
+    b.addEventListener('click', () => setStep(i));
+    stepsBox.appendChild(b);
+  });
+  function setStep(i) {
+    cur = Math.max(0, Math.min(steps.length - 1, i));
+    $$('.step').forEach((b, k) => b.classList.toggle('on', k === cur));
+    $('#stepText').innerHTML = `<b>${cur + 1}. ${steps[cur][0]}</b><br>${steps[cur][1]}`;
+    $('#prevStep').disabled = cur === 0;
+    $('#nextStep').disabled = cur === steps.length - 1;
+  }
+  $('#prevStep').onclick = () => setStep(cur - 1);
+  $('#nextStep').onclick = () => setStep(cur + 1);
+  setStep(0);
+
+  /* ---------- 2단계: 창고 체험 ---------- */
+  const F = {
+    '중국': { daily: 400, limit: 4000, cost: 700, trip: 1 },
+    '일본': { daily: 800, limit: 2000, cost: 900, trip: 2 },
+    '베트남': { daily: 200, limit: 10000, cost: 550, trip: 5 },
+    '인도네시아': { daily: 300, limit: 7000, cost: 450, trip: 7 }
+  };
+  const fmt = (n) => n.toLocaleString('ko-KR');
+  const fac = $('#fac'), qty = $('#qty');
+  Object.keys(F).forEach((k) => fac.add(new Option(k, k)));
+
+  let st;
+  function reset() {
+    stop();
+    const f = F[fac.value];
+    st = { day: 0, stock: 0, remain: +qty.value, shipped: 0, f };
+    $('#log').innerHTML = '';
+    $('#ship').classList.remove('gone');
+    draw();
+    renderInfo();
+  }
+  function renderInfo() {
+    const f = st.f, q = +qty.value;
+    const days = Math.ceil(q / f.daily);
+    const visits = Math.ceil(q / f.limit);
+    $('#qtyLabel').textContent = fmt(q) + 'K (' + fmt(q * 1000) + '개)';
+    $('#facInfo').innerHTML = `
+      <div class="box"><b>하루에 만드는 양</b>${fmt(f.daily)}K</div>
+      <div class="box"><b>창고 상한</b>${fmt(f.limit)}K</div>
+      <div class="box"><b>다 만드는 데</b>${fmt(days)}일</div>
+      <div class="box"><b>배가 와야 하는 횟수</b>${visits}번 ${visits > 1 ? '(창고보다 많이 주문했어요)' : ''}</div>
+      <div class="box"><b>한국까지</b>${f.trip}일 (편도)</div>
+      <div class="box"><b>만드는 비용</b>약 ${(q * 1000 * f.cost / 1e8).toFixed(2)}억 원</div>`;
+  }
+  function draw() {
+    $('#day').textContent = st.day;
+    $('#stock').textContent = fmt(st.stock);
+    $('#remain').textContent = fmt(st.remain);
+    $('#shipped').textContent = fmt(st.shipped);
+    $('#fill').style.height = (st.stock / st.f.limit * 100) + '%';
+    $('#wh').classList.toggle('full', st.stock >= st.f.limit);
+  }
+  function log(t) {
+    const p = document.createElement('p');
+    p.textContent = t;
+    $('#log').prepend(p);
+  }
+  function tick() {
+    if (st.remain === 0 && st.stock === 0) { stop(); log('모든 주문을 한국으로 보냈어요. 🎉'); return false; }
+    st.day++;
+    const made = Math.max(0, Math.min(st.f.daily, st.f.limit - st.stock, st.remain));
+    st.stock += made; st.remain -= made;
+    if (made === 0) log(`${st.day}일째: 창고가 가득 차서 생산이 멈췄어요.`);
+    else log(`${st.day}일째: ${fmt(made)}K 생산 (창고 ${fmt(st.stock)}K)`);
+    const full = st.stock >= st.f.limit, done = st.remain === 0;
+    if (full || done) {
+      log(`배가 도착해서 ${fmt(st.stock)}K를 싣고 한국으로 떠나요. 🚢`);
+      st.shipped += st.stock; st.stock = 0;
+      const s = $('#ship'); s.classList.add('gone');
+      setTimeout(() => s.classList.remove('gone'), 700);
+    }
+    draw();
+    return true;
+  }
+  let timer = null;
+  function stop() { clearInterval(timer); timer = null; $('#auto').textContent = '자동 재생'; }
+  $('#play').onclick = tick;
+  $('#auto').onclick = () => {
+    if (timer) { stop(); return; }
+    $('#auto').textContent = '⏸ 멈추기';
+    timer = setInterval(() => { if (!tick()) stop(); }, 350);
+  };
+  $('#reset').onclick = reset;
+  fac.onchange = reset;
+  qty.oninput = reset;
+  reset();
+
+  /* ---------- 3단계 ---------- */
+  // ① 방법 고르기
+  const why = {
+    COST: '"운항비 최소"가 어울려요. 배가 다니는 날수를 가장 줄여 줘요.',
+    FAST: '"가장 빠르게"가 어울려요. 마지막 배가 돌아오는 날이 가장 빨라요.',
+    NEAR: '"가까운 곳부터"가 어울려요. 규칙이 단순해서 이해하기 쉬워요.'
+  };
+  $$('[data-want]').forEach((b) => b.addEventListener('click', () => {
+    const w = b.dataset.want;
+    $$('.plan').forEach((p) => {
+      p.classList.toggle('pick', p.dataset.plan === w);
+      p.querySelector('.badge')?.remove();
+      if (p.dataset.plan === w) p.insertAdjacentHTML('afterbegin', '<span class="badge">추천</span> ');
+    });
+    $('#planMsg').textContent = why[w];
+  }));
+
+  // ② 상태 바꾸기
+  const label = { CONFIRMED: '확정', IN_PROGRESS: '진행', COMPLETED: '완료', CANCELED: '취소' };
+  const next = { CONFIRMED: ['IN_PROGRESS', 'CANCELED'], IN_PROGRESS: ['COMPLETED', 'CANCELED'], COMPLETED: [], CANCELED: [] };
+  let state = 'CONFIRMED';
+  function drawState() {
+    $('#flow').innerHTML = ['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].map((s, i) =>
+      `${i ? '<span class="arrow">→</span>' : ''}<span class="state ${s === state ? 'now' : ''}">${label[s]}</span>`).join('') +
+      `<span class="arrow">/</span><span class="state end ${state === 'CANCELED' ? 'now' : ''}">${label.CANCELED}</span>`;
+    $('#stateBtns').innerHTML = '';
+    Object.keys(label).forEach((s) => {
+      const b = document.createElement('button');
+      b.className = 'btn ghost';
+      b.textContent = label[s] + '(으)로 바꾸기';
+      b.onclick = () => change(s);
+      $('#stateBtns').appendChild(b);
+    });
+    const r = document.createElement('button');
+    r.className = 'btn'; r.textContent = '새 주문으로 다시 시작';
+    r.onclick = () => { state = 'CONFIRMED'; setMsg('stateMsg', '새 주문이 확정되었어요.', 'ok'); drawState(); };
+    $('#stateBtns').appendChild(r);
+  }
+  function setMsg(id, text, cls) { const m = $('#' + id); m.textContent = text; m.className = 'msg ' + (cls || ''); }
+  function change(target) {
+    if (next[state].includes(target)) {
+      setMsg('stateMsg', `'${label[state]}'에서 '${label[target]}'(으)로 바꿨어요.` +
+        (target === 'CANCELED' ? ' 주문은 목록에서 사라지고 이력만 남아요.' : ''), 'ok');
+      state = target;
+    } else {
+      setMsg('stateMsg', `'${label[state]}' 상태에서는 '${label[target]}'(으)로 바꿀 수 없어요.`, 'bad');
+    }
+    drawState();
+  }
+  drawState();
+
+  // ③ 기준값 변경
+  let changed = false;
+  $('#changeBase').onclick = () => { changed = true; setMsg('confirmMsg', '기준값이 바뀌었어요. 지금 보던 계산 결과는 옛날 기준이에요.', 'bad'); };
+  $('#confirmBtn').onclick = () => {
+    if (changed) {
+      setMsg('confirmMsg', '확정하지 못했어요. 시뮬레이션 이후 기준값이 바뀌었으니 다시 계산해 주세요.', 'bad');
+      changed = false;
+    } else {
+      setMsg('confirmMsg', '확정되었어요. 이 시점의 계획과 기준값이 그대로 기록돼요.', 'ok');
+    }
+  };
+})();
+</script>
+</body>
+</html>
