@@ -23,7 +23,8 @@ public class ApiController {
 	public record SimulateRequest(Map<Country, Integer> orders) {
 	}
 
-	public record ConfirmRequest(Map<Country, Integer> orders, String routeType, long masterVersion, String memo) {
+	public record ConfirmRequest(Map<Country, Integer> orders, String routeType, long masterVersion, String memo,
+			String customerName) {
 	}
 
 	private final MasterService masterService;
@@ -55,7 +56,7 @@ public class ApiController {
 	public ResponseEntity<?> confirm(@RequestBody ConfirmRequest request, @SessionAttribute(name = LoginInterceptor.SESSION_USER, required = false) String user) {
 		try {
 			Order order = orderService.confirm(request.orders(), request.routeType(), request.masterVersion(),
-					request.memo(), user);
+					request.memo(), request.customerName(), user);
 			return ResponseEntity.ok(Map.of("id", order.getId()));
 		} catch (BusinessException e) {
 			return apiError(e);
