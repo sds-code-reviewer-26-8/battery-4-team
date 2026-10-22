@@ -1,0 +1,55 @@
+검증 로그 (재검증: E2E 대기 보강 이후)
+점검 시각: 2026-10-22 16:26 (실행 기록은 이 시각 이전에 돌린 것)
+작업: DEV-002-factory-operating-cost
+성격: /ih의 verify 에이전트가 쓴 로그가 아니라, 대기 보강(E2E-021, E2E-032) 이후 상태를 사람이 시킨 대로 직접 다시 돌린 재검증 기록이다.
+앞선 검증 로그: review_20261022_155448.log (/ih verify, 대기 보강 이전)
+
+[보강한 것]
+- e2e-021.spec.ts: 목록은 행이 보일 때까지 기다린 뒤 읽는다(expect(...).toBeVisible()). 상세 #summary는 공백을 정리(normalize)한 텍스트에
+  "소요 일수 N일"이 나타날 때까지 expect.poll 로 기다린 뒤 읽는다.
+- e2e031-041.spec.ts: E2E-032에서 취소한 뒤 앱의 이동(/orders)이 끝난 것을 expect(page).toHaveURL(/\/orders$/)로 기다린 다음 목록을 연다.
+
+[불안정 원인 확인]
+- E2E-021: 목록을 연 직후 allInnerTexts()로 행을 읽는데 이 함수는 기다리지 않는다. 응답을 0.4초 지연시키면 매번 실패
+  (목록의 소요 일수: 기대 "20", 실제 undefined). 상세 #summary도 innerText()로 같은 방식.
+- E2E-032: 취소 후 앱이 스스로 /orders로 이동하고 테스트도 곧바로 page.goto('/orders')를 해서 두 이동이 겹침.
+  60번 반복 중 3번(5%) "Navigation to /orders is interrupted by another navigation to /orders"로 실패.
+- 둘 다 테스트 쪽 대기 부족이다. 운영비 변경이 만든 문제가 아니고 운영비 이전부터 있던 것이다(E2E-021은 BUG-002 검증 때도 같은 증상).
+- 콜드 스타트만으로는 재현되지 않았다(앱을 새로 띄운 직후 격리 실행 3회 모두 통과).
+
+[보강 확인]
+- E2E-021 x5 + E2E-032(2개) x5 반복: 처음 시도에서 E2E-021이 5번 모두 실패했다. 새로 넣은 대기(toContainText)가
+  요약 텍스트의 줄바꿈 때문에 맞지 않았기 때문이다. expect.poll + normalize 로 고친 뒤 15개 모두 통과(실패 0).
+
+[Regression Test — 대기 보강 이후]
+- ./gradlew cleanTest test : BUILD SUCCESSFUL, 35건 (DemoApplicationTests 1, MasterFormTests 1, MasterOperatingCostTests 5,
+  OrderFlowTests 10, PlannerTest 18) 실패 0
+- npx playwright test -c src/test/e2e/playwright.all.config.ts (포트 8092, 메모리 DB)
+  - 실행 1: 53 passed (44.7초)
+  - 실행 2: 53 passed (43.9초)
+  - 연속 2회 모두 첫 실행부터 실패 없음. E2E-035만 test.fail() 예상 실패이고 예기치 않게 통과한 test.fail 없음.
+- 실행 환경: 별도 포트(8092)와 메모리 DB. 개발 서버(8080)와 개발 DB(./data/battery)는 사용하지 않음. 실행 뒤 8092 종료 확인.
+
+[새 테스트가 규칙을 지키는지 확인 (변이 시험, 작업 트리 복사본에서 실행)]
+새 규칙을 하나씩 일부러 깨뜨려 새 JUnit 테스트가 실패하는지 봤다. 모두 의도한 테스트가 실패했다.
+- 선택 기준을 운항비만으로 되돌림 -> PlannerTest 3건 실패 (costOptionWeighsOperatingCostNotShippingAlone 등)
+- 운영 일수를 마지막 수거일 + 1일로 -> PlannerTest 2건 실패 (operatingDaysRunUntilEachFactorysLastPickup 등)
+- 주문 없는 공장에 운영비 -> PlannerTest 1건 실패 (factoriesWithoutOrderCostNothingAndEachFactoryUsesItsOwnDailyCost)
+- 안 이름을 옛 이름으로 -> PlannerTest 1건 실패 (costOptionIsLabeledTotalCostMinimum)
+- 마스터 상한(1,000억) 검사 제거 -> MasterOperatingCostTests 1건 실패 (valuesOutsideRangeAreRejectedWithReasonsAndNothingIsSaved)
+- 기존 DB 보정이 있는 값을 덮어씀 -> MasterOperatingCostTests 1건 실패 (initDefaultsFillsOnlyEmptyOperatingCosts)
+(참고: 시험 도중 실행 스크립트가 Gradle을 못 돌려 나온 첫 결과 5건은 무효였고, 위 결과는 셸에서 직접 돌린 것이다.)
+
+[기존 DB 보정 확인 (개발 DB 복사본)]
+개발 DB(./data/battery.mv.db)를 복사해 별도 포트(18097)에서 새 코드를 기동했다. 원본 DB와 8080은 건드리지 않았다.
+- 공장 4곳의 하루 운영비가 모두 1,000,000,000원(10억)으로 채워졌고 마스터 버전은 1 그대로.
+- 기존 확정 주문 5건이 목록에 그대로 있고, 주문 #5의 저장된 계획에는 operatingCost·factoryOperations 필드가 없는 채로
+  총 비용 8,394,000,000원(생산 67.94억 + 운항비 16.00억)이 그대로. 서버는 저장된 계획을 다시 쓰지 않음.
+
+[판정]
+PASS (대기 보강 이후 기준)
+
+[한계 · 확인하지 못한 것]
+- 반복 수가 적다(E2E-021·E2E-032 각 5번). 불안정이 완전히 사라졌는지는 이후 전체 E2E를 돌릴 때 계속 지켜봐야 한다.
+- 새 E2E(operating-cost.spec.ts)의 수정 전 실패, 옛 코드 그대로의 실행은 확인하지 못했다.
+- 변경 전 E2E를 따로 돌려 비교하지는 않았다.
