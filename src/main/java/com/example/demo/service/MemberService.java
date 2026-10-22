@@ -22,6 +22,8 @@ public class MemberService {
 	private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9]{3,20}");
 	private static final int MIN_PASSWORD = 4;
 	private static final int MAX_PASSWORD = 100;
+	/** 새 가입자에게 적용하는 값이자, 파라미터가 비어 있는 기존 회원의 해석 값 */
+	private static final String ALGORITHM = "PBKDF2WithHmacSHA256";
 	private static final int ITERATIONS = 65536;
 
 	private final MemberRepository repository;
@@ -51,7 +53,7 @@ public class MemberService {
 		random.nextBytes(saltBytes);
 		String salt = Base64.getEncoder().encodeToString(saltBytes);
 		try {
-			repository.saveAndFlush(new Member(username, hash(password, salt), salt));
+			repository.saveAndFlush(new Member(username, hash(password, salt, ALGORITHM, ITERATIONS), salt, ALGORITHM, ITERATIONS));
 		} catch (DataIntegrityViolationException e) {
 			throw new BusinessException("이미 사용 중인 아이디입니다");
 		}
@@ -63,14 +65,21 @@ public class MemberService {
 			return false;
 		}
 		return repository.findByUsername(username)
-				.map(m -> MessageDigest.isEqual(hash(password, m.getSalt()).getBytes(), m.getPasswordHash().getBytes()))
+				.map(m -> matches(m, password))
 				.orElse(false);
 	}
 
-	private static String hash(String password, String salt) {
+	private static boolean matches(Member m, String password) {
+		String algorithm = m.getHashAlgorithm() != null ? m.getHashAlgorithm() : ALGORITHM;
+		int iterations = m.getIterations() != null ? m.getIterations() : ITERATIONS;
+		return MessageDigest.isEqual(hash(password, m.getSalt(), algorithm, iterations).getBytes(),
+				m.getPasswordHash().getBytes());
+	}
+
+	private static String hash(String password, String salt, String algorithm, int iterations) {
 		try {
-			PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), Base64.getDecoder().decode(salt), ITERATIONS, 256);
-			byte[] key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+			PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), Base64.getDecoder().decode(salt), iterations, 256);
+			byte[] key = SecretKeyFactory.getInstance(algorithm).generateSecret(spec).getEncoded();
 			return Base64.getEncoder().encodeToString(key);
 		} catch (GeneralSecurityException e) {
 			throw new IllegalStateException(e);

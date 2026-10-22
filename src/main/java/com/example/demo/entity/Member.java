@@ -29,14 +29,36 @@ public class Member {
 	@Column(nullable = false)
 	private LocalDateTime createdAt;
 
+	/** 해시 알고리즘. null 이면 컬럼 추가 전 가입자로 보고 기존 방식(PBKDF2WithHmacSHA256)으로 해석한다. */
+	@Column
+	private String hashAlgorithm;
+
+	/** 해시 반복 횟수. null 이면 컬럼 추가 전 가입자로 보고 65536 으로 해석한다. */
+	@Column
+	private Integer iterations;
+
 	protected Member() {
 	}
 
 	public Member(String username, String passwordHash, String salt) {
+		this(username, passwordHash, salt, null, null);
+	}
+
+	public Member(String username, String passwordHash, String salt, String hashAlgorithm, Integer iterations) {
 		this.username = username;
 		this.passwordHash = passwordHash;
 		this.salt = salt;
+		this.hashAlgorithm = hashAlgorithm;
+		this.iterations = iterations;
 		this.createdAt = LocalDateTime.now();
+	}
+
+	public String getHashAlgorithm() {
+		return hashAlgorithm;
+	}
+
+	public Integer getIterations() {
+		return iterations;
 	}
 
 	public String getUsername() {
