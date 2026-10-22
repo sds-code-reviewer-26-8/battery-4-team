@@ -18,6 +18,8 @@ const appArgs = [
   '--spring.datasource.url=jdbc:h2:mem:e2e-huju;DB_CLOSE_DELAY=-1',
   '--spring.jpa.hibernate.ddl-auto=create-drop',
   '--spring.devtools.restart.enabled=false',
+  '--app.rate-limit.signup.max-requests=100000', // E2E 는 한 주소에서 가입·로그인을 많이 하므로 횟수 제한을 풀어 둔다
+  '--app.rate-limit.login.max-requests=100000',
 ].join(' ');
 
 const reportDir = process.env.E2E_REPORT_DIR;

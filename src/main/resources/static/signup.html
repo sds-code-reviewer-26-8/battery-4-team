@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>회원 가입 - 배터리 주문 관리</title>
+	<link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="login-page">
+<main class="login-box">
+	<h1>회원 가입</h1>
+	<p class="muted">배터리 생산 / 수거 비용 예측 및 주문 관리</p>
+	<form id="signupForm" class="stack">
+		<label>아이디 <input type="text" name="username" autofocus required autocomplete="username"></label>
+		<label>비밀번호 <input type="password" name="password" required autocomplete="new-password"></label>
+		<button type="submit" class="primary">가입</button>
+	</form>
+	<p class="muted"><a href="/login">로그인으로 돌아가기</a></p>
+</main>
+
+<script src="/js/common.js"></script>
+<script src="/js/signup.js"></script>
+</body>
+</html>

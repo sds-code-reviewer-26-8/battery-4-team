@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 가입 횟수 제한 + 로그인 세션 ID 재발급</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+</head>
+<body data-loop="refactor" data-status="GO">
+<div class="wrap">
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류"><li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li></ul>
+  <div class="status-badge">GO</div>
+  <h1>구현 전 점검</h1>
+  <p class="target">(코드 리뷰 지적 2건) 1) AuthController.signup·MemberService: 가입·로그인 API에 IP·시간당 횟수 제한이 없음 (PBKDF2 65,536회 CPU 부담, 회원 행 무한 증가). 2) AuthController.login: 로그인 성공 시 세션 ID를 재발급하지 않아 세션 고정 위험.</p>
+  <p class="meta"><span>날짜 2026-10-22 15:58:31</span><span>회차 1</span><span>작성 prepare 에이전트</span><span>브랜치 feature/signup · 커밋 bd0ab7f</span><span>요청자 youngeun</span><span>로그 없음</span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b>GO. 요청의 배경과 목적이 분명하고, 사용자가 문서의 보안 범위 제외 방침을 알고 후속 보강으로 요청했다. 문서 갱신을 함께 계획에 넣는다.</b></p>
+  <h3>이유</h3>
+  <ul class="list"><li>요청문이 위치(AuthController.signup/login, MemberService), 위험(CPU 부담, 회원 행 증가, 세션 고정), 해결 방향(IP·시간당 제한, changeSessionId/재생성)을 구체적으로 적고 있다. 근거: 요청문, AuthController.java 47행(session.setAttribute만 호출), MemberService.java ITERATIONS=65536.</li><li>현재 코드에는 횟수 제한도 세션 ID 재발급도 없음을 직접 확인했다(src/main grep에서 RateLimit, changeSessionId, 429 없음). </li><li>INTENT.md 7장 "보안 요건(CSRF 방어 등) 이번 범위에서 제외", 4장 "요구사항에 없는 범위 확장을 섞지 않는다(필요하면 먼저 PRD.md에 반영)", PRD.md 10장 범위 밖과 맞닿아 있다. 다만 INTENT 9장 3번이 공개 가입 위험을 이미 후속 확인 대상으로 적고 있고, 사용자가 이를 알고 보강을 요청했으므로 HILP 없이 진행하되 PRD/INTENT를 함께 고친다.</li><li>요청은 "리팩토링"으로 지정됐지만 실제로는 동작이 바뀐다(가입 과다 요청 429, 세션 ID 변경). 사용자가 Loop를 지정했으므로 따르되, 불변 목록은 "정상 가입·로그인의 응답과 화면 흐름"으로 한정한다.</li></ul>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검</h2>
+  <div class="two">
+    <div class="mini"><h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok">이해함</span></h3>
+      <p>공개 회원 가입이 도입돼(커밋 bd0ab7f) 누구나 가입해 admin과 같은 권한을 얻는다. 가입·로그인 API는 인증 없이 열려 있고, 로그인은 기존 세션에 사용자만 넣는다.</p>
+      <div class="k">근거</div><p class="hint">요청문, PRD.md 3장·10장, INTENT.md 원칙 14·7장·9장 3번, WebConfig.java 14행(/api/login, /api/signup 인터셉터 제외)</p></div>
+    <div class="mini"><h3>목적 · 왜 필요한가 <span class="chip" data-state="ok">이해함</span></h3>
+      <p>대량 가입 요청으로 CPU와 DB 행이 소모되는 것을 막고, 로그인 시 세션 ID를 새로 발급해 세션 고정 공격을 막는다. 정상 가입·로그인은 그대로 동작해야 한다.</p>
+      <div class="k">근거</div><p class="hint">요청문 "IP·시간당 횟수 제한을 권합니다", "changeSessionId/재생성"</p></div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모</p>
+  <div class="meter" data-scale="medium"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b>예</b> <span class="hint">— 요청문이 위험 항목과 영향(보안 범위, 이전부터 있던 코드)을 직접 설명함</span></p>
+  <div class="tbl"><table><thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead><tbody>
+  <tr><td>E2E·JUnit이 같은 IP(127.0.0.1)에서 로그인·가입을 반복해 제한에 걸려 기존 테스트가 깨질 수 있다.</td><td><span class="chip" data-state="warn">중간</span></td><td>가입(시간당 10회)과 로그인(분당 60회)은 둘 다 application.properties 설정값으로 두고, 로그인은 정상 사용에 영향이 없도록 더 큰 한도를 쓴다. 테스트·E2E 실행 때는 설정으로 한도를 풀어 두고(테스트 프로퍼티, E2E 앱 실행 인자), 제한 동작 전용 테스트만 낮은 한도를 쓴다.</td></tr><tr><td>프록시 뒤에서 IP를 잘못 읽거나 메모리 맵이 무한히 커질 수 있다.</td><td><span class="chip" data-state="warn">중간</span></td><td>request.getRemoteAddr()만 사용(프록시 헤더 불신뢰, forward-headers 설정 없음 확인). 만료 항목 정리로 맵 크기를 제한한다. 단일 서버 메모리 방식이라 다중 인스턴스에서는 공유되지 않음을 문서에 남긴다.</td></tr><tr><td>세션 재발급 시 로그인 상태가 풀리거나 속성이 사라질 수 있다.</td><td><span class="chip" data-state="warn">중간</span></td><td>기존 세션이 있으면 changeSessionId()로 ID만 바꾸고 속성 유지, 없으면 새 세션 생성. 신규 JUnit과 E2E-001~005로 확인.</td></tr><tr><td>인증 코드(원칙 14)와 보안 범위 문서를 바꾸는 핵심 규칙 변경이다.</td><td><span class="chip" data-state="warn">중간</span></td><td>구현 후 사람이 report.html을 확인한다.</td></tr></tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list"><li>PBKDF2 CPU 부담 수치는 요청문 그대로 추정이며 측정하지 않았다.</li><li>IP당 한도 수치는 요청에 없어 기본값을 정해 설정으로 뺀다: 가입 시간당 10회, 로그인 분당 60회(로그인은 정상 사용에 영향이 없도록 더 크게 잡음). 값은 설정으로 바꿀 수 있고 report에 기록한다.</li><li>외부 보안 라이브러리(Spring Security 등)는 추가하지 않고 서블릿·서비스 코드로 구현한다고 가정했다. 빌드 파일(pom/gradle)은 Glob 결과에 없어 확인하지 못했다.</li></ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md bd0ab7f · INTENT.md bd0ab7f</p>
+  <h3>PRD 요구사항</h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="no" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="no" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="no" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="yes" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="yes" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙</h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="no" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="no" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="yes" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="no" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="no" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="yes" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table><thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead><tbody>
+  <tr><td>R11 / 원칙 14</td><td>로그인 처리 코드를 바꾼다. 로그인한 사용자만 쓰는 규칙과 사용자 식별 문자열(SESSION_USER)의 모양은 유지한다.</td></tr>
+  <tr><td>R9 / 원칙 7·8</td><td>가입 입력 검증과 이유 안내는 그대로 두고, 한도 초과 시에도 이유를 담은 응답(429)을 준다.</td></tr>
+  </tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p>부분 저촉: PRD.md 10장 "보안 요건(CSRF 방어 등)" 제외 항목, INTENT.md 7장 보안 요건 행. CSRF·역할 권한·회원 관리는 건드리지 않고 가입 남용 방지와 세션 고정 방지만 추가하므로, 문구를 "가입 횟수 제한·세션 ID 재발급은 포함, CSRF 등은 제외"로 좁혀 고친다.</p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li>INTENT.md 4장은 범위 확장을 PRD에 먼저 반영하라고 한다. 따라서 PRD.md 10장, INTENT.md 6장 트레이드오프·7장 보안 행·9장 3번을 구현과 함께 갱신한다. 사용자가 문서 변경을 알고 요청한 것으로 보아 HILP는 아니다.</li><li>AuthController.java 19행의 admin/admin 하드코딩 계정은 이번 범위가 아니므로 변경하지 않는다.</li></ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위</h2>
+  <div class="tbl"><table><thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead><tbody>
+  <tr data-layer="화면 템플릿"><td><b>화면 템플릿</b><div class="hint"><code>src/main/resources/static/*.html</code></div></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>화면 변경 없음</td></tr><tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td><td><span class="chip" data-state="warn">확인만</span></td><td>로그인·가입 화면 스크립트가 429 응답의 error 메시지를 보여 주는지 확인(필요하면 소폭 수정)</td><td>원칙 8: 이유를 사용자에게 보여 준다</td></tr><tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/AuthController.java</code></div></td><td><span class="chip" data-state="warn">변경</span></td><td>login: 성공 시 세션 ID 재발급. HttpServletRequest 인자 추가</td><td>세션 고정 방지, 가입 남용 방지</td></tr><tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>config/RateLimiter.java · config/RateLimitInterceptor.java (새 클래스)</code></div></td><td><span class="chip" data-state="warn">변경</span></td><td>IP별 가입·로그인 횟수를 세는 단순 인메모리 제한기 클래스 신규(가입·로그인에 각각 다른 한도 사용). 429를 싣는 방법은 기존 BusinessException·ApiController.apiError 구조를 보고 결정</td><td>CPU 부담·회원 행 증가 억제</td></tr><tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/*</code></div></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>관련 없음(원칙 11 유지)</td></tr><tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/*</code></div></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>DB 스키마·데이터 변경 없음(인메모리 방식)</td></tr><tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/* · application.properties</code></div></td><td><span class="chip" data-state="warn">변경</span></td><td>application.properties에 가입·로그인 한도 설정 추가(로그인은 더 큰 값). LoginInterceptor·WebConfig 제외 목록은 유지</td><td>한도를 코드에 박지 않음</td></tr><tr><td>문서</td><td><span class="chip" data-state="warn">변경</span></td><td>PRD.md(10장), INTENT.md(6·7·9장)</td><td>보안 범위 문구를 구현과 일치시킴</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table><thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead><tbody>
+  <tr><td><b>OrderFlowTests</b></td><td><span class="chip" data-state="warn">관련</span></td><td>로그인(47·75·92행)과 가입 테스트(signupThenLoginWorksAndAdminStillWorks 등)가 같은 IP에서 여러 번 가입하므로 테스트용 설정(src/test/resources/application.properties)에서 한도를 크게 풀어 이를 막지 않게 한다. 세션 ID 재발급·429 테스트는 없다.</td></tr><tr><td><b>PlannerTest</b></td><td><span class="chip" data-state="none">영향 없음</span></td><td>계산 규칙과 무관</td></tr><tr><td><b>DemoApplicationTests</b></td><td><span class="chip" data-state="warn">관련</span></td><td>새 빈·설정이 추가되므로 컨텍스트가 뜨는지 확인</td></tr><tr><td><b>MasterFormTests</b></td><td><span class="chip" data-state="none">영향 없음</span></td><td>기준 정보 폼과 무관</td></tr></tbody></table></div>
+  <h3>E2E (<code>src/test/e2e</code>)</h3>
+  <div class="tbl"><table><thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead><tbody>
+  <tr><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td><td><span class="chip" data-state="warn">관련</span></td><td>로그인·가입 흐름. 영향받는 이 시나리오만 실행한다(전체 E2E는 오래 걸림).</td></tr>
+  <tr><td>2~8 그 밖의 흐름</td><td>E2E-006~041</td><td>그 밖의 spec</td><td><span class="chip" data-state="none">영향 없음</span></td><td>helpers.login(admin)을 매 테스트 호출하므로, E2E 앱 실행 인자로 로그인·가입 한도를 풀어 두고 기존 흐름이 막히지 않는지 확인한다.</td></tr>
+  </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p>영향 없음으로 가정한다. 가입·로그인과 관련된 test.fail 여부는 확인하지 못했고, 구현 단계에서 grep으로 확인한다.</p>
+  <h3>테스트 공백</h3>
+  <ul class="list"><li>세션 ID 재발급 테스트 없음</li><li>가입·로그인 횟수 제한 테스트 없음 (INTENT 9장 5번: 로그인 흐름 테스트가 얇음)</li></ul>
+  <h3>추가·수정할 테스트</h3>
+  <div class="tbl"><table><thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead><tbody>
+  <tr><td>로그인 후 세션 ID가 바뀌고 로그인 상태가 유지됨(MockMvc, 기존 세션으로 요청 후 ID 비교)</td><td>JUnit</td><td>세션 고정 방지 검증</td></tr><tr><td>같은 IP로 한도를 넘겨 가입·로그인하면 429와 이유 메시지, 한도 이내 요청은 정상</td><td>JUnit</td><td>가입·로그인 횟수 제한 검증(낮은 한도 설정 프로퍼티 사용)</td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 Loop 점검</h2>
+  <ul class="list">
+    <li>바뀌면 안 되는 동작(불변 목록): 한도 안의 가입 응답(200, "가입했습니다. 로그인해 주세요")과 검증 오류 메시지, 로그인 성공 응답(username), 로그인 실패 400 응답과 문구, admin/admin 계정 동작, 로그아웃·/api/me, 인터셉터의 401/redirect 동작.</li>
+    <li>동작이 같음을 보장하는 안전망: OrderFlowTests(로그인·가입), DemoApplicationTests, E2E login-access.spec.ts(E2E-001~005).</li>
+    <li>이번에 하지 않는 정리: CSRF 방어, 로그인 실패 계정 잠금, admin 하드코딩 제거, 다중 서버 공유 제한, 프록시 헤더 신뢰, 비밀번호 정책 변경.</li>
+    <li>의도된 동작 변화(리팩토링 범위를 넘는 부분, 승인 대상): 가입·로그인 한도 초과 시 429 응답, 로그인 성공 시 세션 ID 변경.</li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table><thead><tr><th class="num">단계</th><th>내용</th></tr></thead><tbody>
+  <tr><td class="num">1</td><td>IP별 시간 창 한도를 세는 단순 인메모리 제한기 클래스를 추가(만료 항목 정리 포함, 시계 주입 가능하게 해 테스트 용이). 한도·창 길이는 application.properties 설정으로 받는다.</td></tr>
+  <tr><td class="num">2</td><td>요청 IP(getRemoteAddr) 확인은 /api/signup·/api/login에 붙인 인터셉터에서 하고, 한도 초과면 429와 이유 메시지를 돌려준다. 기존 오류 응답 모양과 맞춘다. 가입은 시간당 10회, 로그인은 정상 사용에 영향이 없도록 더 큰 분당 60회를 기본값으로 하고 설정으로 바꾼다. 테스트·E2E 실행 때는 설정으로 한도를 풀어 둔다.</td></tr>
+  <tr><td class="num">3</td><td>AuthController.login 성공 시 기존 세션이 있으면 request.changeSessionId() 후 속성 설정, 없으면 새 세션 생성.</td></tr>
+  <tr><td class="num">4</td><td>JUnit 테스트 2건 추가, 기존 로그인·가입 테스트 통과 확인. 영향받는 E2E(login-access)만 실행.</td></tr>
+  <tr><td class="num">5</td><td>PRD.md 10장, INTENT.md 6·7·9장의 보안 범위 문구를 구현 사실에 맞게 갱신.</td></tr>
+  </tbody></table></div>
+  <h3>바꿀 파일 목록</h3>
+  <ul class="list"><li>수정: src/main/java/com/example/demo/controller/AuthController.java</li><li>수정(필요 시): src/main/java/com/example/demo/service/MemberService.java, BusinessException 관련 처리</li><li>추가: src/main/java/com/example/demo/config/ 아래 IP 횟수 제한기(RateLimiter)와 429 인터셉터(RateLimitInterceptor)</li><li>수정: src/main/java/com/example/demo/config/WebConfig.java (인터셉터 등록, 한도 설정 읽기)</li><li>수정: src/main/resources/application.properties (한도 설정)</li><li>수정/추가: src/test/java/com/example/demo/OrderFlowTests.java 또는 새 테스트 클래스, 테스트용 프로퍼티(src/test/resources/application.properties)와 E2E 앱 실행 인자(src/test/e2e/playwright.config.ts, playwright.all.config.ts)에서 한도 완화</li><li>확인만, 필요 시 소폭 수정: src/main/resources/static/js 의 로그인·가입 화면 스크립트</li><li>수정: PRD.md, INTENT.md</li><li>구현 후 결과 확인: 필요 — 핵심 불변식(INTENT 원칙 14 로그인 코드)과 인증·보안 문서 규칙을 바꾸는 변경이라 사람이 report.html을 확인해야 함</li></ul>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b>같은 IP에서 가입·로그인 한도를 넘기면 429와 이유 메시지가 오고, 한도 이내 요청은 기존처럼 성공한다</b><div class="how">확인 방법: 신규 JUnit 가입·로그인 제한 테스트 + OrderFlowTests 실행</div></div></div><div class="check"><div class="n">2</div><div class="body"><b>로그인 성공 전후로 세션 ID가 달라지고 로그인 상태(/api/me)는 유지된다</b><div class="how">확인 방법: 신규 JUnit 세션 재발급 테스트, 기존 로그인 테스트 통과</div></div></div><div class="check"><div class="n">3</div><div class="body"><b>기존 로그인·접근 통제 흐름이 깨지지 않는다(admin 로그인, 가입 후 로그인, 401/redirect)</b><div class="how">확인 방법: E2E login-access.spec.ts(E2E-001~005)만 별도 포트·DB로 실행 + DemoApplicationTests 컨텍스트 기동</div></div></div>
+  <p class="hint">구현 후 결과 확인: 필요 — 핵심 불변식(원칙 14 로그인 코드)과 보안 범위 문서를 바꾸는 변경</p>
+</section>
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 · 점검 로그 없음</p>
+</div>
+</body>
+</html>
