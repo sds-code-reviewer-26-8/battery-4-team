@@ -1,0 +1,35 @@
+점검 시각: 2026-10-22 10:43:15 (회차 1, 유형 refactor)
+요청 원문: 코드 리뷰 의견 3가지 반영. (1) OrderController.changeStatus, ApiController.confirm 의 @SessionAttribute 를 required=false 로. (2) MasterService.toForm static 화, MasterController 호출 맞춤, MasterFormTests 를 @SpringBootTest 없는 단위 테스트로(검증값 유지). (3) REF-002 precheck.html·report.html 의 "3ab240a (작업 트리 변경, 미커밋)" 을 "3ab240a 기준 작업, adebfca로 커밋" 으로.
+
+[유형 판단] 동작을 바꾸지 않는 구조 정리다. 동작 변경 요청 아님. 문서 근거: INTENT 원칙 14(사용자 식별을 문자열로 다루는 모양 유지), PRD 10장 범위 밖 저촉 없음.
+[배경 이해] adebfca 에서 HttpSession.getAttribute(null 허용)가 @SessionAttribute(기본 required=true)로 바뀜. toForm 은 상태 없는 인스턴스 메서드, 테스트는 전체 컨텍스트 기동. REF-002 증적에 커밋 기준이 미커밋으로 남음.
+[목적 이해] 동작은 그대로, 원래 의미 복원, 테스트 경량화, 증적 표기 정정.
+
+[불변 목록] 상태 변경·확정 API 응답과 이력의 사용자 이름, 기준 정보 화면 입력칸 이름·값, 미로그인 시 /login 이동·API 401.
+[확인한 사실]
+- OrderController.java 55행, ApiController.java 55행: @SessionAttribute(LoginInterceptor.SESSION_USER) String user (required 기본값).
+- git show 3ab240a: 이전에는 HttpSession session 으로 (String) session.getAttribute(...) 를 받음(null 허용).
+- LoginInterceptor: 세션에 loginUser 가 없으면 /api/ 는 401, 그 외 /login 이동. 두 핸들러는 정상 흐름에서 값이 항상 있음.
+- MasterService.toForm(Master) 78행: 필드 미사용. routeKey(static), WON_PER_EOK(static final) 만 사용.
+- 호출처: MasterController.java 26행(service.toForm), MasterFormTests.java 27행. 그 외 없음(grep).
+- MasterFormTests: @SpringBootTest + @Autowired MasterService, 어서션 6개(maxDaily_CHINA, stockLimit_CHINA, unitCost_CHINA, days_KOREA_CHINA, shipCount, shipDailyCost).
+- REF-002 report.html 110행에 "3ab240a (작업 트리 변경, 미커밋)". precheck.html 112행은 "3ab240a" 만 있음(요청과 약간 다름). adebfca 가 두 파일을 포함해 커밋함(git show adebfca --stat).
+
+[재현/원인] 해당 없음(리팩토링). 안전망: MasterFormTests, OrderFlowTests, E2E 45건(test.fail 3건: E2E-033, E2E-035, simulation 가장 빠르게). 기준선은 REF-002 기록(JUnit 23, E2E 45 통과) 인용, 이번 점검에서 재실행하지 않음(확인하지 못함).
+[규모·위험] 작음. 소스 3개 + 테스트 1개 + 증적 2개. 핵심 불변식 변경 없음. 위험 모두 낮음. 경고 없음.
+[영향 파일] OrderController, ApiController, MasterController, MasterService, MasterFormTests, docs/evidence/yeri/REF-002-controller-cleanup/{precheck,report}.html
+[테스트 공백] required=false 에서 세션 값이 없을 때를 직접 검증하는 테스트 없음. 복원 성격이라 새 테스트는 만들지 않음.
+[status] GO. 이유: 동작 변경 없는 정리, 변경 작음, 안전망 존재, 배경·목적 이해.
+[질문] 없음. 참고: "E2E 모두 PASS" 는 test.fail 3건이 계속 실패(집계상 통과)하는 것으로 해석.
+
+[계획]
+1. OrderController.changeStatus, ApiController.confirm 에 required=false.
+2. MasterService.toForm static, MasterController 26행 호출 맞춤.
+3. MasterFormTests 에서 @SpringBootTest/@Autowired 제거, MasterService.toForm(m) 직접 호출, 기대값 유지.
+4. REF-002 두 증적 파일 커밋 표기 정정.
+5. 하지 않는 것: 다른 정리, 결함 수정, 포맷 일괄 정리, 새 테스트.
+[체크리스트]
+1. 세션 값 없으면 null, 로그인 사용자 흐름 동일 - 코드 확인 + 상태 변경·확정 E2E
+2. toForm static, MasterFormTests 컨텍스트 없이 같은 값 6개 통과 - diff + gradlew test
+3. 기존 JUnit+E2E 전체 기대 결과, REF-002 표기 정정 - 별도 포트·DB 로 E2E 45건, grep 미커밋
+precheck: docs/evidence/yeri/REF-003-review-cleanup/precheck.html

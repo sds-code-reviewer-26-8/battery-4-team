@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="report@2">
+<title>구현 결과 보고 · 취소 후 보던 필터 유지</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.two,.three{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.step{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--card);border-top:4px solid var(--accent)}
+.step.prep{border-top-color:var(--prep)}.step.impl{border-top-color:var(--impl)}.step.ver{border-top-color:var(--ver)}
+.step h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:800}
+.step.prep .no{background:var(--prep)}.step.impl .no{background:var(--impl)}.step.ver .no{background:var(--ver)}
+.step ul{margin:0;padding-left:18px;font-size:14px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 진행 막대, 큰 숫자 */
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:999px}
+.bar.bad>i{background:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.big small{font-size:14px;font-weight:600;color:var(--muted)}
+/* 타임라인 */
+.tl{list-style:none;margin:6px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 12px;padding-left:14px}
+.tl li::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="bugfix" data-status="PASS">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge">✔ PASS</div>
+  <h1>구현 결과 보고</h1>
+  <p class="target"><span data-slot="task">취소 후 보던 필터 유지: 확정 필터로 보다가 주문을 취소하면 같은 필터 목록으로 돌아오게 한다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 13:44:36</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/bugfix</span> · 커밋 <span data-slot="commit">046dd9b</span></span><span>작성 <span data-slot="author">yeri</span></span></p>
+</header>
+
+<section class="sec" id="steps">
+  <h2><span class="no">1</span>한눈에 보기 <span class="hint">— 세 단계에서 한 일</span></h2>
+  <div class="three">
+    <div class="step prep"><h3><span class="no">1</span>Prepare</h3>
+      <ul><li><span data-slot="prepare-1">취소 후 이동 주소가 /orders 로 고정돼 보던 필터가 풀리는 것을 재현했다.</span></li><li><span data-slot="prepare-2">이전 주소를 쓰므로 같은 출처이고 경로가 정확히 /orders 일 때만 사용(오픈 리다이렉트 방지).</span></li><li><span data-slot="prepare-3">order-detail.js 이동 주소 계산, 문서 2곳 명시, E2E 1개. 체크리스트 3개.</span></li></ul></div>
+    <div class="step impl"><h3><span class="no">2</span>Implement</h3>
+      <ul><li><span data-slot="implement-1">취소 후 이동을 이전 목록 주소(필터 포함)로 계산하고, 없으면 전체 목록.</span></li><li><span data-slot="implement-2">4개 파일(스크립트 1, 문서 2, 테스트 1)</span></li><li><span data-slot="implement-3">빌드·JUnit 성공, 새 E2E는 수정 전 실패 후 통과, E2E 47개 통과.</span></li></ul></div>
+    <div class="step ver"><h3><span class="no">3</span>Verify</h3>
+      <ul><li><span data-slot="verify-1">3개 모두 충족</span></li><li><span data-slot="verify-2">JUnit 24/24, E2E 47/47 기대한 결과 (1차 실행에서 기존 불안정 테스트 1회 실패, 재실행 통과)</span></li><li><span data-slot="verify-3">목록으로 링크는 여전히 필터를 잃음(범위 밖). E2E-021 경합 가능성.</span></li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">2</span>체크리스트 3개 결과</h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">확정 필터로 보다가 취소하면 같은 필터 목록(확정 칩 활성, 안내 표시)으로 돌아오고, 상세를 직접 연 경우는 전체 목록</span></b>
+    <span class="chip" data-state="ok" data-slot="check-1-result">충족</span>
+    <div class="how">근거: <span data-slot="check-1-evidence">별도 포트 8091·별도 DB에서 새 E2E가 URL /orders?status=CONFIRMED, 확정 칩 active, 안내를 확인하고 통과. 직접 진입은 기존 취소 이동 E2E와 안내 E2E가 /orders 로 통과. (PRD 7장)</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">재발 방지 E2E가 있고 통과하며 수정 전에는 URL이 /orders 라 실패한다</span></b>
+    <span class="chip" data-state="ok" data-slot="check-2-result">충족</span>
+    <div class="how">근거: <span data-slot="check-2-evidence">e2e031-041.spec.ts 의 새 E2E는 URL, 칩, 안내를 직접 확인한다. 수정 전 코드(HEAD worktree, 포트 8092)에서 실제 URL http://localhost:8092/orders 로 실패, 수정 후 통과.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 Regression 전체(JUnit + E2E)가 기대대로다</span></b>
+    <span class="chip" data-state="ok" data-slot="check-3-result">충족</span>
+    <div class="how">근거: <span data-slot="check-3-evidence">./gradlew test --rerun-tasks 24/24 통과. E2E 전체 47개 모두 기대한 결과(예상 실패 2건 포함). 1차 실행에서 E2E-021이 1회 실패했으나 단독·전체 재실행 통과(목록 행을 기다리지 않는 기존 경합으로 판단).</span></div></div></div>
+</section>
+
+<section class="sec" id="regression">
+  <h2><span class="no">3</span>Regression Test <span class="hint">— 있는 테스트를 모두 실행</span></h2>
+  <div class="two">
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">24</span><small> / <span data-slot="junit-total">24</span> 통과</small></div>
+      <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
+    <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">47</span><small> / <span data-slot="e2e-total">47</span> 기대한 결과</small></div>
+      <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
+  </div>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 이번 실행에서 예상 실패로 집계된 테스트: <span data-slot="expected-fail">2건 (E2E-013b, E2E-035)</span></p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td class="num"><span data-slot="junit-OrderFlowTests-total">10</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">10</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-state">통과</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td class="num"><span data-slot="junit-PlannerTest-total">12</span></td><td class="num"><span data-slot="junit-PlannerTest-pass">12</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-PlannerTest-state">통과</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td class="num"><span data-slot="junit-DemoApplicationTests-total">1</span></td><td class="num"><span data-slot="junit-DemoApplicationTests-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-DemoApplicationTests-state">통과</span></td></tr>
+      <tr data-repeat="junit-extra"><td><span data-slot="junit-extra">MasterFormTests</span></td><td class="num"><span data-slot="junit-extra-total">1</span></td><td class="num"><span data-slot="junit-extra-pass">1</span></td><td><span class="chip" data-state="ok" data-slot="junit-extra-state">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th class="num">전체</th><th class="num">기대한 결과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b><div class="hint">E2E-001~005 · <code>login-access.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-1-total">5</span></td><td class="num"><span data-slot="e2e-1-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-1-state">통과</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b><div class="hint">E2E-006~010 · <code>order-quantity.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-2-total">5</span></td><td class="num"><span data-slot="e2e-2-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-2-state">통과</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b><div class="hint">E2E-011~014 · <code>simulation.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-3-total">5</span></td><td class="num"><span data-slot="e2e-3-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-3-state">통과</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b><div class="hint">E2E-015~021 · <code>confirm.spec.ts · e2e-021.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-4-total">7</span></td><td class="num"><span data-slot="e2e-4-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-4-state">통과</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b><div class="hint">E2E-022~026 · <code>e2e-022~026.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-5-total">5</span></td><td class="num"><span data-slot="e2e-5-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-5-state">통과</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b><div class="hint">E2E-027~035 · <code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-6-total">12</span></td><td class="num"><span data-slot="e2e-6-pass">12</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-6-state">통과</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b><div class="hint">E2E-036~040 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-7-total">7</span></td><td class="num"><span data-slot="e2e-7-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-7-state">통과</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b><div class="hint">E2E-041 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-8-total">1</span></td><td class="num"><span data-slot="e2e-8-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-8-state">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">실행한 명령: <span data-slot="commands">./gradlew compileJava compileTestJava · ./gradlew test --rerun-tasks · npx playwright test (별도 설정, 포트 8091, 별도 파일 DB)</span></p>
+</section>
+
+<section class="sec" id="changes">
+  <h2><span class="no">4</span>변경 요약</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody><tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">스크립트</span></td>
+      <td><code data-slot="change-file">src/main/resources/static/js/order-detail.js</code></td><td><span data-slot="change-what">previousList() 추가. 같은 출처이고 경로가 정확히 /orders 인 referrer 의 path+search, 아니면 /orders 로 이동.</span></td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-bugfix" id="loop-bugfix">
+  <h2><span class="no">★</span>버그수정 결과</h2>
+  <ul class="list"><li>재현 → 수정 후: <span data-slot="bugfix-repro">확정 필터 목록에서 주문 상세로 들어가 취소하면 수정 전에는 /orders(전체)로 이동. 수정 후에는 /orders?status=CONFIRMED 로 돌아오고 확정 칩이 활성이며 안내가 보인다. 상세를 직접 연 경우는 전체 목록.</span></li><li>원인과 수정: <span data-slot="bugfix-cause">order-detail.js 의 취소 분기가 location.href = "/orders" 로 고정돼 있었다. previousList() 로 바꿨다. PRD 7장과 INTENT 88행에 이전 페이지는 보던 목록(필터 유지)이라고 명시했다.</span></li><li>재발 방지 테스트: <span data-slot="bugfix-guard">e2e031-041.spec.ts 에 E2E 1개 추가(필터 진입 취소 후 URL, 칩, 안내 확인). 수정 전 실패, 수정 후 통과.</span></li></ul>
+</section>
+
+<section class="sec" id="history">
+  <h2><span class="no">5</span>회차 이력 <span class="hint">— 1회차에 통과했다면 "없음"이라고 적어 주세요</span></h2>
+  <ul class="tl"><li data-repeat="round"><b><span data-slot="round-no">1</span>회차 — <span data-slot="round-result">PASS</span></b><div class="hint"><span data-slot="round-note">이전 회차 없음. 1회차에 통과.</span></div></li></ul>
+</section>
+
+<section class="sec" id="remaining">
+  <h2><span class="no">6</span>남은 이슈 · 확인하지 못한 것</h2>
+  <ul class="list"><li data-repeat="remaining"><span data-slot="remaining">목록으로 링크는 범위 밖이라 여전히 전체 목록으로 가서 필터가 풀린다.</span></li></ul>
+</section>
+
+<section class="sec" id="logs">
+  <h2><span class="no">7</span>기록 위치</h2>
+  <ul class="list">
+    <li>구현 전 점검: <code data-slot="precheck-path">docs/evidence/yeri/BUG-002-cancel-keep-filter/precheck.html</code></li>
+    <li>점검 로그: <code data-slot="prepare-log">docs/logs/prepare/inspection_20261022_133822.log</code></li>
+    <li>검증 로그: <code data-slot="verify-log">docs/logs/verify/review_20261022_134436.log</code></li>
+    <li>실행 환경: <span data-slot="env">Java 17 · Node 24 · 앱 포트 8091 · 별도 파일 DB</span></li>
+    <li>이 Report: <code data-slot="report-path">docs/evidence/yeri/BUG-002-cancel-keep-filter/report.html</code></li>
+  </ul>
+</section>
+
+<p class="footer">report@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용)</p>
+</div>
+</body>
+</html>

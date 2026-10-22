@@ -1,0 +1,18 @@
+검증 로그 (bugfix, 1회차)
+점검 시각: 2026-10-22 11:53:10
+작업: 완료/취소 안 된 주문에서 '취소로 변경'을 누르면 에러 페이지(HTTP 500)가 뜨는 버그
+
+[체크리스트]
+1. 충족 - npx playwright test -c src/test/e2e/playwright.all.config.ts 전체 실행에서 E2E-033이 test.fail 없이 ok (취소 후 /orders, '주문 목록' 제목, Whitelabel 없음).
+2. 충족 - E2E-033, E2E-034 ok. grep test.fail: E2E-033 에서 제거됨(남은 것은 E2E-035, simulation E2E-013b). E2E-033은 URL, 제목, 오류 화면 부재를 직접 검증. 수정 전 실패는 precheck 기록(예상 실패 x)으로 갈음. 새 테스트 추가 없음.
+3. 충족 - JUnit, E2E 전체가 기대한 결과. E2E-035, E2E-013b는 x(그대로 실패).
+
+[변경 범위]
+order-detail.js 1줄(location.href '/orders'), e2e031-041.spec.ts(E2E-033 test.fail 제거, 주석), PageController 주석, PRD.md 7장, INTENT.md 5.6·9장 1번 문구. 계획과 일치, 무관한 변경 없음. (.gitignore, docs/loops/yeri/README.md 는 작업 전부터 수정된 파일)
+
+[Regression Test]
+./gradlew compileJava compileTestJava : BUILD SUCCESSFUL
+./gradlew test --rerun : 24건 중 24 통과, 실패 0 (DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 10, PlannerTest 12)
+npx playwright test -c src/test/e2e/playwright.all.config.ts (포트 8092, 메모리 DB) : 45 passed (기대한 결과 45/45). 이 중 예상 실패 x 2건(E2E-035, E2E-013b). 8080/개발 DB 미사용, 실행 후 8092 LISTEN 없음.
+
+[판정] PASS

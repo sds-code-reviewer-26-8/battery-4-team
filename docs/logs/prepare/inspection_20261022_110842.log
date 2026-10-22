@@ -1,0 +1,114 @@
+[점검 로그] 구현 전 점검 (prepare) - Loop 유형: refactor
+점검 시각: 2026-10-22 11:08:42 (브랜치 feature/refactoring, 커밋 e972056)
+작업 폴더: docs/evidence/yeri/REF-004-thymeleaf-to-static-html-js
+회차: 재점검. 직전 점검(inspection_20261022_105809.log)이 HITL(질문 5건)이었고, 이번 요청은 그 답을 담았다.
+작업 트리: INTENT.md, docs/loops/yeri/README.md, .gitignore 미커밋 수정 있음. (INTENT.md 수정분은 "BatteryService.confirm" -> "OrderService.confirm" 한 줄)
+
+== 요청 원문
+Thymeleaf로 만들어진 프론트엔드를 제거하고 HTML, JavaScript 기반으로 변경해줘. 사용자에게 보이는 동작은 그대로여야 하고 E2E 테스트는 모두 PASS여야 해. 템플릿 6개를 정적 HTML과 JavaScript로 바꾸고 서버 렌더링이 하던 일을 API 호출로 옮기는, 여러 계층에 걸친 큰 변경임을 알고 있어.
+사용자 결정(요청에 포함):
+ (1) 테스트 헬퍼(helpers.ts, common-helpers.ts 등)를 JSON API 호출과 새 화면 구조에 맞게 고쳐도 된다. 시나리오와 단언의 의도는 유지하고 느슨하게 바꾸지 않는다. 서버가 폼 POST와 서버 렌더링 HTML을 계속 제공할 필요는 없다.
+ (2) 알려진 결함 test.fail() 3건(E2E-033, E2E-035, E2E-013b)은 결함 동작을 새 구조에서도 보존해 계속 예상 실패로 둔다. 결함 수정은 별도 버그수정 Loop.
+ (3) 전체 E2E(001~041)를 격리 포트·별도 DB로 돌리는 Playwright 설정을 추가해도 된다.
+ (4) INTENT.md와 필요한 문서는 서버 렌더링 설명(5.7, 6장, 8.3 등)을 포함해 모두 고쳐도 된다. 작업 트리의 INTENT.md 미커밋 수정분도 함께 다뤄도 된다.
+ (5) 화면 주소(/login, /orders, /orders/new, /orders/{id}, /master)는 유지. 정적 HTML도 로그인 전에는 /login 으로 보내고 API는 401. Thymeleaf 의존성 2개 제거.
+
+== 1. 리팩토링이 맞는가
+- 맞다. 화면 렌더링 기술 교체이고 사용자에게 보이는 동작·주소·문구를 유지하는 것이 조건이다. INTENT 8.5 "바꿔도 된다: 데이터베이스 종류, 인증 방식, 화면 기술".
+- 결함 3건은 고치지 않고 보존하므로 동작 변경이 섞이지 않는다.
+- INTENT 5.7("화면은 서버에서 그리고...")과 6장 표("서버 렌더링 + 순수 JS")는 이 결정을 뒤집으므로 INTENT 8.1에 따라 문서를 함께 고친다. 사용자가 (4)에서 허용했다.
+- PRD 10장 범위 밖 저촉: 없음. PRD에 렌더링 방식 규정 없음(PRD 변경 불필요).
+- 요청이 요구 변경이 아니다. 문서끼리 또는 문서와 요청의 충돌 없음.
+
+== 2. 배경 이해: 이해함
+템플릿 6개(fragments, login, orders, order-new, order-detail, master)를 서버가 그린다. 목록·상세·마스터 값·로그인 사용자명·성공/오류 안내(flash)를 서버가 채우고, 로그인·마스터 저장·상태 변경은 폼 POST + 302 리다이렉트다. 주문 추가 화면만 이미 JSON API(/api/simulate, /api/orders, /api/master)를 쓴다.
+근거: templates/*.html, AuthController, OrderController, MasterController, GlobalModelAttributes, LoginInterceptor, WebConfig, static/js/*.
+
+== 3. 목적 이해: 이해함
+화면을 정적 HTML + JS(프런트)와 JSON API(백엔드)로 나누되 사용자가 보는 화면·흐름·문구·주소는 같게 한다. 끝나면 서버에 Thymeleaf가 없고 E2E 45건이 기준선과 같은 결과다.
+
+== 4. 불변 목록과 안전망 (재현 대신)
+기준선 실행(이번 점검에서 직접 실행, 개발 서버·개발 DB 미사용):
+ - JUnit: ./gradlew cleanTest test -> BUILD SUCCESSFUL. DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 9, PlannerTest 12 = 23건 전부 통과(실패·스킵 0).
+ - E2E 전체: 임시 설정(스크래치패드의 pw-baseline.config.ts, 포트 8093, 메모리 DB e2e-base, 프로젝트 파일은 만들지 않음)으로 실행 -> 45 tests, 45 "passed" (42건 정상 통과 + test.fail() 3건이 예상대로 실패해 'x' 표시). 소요 약 40초.
+   예상 실패 3건: E2E-033, E2E-035, E2E-013b. 기준선과 같은 결과가 구현 후에도 나와야 한다.
+
+불변 동작(코드·테스트에서 확인):
+ a. 비로그인 GET /orders, /orders/new, /orders/1, /master -> 본문 없이 302 -> /login (E2E-003). /api/* 는 401 (E2E-004).
+ b. 로그인 성공 -> /orders, 실패 -> /login 에 머물며 .alert.error 문구 "아이디 또는 비밀번호가 올바르지 않습니다"(E2E-002). 헤더 .topbar .user span 에 admin. 로그아웃 -> /login, 뒤로 가기에 주문 목록이 보이면 안 됨(E2E-005).
+ c. 목록: 최신순, .filters .chip 의 전체·상태별 건수, ?status= 필터, 행의 a[href="/orders/{id}"], "주문이 없습니다.", 날짜 yyyy-MM-dd HH:mm, 총 수량 천 단위 쉼표, 총 비용 억원(소수 2자리).
+ d. 상세: h1 .badge, dl.meta, 상태 변경 버튼(문구 "OO(으)로 변경", confirm 문구 "OO(으)로 바꿉니다. 계속할까요?"), 성공 안내 .alert.ok "상태를 'OO'(으)로 바꿨습니다", 충돌 안내 .alert.error "다른 사용자가 먼저 이 주문을 변경했습니다...", 최종 상태 문구, 상태 이력 표(일시 yyyy-MM-dd HH:mm:ss), 저장된 스냅샷(planJson)으로 요약·표·애니메이션 그림(INTENT 원칙 4).
+ e. 마스터: form[action="/master"] 안의 input[name=...] 값 표시(shipDailyCost 는 억 원 단위 문자열), 전부 검증 후 전부 저장 또는 전무, 오류 목록(.alert.error strong + li), 입력값 유지, 저장 성공 .alert.ok "마스터 데이터를 저장했습니다", 저장 후 /master 에 머묾.
+ f. 주문 추가·애니메이션·확정은 이미 API를 쓰므로 그대로. 헤더만 새 방식.
+
+안전망이 구현 방식에 묶인 곳(모두 사용자가 고쳐도 된다고 한 범위):
+ - e2e/helpers.ts: login() = POST /login 폼 + 302 기대, loginUi() 필드 이름, saveMaster() = POST /master 폼 + 302, readMasterForm() 선택자(form[action="/master"] input[name]).
+ - e2e/common-helpers.ts changeStatus(): GET /orders/{id} HTML 에서 정규식으로 version 을 읽고 POST /orders/{id}/status 폼.
+ - e2e/e2e031-041.spec.ts: readVersion()(HTML 정규식), postStatus()(폼 POST, 리다이렉트된 HTML 을 읽음), afterEach 의 saveMaster 302 단언.
+ - OrderFlowTests: POST /login 폼, POST /master 폼 + redirectedUrl("/master"), GET /orders|/orders/new|/master 가 200, GET /orders/{id} 200, GET /login 200.
+ - MasterFormTests: MasterService.toForm (서버 쪽 변환). 이 변환 코드를 서버에 그대로 두면 테스트를 바꿀 필요가 없다.
+
+비동기 렌더링 위험(새로 생기는 것, 코드·테스트로 확인):
+ - 서버 렌더링 때는 goto 가 끝나면 표가 이미 있었다. JS 렌더링은 fetch 뒤에 그려진다. 기다리지 않고 바로 읽는 코드가 있다: common-helpers.ts readHistory()/historyRows() 는 locator.count() 를 쓰고, e2e-028 은 goto 직후 readHistory() 로 행 수 1을 기대한다. helpers.ts historyRows()/readDetailsTable() 도 같은 방식. 그대로 두면 간헐 실패한다. 헬퍼에 "화면이 그려질 때까지 기다림"을 넣어야 한다(의도는 그대로).
+
+알려진 결함 보존 방법(결함이 우연히 고쳐져 test.fail()이 "예상 실패 안 함"으로 깨지는 것을 막는다):
+ - E2E-033(취소 직후 /orders 로 이동해야 함): 취소 성공 뒤 지금처럼 /orders/{id} 로 이동. 그 주소는 삭제된 주문이라 아래 E2E-035 방식으로 500.
+ - E2E-035(없는 주문 번호에 안내가 보여야 함, 응답 < 500): GET /orders/{id} 페이지 경로가 정적 HTML 을 내보내기 전에 지금처럼 orderService.getOrder(id) 를 부르고 BusinessException 을 그대로 던지게 둔다(@ExceptionHandler 를 추가하지 않는다). 그러면 지금과 같은 HTTP 500 기본 오류 화면이 나온다. 이 방식이 사용자에게 보이는 결함 동작까지 가장 똑같다. (대안: 페이지는 200 으로 열고 JS 가 아무 안내도 안 보이게 두기. 덜 충실해서 채택하지 않음)
+ - E2E-013b(배 1척일 때 가장 빠르게): Planner 계산 문제이고 이번 변경이 Planner 를 건드리지 않으므로 그대로 실패.
+ - 구현 후 Boot 기본 오류 화면(Whitelabel)이 Thymeleaf 제거 뒤에도 나오는지 확인한다. 이 점은 아직 확인하지 못함(구현 때 E2E-033/035 가 계속 'x' 인지로 확인).
+
+== 5. 규모와 위험
+규모: 큼. 계층 전부(템플릿, 정적 JS, 컨트롤러 3개+새 API, 설정·인터셉터, 서비스 일부, 빌드·프로퍼티, 테스트 헬퍼·JUnit·E2E 설정, 문서). 파일 수 대략 25~30개. DB 스키마·엔티티 변경은 없다. 핵심 불변식(상태 전이, 낙관적 락, 마스터 버전, 스냅샷)의 서버 로직(OrderService, MasterService.updateMaster, Planner)은 바꾸지 않는다.
+사용자가 아는가: 예. 요청에 "여러 계층에 걸친 큰 변경임을 알고 있어"라고 적었고 결정 5건을 명시했다. 그래서 경고만 기록하고 GO.
+위험:
+ 1) 동시 변경 보호(원칙 5): 상태 변경 요청이 화면에서 본 version 을 서버가 받아야 한다. HTML hidden input 대신 상세 API 응답의 version 을 JS 가 보관해 보낸다. 충돌 문구는 서버(OrderService.conflict)가 만들므로 같다. 낡은 화면에서 눌렀을 때 충돌이 나야 하고(E2E-034), 오류 뒤에도 화면은 새로 읽은 상태를 보여야 한다. 높음.
+ 2) 인증 경로(원칙 14): 인터셉터가 정적 HTML 도 막아야 한다. 현재 제외 목록은 /login, /css/**, /js/**, /images/**, /error, /favicon.ico. 새로 /login.html(내부 forward 대상), /api/login 이 제외돼야 하고 나머지 .html 은 막혀야 한다. forward 는 인터셉터를 다시 거칠 수 있어 구현 때 확인 필요(확인하지 못함). 비로그인 302 와 /api 401 유지. 높음.
+ 3) 뒤로 가기(E2E-005): 정적 페이지는 캐시·bfcache 로 로그아웃 뒤에도 보일 수 있다. 화면 경로 응답에 Cache-Control: no-store 를 주고, 각 페이지 JS 가 첫 API 호출에서 401 이면 /login 으로 보낸다. 중간.
+ 4) 비동기 렌더링 때문에 즉시 읽는 헬퍼가 간헐 실패(위 4항). 중간.
+ 5) 취소 뒤 이동 경쟁: 예전엔 서버 302 가 응답에 들어 있었다. 이제 JS 가 응답을 받은 뒤 /orders/{id} 로 이동한다. E2E-032 는 changeStatusByButton 이 응답을 받자마자 page.goto('/orders') 를 하므로 JS 이동과 겹쳐 간헐 실패할 수 있다. 이동을 응답 처리 직후 동기적으로 하고 반복 실행으로 확인한다. 중간.
+ 6) 마스터: 전부 검증 후 전부 저장(원칙 7)과 오류 목록 표시, 오류 시 입력값 유지, 성공 후 안내와 값 다시 읽기를 JS 가 재현. 서버 검증은 그대로(MasterService.updateMaster). E2E-040 은 form[action$="/master"] 의 noValidate 를 켜므로 form 요소와 action 속성을 남긴다. 중간.
+ 7) 서버 포맷 차이: 날짜(yyyy-MM-dd HH:mm), 천 단위 쉼표(숫자 포맷 #numbers.formatInteger COMMA 와 JS toLocaleString('ko-KR') 일치 여부), 억원 소수 2자리(Order.getTotalCostEok). 서버가 문자열로 만들어 보내면 차이가 없다. 중간.
+ 8) 로그인 실패 응답 코드: common.js postJson 은 401 을 "로그인 필요 -> /login 이동"으로 처리하므로 로그인 실패를 401 로 주면 문구가 안 보인다. 400 + error 문구로 준다(login.js 가 직접 처리). 낮음.
+ 9) 미커밋 INTENT.md 수정분은 한 줄이라 문서 수정과 같이 다룬다. docs/loops/yeri/README.md, .gitignore 수정은 이번 범위 밖이라 손대지 않는다. 낮음.
+ 10) E2E 설정이 Windows 의 gradlew.bat 에 의존. 기존 src/test/e2e/playwright.config.ts 와 같은 방식이면 된다. 낮음.
+가정(확인하지 못한 것):
+ - Spring Boot 4.1.1 에서 Thymeleaf 를 빼도 /error 기본 화면이 같게 나오는지.
+ - forward 시 인터셉터 재실행 여부.
+ - Chrome 의 bfcache 동작(Playwright 환경에서 E2E-005 가 어떻게 되는지). 실행으로 확인.
+ - docs/understand/* 안내서가 화면 구조를 설명하는지(grep 에서 Thymeleaf·templates 언급은 안 나옴).
+
+== 6. 영향 범위(코드 확인)
+ - templates/*.html 6개 삭제. static/ 아래에 login.html, orders.html, order-new.html, order-detail.html, master.html 신규(각 템플릿의 마크업·class·id·name 그대로). fragments(head/header) 는 common.js 가 헤더를 주입.
+ - static/js: common.js(헤더 주입, getJson/postJson, 401 처리, 로그아웃), 신규 login.js, orders.js, order-detail.js, master.js. order-new.js 는 헤더 연결 정도만. anim.js, planview.js 불변.
+ - controller: AuthController·OrderController·MasterController 를 "화면 경로(forward)"와 "JSON API"로 정리, GlobalModelAttributes 삭제, ApiController 에 목록·상세·상태 변경·마스터 저장·로그인·로그아웃·현재 사용자 API 추가(또는 역할별 분리).
+ - config: LoginInterceptor(변경 없거나 최소), WebConfig(제외 경로: /login.html, /api/login 추가).
+ - service: MasterService.toForm 은 유지(MasterFormTests 보존), 새 GET /api/master/form 이 이를 돌려준다. OrderService·updateMaster 불변.
+ - build.gradle.kts: spring-boot-starter-thymeleaf, spring-boot-starter-thymeleaf-test 삭제. application.properties: spring.thymeleaf.cache 삭제.
+ - 테스트: helpers.ts, common-helpers.ts, e2e031-041.spec.ts(readVersion, postStatus, saveMaster 상태코드 302->200), OrderFlowTests(로그인·마스터 저장 호출, pagesRender 의 forwardedUrl 단언), 신규 전체 E2E 설정.
+ - docs: INTENT 5.7, 6장 표 한 줄, 8.3 "master.html" 줄, 미커밋 한 줄. 9장 1·2번은 결함이 그대로 남으므로 유지(Whitelabel 설명 확인만).
+
+== 7. 기존 테스트·공백
+ - 관련 JUnit: OrderFlowTests(로그인·마스터·페이지 렌더가 폼/뷰 전제라 수정), MasterFormTests(변경 없음), PlannerTest·DemoApplicationTests(영향 없음, 컨텍스트가 뜨는지는 DemoApplicationTests 가 확인).
+ - E2E 전체 45건이 화면을 통과하므로 모두 관련. test.fail() 3건은 위 보존 방법으로 'x' 유지.
+ - 공백: 전체 E2E 를 격리 포트로 돌리는 설정이 없음(기존 설정은 021~030 만). 정적 HTML 직접 접근(/orders.html 등)과 forward 의 인증 통과 여부를 확인하는 테스트 없음. 로그인 흐름 JUnit 이 얇음(INTENT 9.5).
+ - 추가·수정할 테스트: (a) 전체 E2E 용 Playwright 설정(테스트는 아님, 실행 수단). (b) JUnit 에 비로그인으로 /orders.html 등 정적 페이지 경로가 /login 으로 가고 /api/orders 는 401 인 단언 1개 정도(인증 경로 위험 2번을 직접 지킴). 새 테스트는 최소로.
+
+== 8. 판단: GO
+이유: 버그가 아니라 리팩토링 요청이고, 불변 동작과 안전망(JUnit 23 + E2E 45, 기준선 확인)이 있으며, 직전 HITL 질문 5건에 사용자 결정이 모두 왔다. 큰 변경은 사용자가 이미 안다. 결함 3건 보존 방법이 정해져 있다. 문서 근거 충돌 없음.
+경고(기록): 큰 변경, 인증 경로, 동시 변경 보호, 비동기 렌더링 간헐 실패, 취소 뒤 이동 경쟁, 결함 보존이 의도된 어색한 동작을 유지한다는 점.
+질문: 없음.
+
+== 9. 최소 수정 계획(순서)
+1. 문서 먼저: INTENT 5.7, 6장, 8.3 수정 + 미커밋 한 줄 포함. (8.1: 의도를 바꾸는 결정은 문서 먼저)
+2. 서버 API 추가(기존 서비스 호출만): POST /api/login(실패 400+error), POST /api/logout, GET /api/me, GET /api/orders?status=(목록+건수), GET /api/orders/{id}(상세+이력+planJson+version+다음 상태), POST /api/orders/{id}/status(JSON status, version; BusinessException 은 기존 apiError 규칙 400/409), GET /api/master/form(toForm), POST /api/master(JSON 맵; 오류는 messages 목록).
+3. 화면 경로: GET /, /login, /orders, /orders/new, /master, /orders/{id} 가 정적 HTML 로 forward. /orders/{id} 는 존재 확인을 남겨 결함 보존. no-store 헤더. 인터셉터 제외 경로 조정. 폼 POST 핸들러와 GlobalModelAttributes 삭제.
+4. 정적 HTML 5개 + JS(common, login, orders, order-detail, master) 작성. 클래스·id·name·문구를 템플릿과 같게. 날짜·숫자는 서버가 문자열로 보내 포맷 차이를 없앰.
+5. 템플릿 6개, Thymeleaf 의존성 2개, thymeleaf 프로퍼티 삭제.
+6. 테스트 수정: 헬퍼를 API 호출로, 렌더 대기 추가, e2e031-041 의 세 곳, OrderFlowTests. 단언 의도 유지.
+7. 전체 E2E 설정 추가(포트·메모리 DB 분리, 001~041 모두).
+8. 이번에 하지 않는 것: 결함 수정(033·035·013b), Planner·서비스 규칙 변경, 엔티티·DB 변경, CSS·애니메이션 로직 변경, 유사 정리, 포맷터 일괄 적용, 계정·보안(CSRF) 추가, 새 기능.
+
+== 10. 체크리스트 3개
+ 1) 불변 동작이 그대로다: 로그인 통제(302/401), 로그인·로그아웃·뒤로 가기, 목록·상세·마스터 화면의 문구·주소·건수, 상태 변경의 확인 창·안내·충돌 거부, 마스터의 전부 아니면 전무. 확인: 전체 E2E 001~041 + 서버 기동 후 정적 HTML 직접 접근이 비로그인에서 막히는지.
+ 2) 안전망이 기준선과 같게 통과: JUnit 23건 이상 전부 통과(수정한 OrderFlowTests 포함, 단언 수 유지), 전체 E2E 45건이 기준선처럼 42 정상 통과 + 3건 예상 실패. 간헐 실패가 없게 연속 2회 실행. 확인: ./gradlew cleanTest test, 새 전체 E2E 설정 실행.
+ 3) 기존 Regression Test 전체와 결함 보존: test.fail() 3건(E2E-033, 035, 013b)이 계속 예상대로 실패(통과로 바뀌지 않음), Thymeleaf 의존성이 없고 빌드가 된다(grep thymeleaf build.gradle.kts, application.properties 에 없음, src/main/resources/templates 없음).

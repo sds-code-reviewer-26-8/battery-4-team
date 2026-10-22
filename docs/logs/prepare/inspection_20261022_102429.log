@@ -1,0 +1,104 @@
+[점검 로그] prepare / Loop 유형: refactor / 회차 1 (REF-002)
+점검 시각: 2026-10-22 10:24:29 (파일명 TS 기준 시작 시각)
+브랜치 feature/refactoring, 커밋 3ab240a, 요청자 yeri
+
+== 요청 원문 ==
+내가 알려주는 개선점을 반영해서 수정해줘. 개선점은 다음과 같아 >>
+1) 세션 사용자 꺼내는 코드 중복: OrderController와 ApiController에 같은 코드가 있습니다. @SessionAttribute 등으로 한 곳에 모으면 좋겠습니다.
+2) MasterController.toForm: 서비스 내부 규칙(routeKey, WON_PER_EOK)을 컨트롤러가 직접 씁니다. 서비스 쪽으로 옮기면 책임이 더 분명해집니다.
+3) MasterController 모델 설정 중복: factories와 countries를 넣는 코드가 두 곳에 반복됩니다. 메서드로 묶으면 좋겠습니다.
+4) ApiController: @Controller + 메서드마다 @ResponseBody 대신 @RestController 하나로 줄일 수 있습니다.
+5) DataInitializer 변수명: 타입은 MasterService인데 이름이 service로 남아 있습니다.
+6) OrderService.confirm이 SimulationService를 다른 빈으로 호출합니다. 읽기 전용 트랜잭션이 쓰기 트랜잭션에 참여하는 형태라 결과는 같지만, 이후 트랜잭션 속성을 바꿀 때 주의가 필요합니다.
+7) INTENT.md가 BatteryService.confirm을 인용하고 있어 이름이 낡았습니다.
+
+== 1. 리팩토링 여부 판단 ==
+7건 모두 동작·화면·API·계산 결과를 바꾸지 않는 구조·이름·주석·문서 정리다 -> 리팩토링 맞음.
+- 1~5: 코드 구조 정리(동작 동일).
+- 6: 코드 동작은 이미 같다고 요청이 밝힘. "주의가 필요하다"는 관찰이라 코드 변경 요구가 아니라 주의 사항 기록으로 해석(OrderService.confirm 주석으로 남김). 이 해석을 질문으로 막을 만큼 모호하지는 않음(동작 변경 방향의 해석은 어느 쪽이든 하지 않음).
+- 7: 문서 인용 이름 정정.
+PRD 10장 범위 밖 저촉 없음. 요구 변경 없음. 문서끼리·문서와 요청 충돌 없음.
+
+== 2. 배경 ==
+서비스를 역할별로 쪼갠 직전 리팩토링(커밋 93195ea) 뒤 코드 리뷰에서 나온 잔여 정리 7건.
+코드 확인:
+- OrderController.java:57 changeStatus 에서 (String) session.getAttribute(LoginInterceptor.SESSION_USER), ApiController.java:62 confirm 에서 같은 캐스팅 코드. HttpSession 파라미터를 이 때문에만 받음.
+- MasterController.java:49-62 toForm 이 "maxDaily_"+국가, MasterService.routeKey, MasterService.WON_PER_EOK 로 폼 값을 만듦. (입력칸 이름 규칙과 억 원 환산은 updateMaster 의 반대 방향 규칙)
+- MasterController.java:27-28 (GET), 39-40 (POST 오류) 에서 factories/countries 두 줄 반복.
+- ApiController.java:25 @Controller + 메서드 3개마다 @ResponseBody.
+- DataInitializer.java:11-18 필드 service 의 타입이 MasterService.
+- OrderService.java:46 confirm(@Transactional, 쓰기) 안에서 simulationService.simulate 호출 -> simulate 가 masterService.currentMaster() 호출. 확인한 사실: SimulationService 자체에는 @Transactional 이 없고, 읽기 전용 트랜잭션은 MasterService.currentMaster (@Transactional(readOnly = true), MasterService.java:70) 에 있음. 즉 요청이 말한 "읽기 전용이 쓰기에 참여"는 SimulationService 가 아니라 그 아래 MasterService.currentMaster 이다(OrderService -> SimulationService -> MasterService 순). 같은 결과라는 요청의 결론은 맞음(기존 트랜잭션 참여, readOnly 는 참여 시 무시).
+- INTENT.md:38 이 `BatteryService.confirm` 을 인용. 실제 클래스는 OrderService (service/OrderService.java:46).
+
+== 3. 목적 ==
+동작은 그대로 두고 (a) 중복을 한 곳으로 모으고 (b) 서비스 규칙을 서비스에 두어 책임을 분명히 하고 (c) 이름·애노테이션·문서 인용을 현재 코드에 맞춘다.
+
+== 4. 기준선과 불변 목록 ==
+JUnit 기준선: ./gradlew test (최신, 최신 결과 재사용) -> DemoApplicationTests 1, OrderFlowTests 9, PlannerTest 12 = 22건 모두 통과, 실패 0. (build/test-results/test/*.xml 확인)
+E2E 기준선: 같은 커밋 3ab240a, 소스 변경 없음 상태에서 REF-002 점검(inspection_20261022_101857.log)이 별도 포트 8093, 메모리 DB 로 src/test/e2e 전체를 실행해 45 passed (test.fail() 3건 E2E-033, E2E-035, E2E-013b 포함) 로 기록. 이번 점검에서는 재실행하지 않고 그 기록을 기준선으로 인용(코드 변경 없음을 git status 로 확인: src 변경 없음).
+불변 목록:
+ - 모든 화면 URL과 응답: /login, /orders(?status=), /orders/new, /orders/{id}, POST /orders/{id}/status, /master GET/POST
+ - 상태 변경 flash 문구 "상태를 '진행'(으)로 바꿨습니다", 충돌/업무 오류 문구, 마스터 저장 flash "마스터 데이터를 저장했습니다"
+ - 이력·작성자: 확정 시 작성자와 이력 사용자 = 로그인 아이디(admin), 상태 변경 이력의 사용자
+ - GET /master 폼 초기값(공장별 maxDaily/stockLimit/unitCost, 항로 일수, shipCount, shipDailyCost 는 억 원 단위 문자열 예 "3")
+ - POST /master 오류 시 입력값 유지 + errors 목록 + 공장·국가 선택지(항로 행렬)
+ - JSON API 응답: /api/master, /api/simulate, /api/orders 의 본문·상태 코드(200/400/409), 미로그인 시 /api/** 401, 화면 경로 302 -> /login
+ - 트랜잭션 경계와 결과(confirm 은 쓰기 1개 트랜잭션)
+
+== 5. 규모·위험 ==
+규모: 작음~중간. 컨트롤러 3개(Order, Api, Master) + 서비스 2개(Master 메서드 추가, Order 주석) + config 1개(DataInitializer) + 문서 1개(INTENT.md) + 테스트 1개 = 7~8개 파일. 계층은 컨트롤러·서비스·설정이나 각 변경이 작고 기계적. DB·엔티티·스키마 변경 없음. 핵심 불변식(상태 전이, 낙관적 락, 마스터 버전, 스냅샷) 코드는 건드리지 않음(OrderService 는 주석만).
+위험:
+ 1) @SessionAttribute 는 기본 required=true. 세션에 값이 없으면 null 이 아니라 400 으로 실패. LoginInterceptor(WebConfig: /** 적용, /login 등 제외)가 앞에서 막으므로 이 두 경로에서는 세션 사용자가 항상 있음(확인함: WebConfig.java, LoginInterceptor.java). 낮음.
+ 2) @RestController 전환: 반환 타입 Master/ResponseEntity 모두 기존에 @ResponseBody 였으므로 직렬화 동일. 낮음. 단 뷰 이름을 돌려주는 메서드를 이 클래스에 두면 안 됨(현재 없음).
+ 3) toForm 이동: 숫자 변환 규칙(BigDecimal stripTrailingZeros) 그대로 옮겨야 함. 낮음~중간. 안전망은 E2E(readMasterForm)와 새 JUnit 1건.
+ 4) MasterController 공통 모델 설정을 @ModelAttribute 메서드로 만들면 POST 리다이렉트(redirect:/master)에 모델 값이 쓰여 URL 에 영향이 갈 수 있음 -> private 메서드로 묶고 두 곳에서 호출(동작 동일).
+ 사용자가 알고 있는가: 요청 항목이 구체적이고 "결과는 같다"고 밝혀 규모를 알고 있음. 경고 없이 진행.
+
+== 6. 유사 증상(이번 범위 밖, 기록만) ==
+- MasterController 의 필드명도 service(타입 MasterService) -> 요청 5번과 같은 종류이나 요청은 DataInitializer 만 지목. 이번에는 DataInitializer 만 바꾸고 MasterController 필드명은 건드리지 않음(요청 범위 준수).
+- docs/understand/허주/skill/SKILL.md:26,46 이 BatteryService/AppController 를 인용 -> 다른 담당자(허주)의 문서이고 요청은 INTENT.md 만 지목 -> 이번에 고치지 않음.
+- INTENT.md:167 의 `toForm` 인용은 MasterService 로 옮기면 위치가 바뀜 -> 이름을 같게(toForm) 두면 인용이 계속 유효. 문장은 고치지 않음(필요하면 "MasterService.toForm"으로 정정은 7번 문서 정정의 연장이므로 함께 할 수 있으나 요청 밖 -> 이름 유지로 해결).
+
+== 7. 영향 범위(파일) ==
+ - controller/OrderController.java: changeStatus 의 HttpSession -> @SessionAttribute(LoginInterceptor.SESSION_USER) String user, 불필요 import 제거
+ - controller/ApiController.java: @RestController, @ResponseBody 제거, confirm 의 세션 사용자 @SessionAttribute
+ - controller/MasterController.java: toForm 삭제(서비스 호출로 대체), 모델 설정 private 메서드, 불필요 import(BigDecimal, HashMap, Master) 제거
+ - service/MasterService.java: public Map<String,String> toForm(Master) 추가 (routeKey, WON_PER_EOK 를 서비스 안에서 사용). 컨트롤러는 service.toForm(service.currentMaster()) 호출. (대안: currentForm() 이 한 번에 처리. 이름 toForm 유지가 INTENT 인용과 일치)
+ - config/DataInitializer.java: service -> masterService
+ - service/OrderService.java: confirm Javadoc 에 "simulate -> MasterService.currentMaster(읽기 전용) 가 이 쓰기 트랜잭션에 참여한다. 트랜잭션 속성을 바꿀 때 주의" 주석만 추가(동작 변경 없음)
+ - INTENT.md: 38행 `BatteryService.confirm` -> `OrderService.confirm`
+ - src/test/java/.../MasterServiceTests.java 또는 OrderFlowTests: toForm 안전망 1건
+ 템플릿(Thymeleaf)·JS·엔티티·Planner·Repository 는 변경 없음.
+
+== 8. 기존 테스트·안전망·공백 ==
+JUnit OrderFlowTests: anonymousUserIsSentToLogin(화면 302, API 401), confirmThenDetailAndStatusFlow(확정 후 상세 200, changeStatus 서비스 직접 호출), confirmFailsWhenMasterChangedAfterSimulation, masterUpdateBumpsVersionAndKeepsConfirmedPlans, invalidMasterIsNotSaved 등 9건. 확정 API(/api/orders)를 세션과 함께 호출(confirm 헬퍼).
+E2E: confirm.spec.ts(작성자 admin, 이력 '-','확정','admin'), e2e-027~030, e2e031-041(상태 변경 flash/충돌, 마스터 저장·오류 E2E-036~040 의 readMasterForm 이 GET /master 폼 값 사용), login-access.spec.ts(302/401).
+공백:
+ - toForm 의 값 변환(예 shipDailyCost "3", routeKey 매핑)을 직접 검사하는 JUnit 이 없음. E2E 가 화면을 통해 간접 확인. -> 이동 전에 고정할 JUnit 1건 추가.
+ - 컨트롤러에서 POST /orders/{id}/status 가 이력에 로그인 사용자를 남기는지를 MockMvc 로 직접 보는 JUnit 은 없음(E2E 가 이력 표로 확인). 이번에는 E2E 로 충분하다고 판단, 추가하지 않음.
+test.fail() 3건(E2E-033, E2E-035, E2E-013b)은 이번 변경과 무관. 그대로 "예상한 실패"여야 함.
+
+== 9. 판단 ==
+status: GO
+이유: 7건 모두 동작 불변 구조 정리. 불변 목록과 안전망(JUnit 22 + E2E 45)이 있고 공백은 toForm 1건으로 좁혀짐. 큰 변경·높은 위험 없음. 사람이 정해야 할 모호한 항목 없음(6번은 주석 기록으로 해석했음을 명시).
+질문: 없음.
+
+== 10. 구현 계획 (동작을 바꾸는 수정·기능 추가는 넣지 않음) ==
+1) 안전망 먼저: toForm 을 직접 검사하는 JUnit 1건(예: MasterServiceTests 또는 OrderFlowTests 에 추가) — 마스터 기본값에서 form 에 maxDaily_CHINA=400, days_KOREA_CHINA=1, shipCount=3, shipDailyCost=3 이 있음을 단언. 이동 전(컨트롤러의 private 이어서 접근 불가) 이므로 이동 후 서비스 메서드를 대상으로 작성하고, 기본값은 initDefaults 의 값(MasterService.java 의 초기 데이터)과 대조.
+2) MasterService 에 toForm 이동, MasterController 가 호출.
+3) MasterController 공통 모델 설정을 private 메서드로 묶음.
+4) OrderController/ApiController 의 세션 사용자를 @SessionAttribute 로 교체.
+5) ApiController 를 @RestController 로 전환.
+6) DataInitializer 필드명 변경.
+7) OrderService.confirm 주석 추가.
+8) INTENT.md 38행 정정.
+이번에 하지 않는 것: MasterController 필드명 변경, docs/understand/허주 문서 정정, 트랜잭션 속성·서비스 구조 변경, 포맷·Lint 일괄 정리, 기능 변경.
+
+== 11. 체크리스트 3개 ==
+1) 불변 동작이 그대로다: /login 흐름·화면 302/API 401, 확정 작성자·이력 사용자 admin, GET/POST /master 폼 값·오류 표시, flash 문구, API 응답. 확인: 불변 목록을 JUnit(OrderFlowTests, 새 toForm 테스트)과 E2E(confirm.spec, e2e-027~030, e2e031-041)로 확인.
+2) 안전망 테스트가 변경 전후 모두 통과: ./gradlew test (기존 22 + 새 1건 = 23건 통과) 와 새 toForm 테스트가 값 변환을 실제로 검사(틀리면 실패).
+3) 기존 Regression Test 전체가 기대한 결과: 별도 포트·별도 메모리 DB 에서 src/test/e2e 전체 45 passed (test.fail() 3건은 그대로 예상한 실패), JUnit 전체 통과.
+
+== 산출물 ==
+점검 로그: docs/logs/prepare/inspection_20261022_102429.log
+precheck.html: docs/evidence/yeri/REF-002-controller-cleanup/precheck.html

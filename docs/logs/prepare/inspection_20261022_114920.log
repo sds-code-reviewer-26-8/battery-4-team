@@ -1,0 +1,56 @@
+== 점검 로그 (prepare, bugfix) ==
+점검 시각: 2026-10-22 (파일 이름의 시각 기준)
+요청 원문: 완료 / 취소가 안된 주문에 대해 '취소로 변경' 버튼을 누르면 에러 페이지가 뜹니다. 이 버그를 수정해줘
+작업 폴더: docs/evidence/yeri/BUG-001-order-cancel-error-page
+Loop 유형: bugfix (요청과 맞음)
+
+== 1. 버그 여부 ==
+버그다. "완료/취소가 안된 주문" = 확정·진행 상태(PRD 7장: 취소는 확정 또는 진행 중에만 가능)의 주문이다.
+- PRD 7장: "취소하면 주문을 삭제하고 이력만 남긴다", "취소 직후에는 이전 페이지로 이동한다. (현재 구현은 삭제된 주문의 상세로 이동해 HTTP 500 기본 오류 화면이 열린다.)"
+- INTENT 5.6, 9장 1번: 같은 결함이 알려진 결함으로 적혀 있다. 대응 E2E: E2E-033 (test.fail 로 표시).
+- 범위 밖(PRD 10장) 아님, 요구 변경 아님. 문서끼리 충돌 없음. (취소 시 삭제 정책은 확정된 사항이라 바꾸지 않는다.)
+- 이전 작업 BUG-001(docs/evidence/yeri/BUG-001-cancel-redirect)이 같은 결함을 AppController 에서 고쳤으나, 이후 리팩토링(83543f9, Thymeleaf -> 정적 HTML/JS + JSON API)에서 AppController 가 사라지며 결함이 그대로 되살아났다(결함 보존이 리팩토링 계획에 명시됨). 작업 트리 src 에는 수정이 없다(git status src 비어 있음).
+
+== 2. 배경 이해 ==
+이해함. 주문 상세 화면(/orders/{id})에서 확정/진행 주문의 [취소(으)로 변경]을 누르고 확인 창에서 확인하면, 서버는 주문을 삭제하고 성공을 돌려주는데 화면이 삭제된 주문의 상세 주소로 이동해 서버 오류(HTTP 500 기본 오류 화면)가 뜬다.
+근거: static/js/order-detail.js 의 제출 처리(CANCELED 이면 location.href='/orders/'+orderId), PageController.detail 이 getOrder 를 먼저 호출.
+
+== 3. 목적 이해 ==
+이해함. 취소 직후 오류 화면 없이 이전 페이지(주문 목록 /orders)로 이동해야 한다(PRD 7장). 취소된 주문은 목록에서 사라지고 이력은 남는다(R7, 변경 없음).
+
+== 4. 재현과 원인 ==
+재현: 별도 포트(8092)·메모리 DB 로 앱을 띄워(playwright.all.config.ts) 실행: npx playwright test -c src/test/e2e/playwright.all.config.ts -g "E2E-033"
+  결과: "x 1 ... E2E-033" / "1 passed" = test.fail() 이 붙은 테스트가 예상대로 실패함(= 결함이 지금 존재함).
+  단계: 로그인 -> 주문 확정 -> 목록에서 상세 진입 -> 취소 버튼 -> 확인 -> 기대: /orders 로 이동, 실제: /orders/{id} 로 이동해 500.
+  (개발 서버 8080, 개발 DB 사용 안 함)
+원인(코드로 확인):
+ 1) src/main/resources/static/js/order-detail.js (제출 핸들러): 취소 성공 뒤 location.href = '/orders/' + orderId. 주문은 OrderService.changeStatus 에서 이미 delete 됨(OrderService.java 117행).
+ 2) src/main/java/com/example/demo/controller/PageController.java detail(): orderService.getOrder(id) 가 없는 주문에 BusinessException 을 던지고 처리기가 없어 500.
+ 수정 위치는 1)이 원인(이동 대상이 잘못됨). 2)는 별도 결함(INTENT 9장 2번, E2E-035)이다.
+유사 증상: /orders/{없는 번호} 직접 접속도 500 (INTENT 9장 2번, E2E-035 test.fail). 이번에는 고치지 않고 분리 기록만 한다.
+
+== 5. 규모와 위험 ==
+규모 작음: 1개 소스 파일 1줄 + 테스트 1줄 + 문서 정리. DB·엔티티·상태 전이·락 변경 없음. 심각도 높은 위험 없음. 경고 없음.
+위험(낮음): 이동 대상을 /orders 로 하드코딩(history.back 은 사용하지 않음, E2E-033 기대가 주문 목록). 충돌(409) 등 실패 경로는 이동하지 않고 상세에 남아야 한다(E2E-034).
+
+== 6. 영향 범위와 기존 테스트 ==
+바꿀 파일: src/main/resources/static/js/order-detail.js (이동 대상 /orders, 낡은 결함 주석 제거), src/test/e2e/e2e031-041.spec.ts (E2E-033 의 test.fail 제거, 머리 주석 갱신).
+문서 정리(선택, 구현 단계에서 최소): INTENT 9장 1번 삭제 또는 해결 표기, INTENT 5.6 의 500 설명, PRD 7장 "(현재 구현은 ...)" 괄호, PageController 주석에서 "1·2번" -> "2번".
+관련 테스트: E2E-033(재현 테스트, 이미 존재), E2E-032(취소 시 삭제·이력 유지, 취소 직후 화면은 보지 않음), E2E-034(충돌 시 상세에 남음), E2E-030(버튼), OrderFlowTests.changeStatus 관련(서비스, 영향 없음).
+test.fail 영향: E2E-033 은 고치면 지워야 한다. E2E-035, E2E-013b 는 그대로 실패해야 한다.
+공백: 화면 이동은 JUnit 으로 볼 수 없다(정적 JS). E2E-033 이 유일한 지킴이.
+
+== 7. 최소 수정 계획 ==
+1. order-detail.js: 취소 성공 시 location.href = '/orders'. 결함 주석을 정한 동작 설명으로 바꾼다.
+2. E2E-033 의 test.fail(...) 줄을 지우고 머리 주석을 "고쳐진 동작"으로 갱신한다. 새 테스트는 만들지 않는다(E2E-033 이 재발 방지 테스트, 고치기 전엔 실패 확인됨).
+3. 문서: PRD 7장 괄호, INTENT 5.6·9장 1번, PageController 주석을 사실에 맞게 최소 정리.
+4. 이번에 하지 않는 것: /orders/{없는번호} 500 수정(E2E-035), 서비스·삭제 정책 변경, 포맷·리팩토링.
+
+== 8. 체크리스트 3개 ==
+1) 재현 절차가 기대 동작이 된다: 취소 직후 /orders 로 이동, '주문 목록' 제목, Whitelabel 없음. 확인: E2E-033 이 test.fail 없이 통과.
+2) 재발 방지 테스트: E2E-033(일반 테스트로 전환)이 수정 전 실패(재현 확인함)·수정 후 통과. 낡은 version 취소(E2E-034)는 상세에 남음.
+3) 기존 Regression 전체: ./gradlew test, 전체 E2E(playwright.all.config.ts, 포트 8092 메모리 DB) 모두 기대한 결과. E2E-035, E2E-013b 의 test.fail 은 그대로 실패.
+
+== 9. 판단 ==
+status: GO
+이유: 문서가 정한 동작(PRD 7장)과 현재 동작의 차이를 재현했고(E2E-033), 원인 위치를 코드로 확인했고, 변경이 작고 위험이 낮다. 질문 없음.

@@ -1,0 +1,30 @@
+검증 로그 - REF-001-split-large-files (refactor)
+점검 시각: 2026-10-22 09:56:29 / 회차: 1회차
+
+[체크리스트]
+1. 불변 동작이 그대로다 -> 충족
+   - 원본 4개 파일(AppController, BatteryService, MasterRepositories, OrderRepositories)의 줄을 공백 제거 후 새 파일 13개와 집합 비교:
+     원본에만 있는 줄/새 파일에만 있는 줄은 클래스 선언, 생성자 주입 필드(service -> masterService/orderService/simulationService),
+     @Controller/@Service, import, 호출 대상 이름 변경, 주석 구분선 뿐. 메서드 본문 로직 줄 변경 없음.
+   - 컨트롤러 매핑 15개(/, /login GET·POST, /logout, /orders, /orders/new, /orders/{id}, /orders/{id}/status, /master GET·POST, /api/master, /api/simulate, /api/orders) 전후 동일.
+   - @ModelAttribute("loginUser") 는 @ControllerAdvice GlobalModelAttributes 로 이동. E2E 로그인 흐름 통과.
+   - @Transactional: 원본 BatteryService 9개(+import 1) -> MasterService 3 + OrderService 6 = 9. 속성(readOnly) 동일.
+   - 기존 코드 외 변경: DataInitializer(BatteryService->MasterService), OrderFlowTests(BatteryService->OrderService, 2줄). 호출 코드 동일.
+2. 안전망 테스트(JUnit 22건 + E2E 전체)가 기대한 결과다 -> 충족
+   - ./gradlew.bat compileJava compileTestJava --offline : BUILD SUCCESSFUL
+   - ./gradlew.bat test --offline --rerun-tasks : BUILD SUCCESSFUL. DemoApplicationTests 1, OrderFlowTests 9, PlannerTest 12 = 22건, 실패 0.
+   - E2E: npx playwright test (저장소 밖 임시 설정, 포트 8091, 메모리 DB e2e-verify1, src/test/e2e 전체) : 45 passed, 실패 0.
+3. 기존 Regression Test 전체가 기대한 결과, 분리한 파일은 한 역할 -> 충족
+   - 'x' 로 표시된 기대 실패는 3건: E2E-033, E2E-035 (e2e031-041.spec.ts), E2E-013b (simulation.spec.ts). 모두 test.fail() 이며 grep 으로 3곳 확인. 그 외 전부 ok.
+   - 신규 파일 줄 수: 컨트롤러 16~73, 서비스 53~162(MasterService 162 최대), 리포지토리 7~15. 각 파일 한 역할.
+
+[변경 범위] 계획(리포지토리 5, 서비스 3, 컨트롤러 5 분리, DataInitializer·OrderFlowTests 참조 수정)과 일치. 무관한 변경 없음.
+  (git status 의 .gitignore, docs/loops/yeri/README.md 변경, test.html 등은 이번 작업 이전부터 있던 변경이며 소스 영향 없음. 확인 못 한 출처는 remaining 참고.)
+
+[Regression 명령]
+ - ./gradlew.bat compileJava compileTestJava --offline : 통과
+ - ./gradlew.bat test --offline --rerun-tasks : 22/22 통과
+ - npx playwright test -c <scratchpad>/v/pw.config.ts : 45/45 기대한 결과 (기대 실패 3건 포함)
+ 8091 종료 후 LISTEN 없음 확인. 개발 서버 8080·./data/battery 미사용.
+
+[판정] PASS

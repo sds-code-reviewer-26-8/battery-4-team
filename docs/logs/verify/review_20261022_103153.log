@@ -1,0 +1,29 @@
+검증 로그 (verify) - REF-002-controller-cleanup, Loop 유형 refactor
+점검 시각: 2026-10-22 (파일명 시각 기준)
+회차: 1
+
+[체크리스트]
+1. 불변 동작이 그대로다 -> 충족
+   근거: git diff 로 7건 변경이 구조·이름·주석·문서 정리임을 확인(동작 로직 이동만).
+   toForm 본문은 MasterController 에서 MasterService 로 그대로 이동(routeKey, WON_PER_EOK 서비스 내부 사용).
+   @SessionAttribute 로 바꾼 두 경로는 LoginInterceptor(/** 적용)가 앞에서 막아 미로그인 302/401 유지.
+   OrderFlowTests 9건(302/401·확정·상태 변경·마스터 검증)과 E2E confirm.spec, e2e-027~030, e2e031-041, login-access.spec 모두 기대한 결과.
+2. 안전망 테스트가 통과하고 새 toForm 테스트가 값을 실제로 검사한다 -> 충족
+   근거: ./gradlew test 23건 통과(DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 9, PlannerTest 12).
+   MasterFormTests 는 직접 만든 Master 로 maxDaily/stockLimit/unitCost/days_KOREA_CHINA/shipCount/shipDailyCost(억 원 단위 3) 값을 assert 한다. DB 상태에 의존하지 않음.
+   (기대값을 일부러 틀리게 해 실패하는지는 검증자가 소스를 고치지 않으므로 직접 확인하지 않음. implement 단계 자가검증 기록 인용.)
+3. 기존 Regression Test 전체(JUnit + E2E)가 기대한 결과다 -> 충족
+   근거: 아래 Regression 결과.
+
+[변경 범위]
+git diff: 계획에 있는 파일만 변경(DataInitializer, ApiController, MasterController, OrderController, MasterService, OrderService, INTENT.md) + 신규 MasterFormTests.java.
+동작 변경·버그수정·기능 추가 없음. 기존 테스트 수정 없음, test.fail() 변경 없음. playwright.config.ts 변경 없음(git status 깨끗).
+.gitignore, docs/loops/yeri/README.md 수정은 작업 전부터 있던 것(워크플로 시작 시 git status 에 존재).
+
+[Regression Test]
+1. ./gradlew compileJava compileTestJava test --rerun-tasks -> BUILD SUCCESSFUL, JUnit 23건 중 23 통과, 실패 0.
+2. E2E: ./gradlew bootRun (포트 8091, jdbc:h2:file:<프로젝트 밖 임시>/battery) 를 띄우고 프로젝트 밖 임시 설정(baseURL 만 덮어씀)으로
+   npx playwright test -> 45 passed (33.0s). 예상 실패(test.fail) 3건(E2E-033, E2E-035, E2E-013b)은 그대로 예상한 실패로 집계.
+   실행 후 앱(8091) 종료 확인, 8080 은 사용하지 않음(리슨 없음).
+
+[판정] PASS

@@ -1,0 +1,39 @@
+verify 검증 로그
+점검 시각: 2026-10-22 11:20:24 ~ 11:30 (KST)
+회차: 1회차
+Loop 유형: refactor
+작업: REF-004 Thymeleaf -> 정적 HTML + JS + JSON API
+
+[체크리스트]
+1. 불변 동작이 그대로다 (로그인 통제, 로그인/로그아웃, 목록/상세/마스터 문구, 상태 변경, 마스터 전부-또는-전무) : 충족
+   근거: 전체 E2E 001~041 2회 모두 45 passed (E2E-001~005, 022~030, 034, 036~041 포함). JUnit anonymousUserCannotReadStaticPagesOrScreenApis 통과:
+   비로그인 /orders.html, /master.html -> redirectedUrl /login, /api/orders, /api/master/form, POST /api/master -> 401, /login.html 200.
+   JUnit pagesRender: /orders, /orders/new, /master 가 forwardedUrl 로 정적 HTML 로 연결. 화면 주소 5개 유지(PageController).
+2. 안전망이 기준선과 같게 통과한다 : 충족
+   근거: JUnit 24건 통과(기준선 23 + 비로그인 단언 1건). E2E 45건 = 42 통과 + test.fail 3건 예상 실패, 연속 2회 동일(44.5s, 44.2s).
+   테스트 diff 검토: helpers.ts/common-helpers.ts/e2e031-041.spec.ts 는 폼 POST -> JSON API 전환과 렌더 대기(waitFor/toBeVisible) 추가,
+   saveMaster 응답 단언 302 -> 200 (API 전환에 따른 불가피한 변경). 시나리오와 기대값 단언은 그대로. 단언을 제거하거나 느슨하게 한 곳 없음.
+   OrderFlowTests 는 로그인/마스터 저장을 API 로, 기존 단언(planJson 불변, 마스터 미저장 등) 유지.
+3. 기존 Regression Test 전체가 기대한 결과이고 알려진 결함이 보존됐다 : 충족
+   근거: E2E-033, E2E-035, E2E-013b 가 x(예상 실패)로 유지. test.fail() 3곳(e2e031-041.spec.ts:173,251, simulation.spec.ts:77) 변경 없음.
+   grep -ri thymeleaf build.gradle.kts src/main -> 없음. src/main/resources/templates 없음. DemoApplicationTests(컨텍스트 기동) 통과.
+   PageController 가 /orders/{id} 에서 getOrder 를 먼저 호출해 없는 주문의 HTTP 500 동작 보존. @ExceptionHandler 추가 없음.
+
+[변경 범위]
+git status/diff 확인. 변경 파일은 계획(INTENT, build.gradle.kts, application.properties, 컨트롤러 4+1 삭제, WebConfig, ApiController 접근 제한자 1줄,
+정적 HTML 5, JS 5, 테스트 헬퍼/스펙/OrderFlowTests, playwright.all.config.ts)과 일치. 동작 변경·버그수정·기능 추가 없음.
+templates 6개 삭제. 계획 밖: 없음. (docs/loops/yeri/README.md, .gitignore, test.html 은 작업 전부터 있던 변경이며 이번 변경 아님)
+
+[Regression Test]
+./gradlew compileJava compileTestJava : 성공
+./gradlew cleanTest test : 24건, 실패 0 (DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 10, PlannerTest 12)
+npx playwright test -c src/test/e2e/playwright.all.config.ts (포트 8092, 메모리 DB e2e-all, 개발 서버 8080/./data/battery 미사용) 1회: 45 passed
+같은 명령 2회: 45 passed (예상 실패 3건 포함)
+
+[판정] PASS
+
+[남은 이슈]
+- 수정 전 코드에서 신규 JUnit 단언이 실패하는지는 worktree 로 확인하지 않음(신규 API/경로가 수정 전에는 존재하지 않아 구조상 실패).
+- 실제 브라우저로 비로그인 정적 경로를 curl 로 재확인하지는 않았고 JUnit 과 E2E-003/004 로 갈음.
+- 알려진 결함(취소 직후 500, 없는 주문 번호 500, E2E-013b)은 별도 버그수정 Loop 대상.
+- HELP.md 에 Thymeleaf 문구가 남아 있음(Spring 기본 안내, 범위 밖).

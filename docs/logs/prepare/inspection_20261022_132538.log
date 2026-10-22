@@ -1,0 +1,58 @@
+점검 시각: 2026-10-22 13:25:38
+Loop 유형: develop (개발)
+브랜치/커밋: feature/bugfix / 046dd9b
+작업 폴더: docs/evidence/yeri/DEV-001-cancel-success-notice
+
+[요청 원문]
+취소하면 아무 안내 없이 목록으로 가서 사용자가 성공했는지 알기 어렵다. 기존 res.message("상태를 '취소'(으)로 바꿨습니다")를 /orders?canceled=1 쿼리나 sessionStorage 로 넘겨 목록에서 한 번 보여 주면 된다. 또는 취소 직후 목록 이동으로 "취소했습니다" 안내 미표시, 목록에 안내 1회 표시 제안. 이 의견 두 개를 종합해서 진행.
+
+[1. 문서 근거 판단]
+- PRD 7장: "취소 직후에는 이전 페이지(주문 목록)로 이동한다." 안내 문구 표시에 대한 정한 동작은 없음(충돌 아님, 보강 대상).
+- INTENT 9장 1번: 취소 직후 이동 결함은 BUG-001 로 해결됨. 원칙 8·9(오류·변경을 조용히 넘기지 않음)와 같은 방향.
+- PRD 9장(미구현)에는 없으나 확정 동작을 바꾸지 않고 PRD 10장 범위 밖도 아니다. 사용자가 명시적으로 요청한 UX 추가이므로 GO. PRD 7장 한 줄 보강을 계획에 포함.
+
+[2. 배경 이해] 이해함
+- order-detail.js 취소 분기: postJson 성공 후 location.href='/orders'; return; 서버가 준 res.message 는 버려짐. 다른 상태 변경은 load(res.message) 로 같은 화면에 .alert.ok 표시.
+- orders.html / orders.js 에는 안내를 그릴 영역·코드가 없음.
+
+[3. 목적 이해] 이해함
+- 취소 후 목록에 "상태를 '취소'(으)로 바꿨습니다"를 한 번만 보여 준다. 새로고침·재방문 시 사라진다.
+- 두 제안 종합: 서버 메시지(res.message)를 재사용하고(첫 제안), 목록 이동 후 1회 표시(둘째 제안). 전달 수단은 sessionStorage 선택. 이유: E2E-033 이 URL 을 /\/orders$/ 로 검사, 쿼리는 새로고침·북마크·공유 때 안내가 다시 뜨고 필터 링크(status)와 섞임.
+
+[4. 재현/인수 기준]
+- 현재 확인(코드 읽기): 취소 후 안내 없이 이동. 앱 실행 재현은 하지 않음.
+- 인수 기준: (a) 취소 성공 후 /orders 에서 .alert.ok 에 "상태를 '취소'(으)로 바꿨습니다" 표시, (b) 새로고침하면 사라짐, (c) 취소 실패(오류) 때는 안내 없음·기존 오류 표시 유지, (d) sessionStorage 사용 불가여도 이동은 정상.
+- 유사/주의: master.js 는 자체 안내 사용, 변경 없음.
+
+[5. 규모·위험] 작음
+- 변경: static/js/order-detail.js, static/js/orders.js, static/orders.html, src/test/e2e/e2e031-041.spec.ts, PRD.md 7장 한 줄 (5개, 계층 가로지름 아님, 서버 변경 없음)
+- 엔티티·스키마·상태 전이·낙관적 락·스냅샷 변경 없음. 경고 없음.
+- 위험: sessionStorage 예외(try/catch), 1회 표시 위반(읽고 즉시 삭제), 기존 E2E 충돌(URL 유지로 회피).
+
+[6. 영향 범위와 기존 테스트]
+- JUnit: 영향 없음 (OrderFlowTests 는 서버 메시지 불변).
+- E2E: E2E-033(취소 후 목록 이동, URL /orders$ 검사) 보강. E2E-027·031~035 의 .alert.ok 검사는 상세 화면 기준이라 영향 없음. helpers.changeStatusUi 는 취소 때 결과를 기다리지 않음. test.fail() E2E-035, 013b 영향 없음.
+- 공백: 목록 안내 표시·1회성 테스트 없음 → 추가.
+
+[7. 판단] status: GO
+
+[질문] 없음
+
+[최소 구현 계획]
+1. orders.html: 필터 위에 div#messages 추가
+2. order-detail.js: 취소 성공 시 res.message 를 sessionStorage('flashMessage')에 저장 후 /orders 이동 (try/catch)
+3. orders.js: 로드 시 읽어 .alert.ok 로 표시하고 즉시 삭제 (try/catch, esc)
+4. PRD.md 7장 한 줄 보강
+5. E2E: E2E-033 에 안내 확인 추가, 새로고침 시 안내 사라지는 테스트 1개 추가
+하지 않는 것: 서버·API 변경, 다른 화면 안내 변경, 닫기·자동 소멸, 일괄 정리.
+
+[재발 방지(새 기능) 테스트 계획]
+- E2E-033 보강: 안내 표시. 코드를 빼면 실패.
+- 신규 E2E 1개: 취소 후 새로고침 시 안내 없음. 지우지 않으면 실패.
+
+[체크리스트 3개]
+1. 취소하면 목록으로 이동하고 성공 안내가 한 번 보인다 - E2E-033, 화면 확인
+2. 안내는 1회만, 새로고침하면 사라진다 + 테스트 존재·통과 - 신규 E2E
+3. 기존 Regression Test(JUnit + E2E 전체) 기대한 결과 - ./gradlew test, npx playwright test (별도 포트·DB), E2E-035·013b test.fail() 유지
+
+산출물: docs/evidence/yeri/DEV-001-cancel-success-notice/precheck.html

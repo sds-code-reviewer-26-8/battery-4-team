@@ -1,0 +1,19 @@
+검증 로그 (verify) - BUG-002 취소 후 필터 유지
+점검 시각: 2026-10-22 13:44:36 / 회차: 1 / Loop 유형: bugfix
+
+[체크리스트]
+1. 충족. 별도 포트 8091 + 별도 파일 DB에서 E2E 실행. 필터 진입 취소 E2E가 URL /orders?status=CONFIRMED, 확정 칩 active, 안내 표시를 확인하고 통과. 직접 진입은 E2E-033, DEV-001 안내 테스트가 /orders 로 통과.
+2. 충족. e2e031-041.spec.ts 의 새 E2E 1개(URL, 칩, 안내 3가지를 직접 검증). 수정 전 코드(HEAD worktree, 포트 8092)에서 실행하니 URL 이 http://localhost:8092/orders 라 실패. 수정 후 통과. 추가 테스트는 BUG-002 1개(안내 새로고침 테스트는 DEV-001).
+3. 충족. JUnit 24/24, E2E 47/47 기대한 결과(2차 전체 실행). test.fail 2건(E2E-013b, E2E-035)은 기대대로 실패.
+   참고: 1차 전체 실행에서 E2E-021 이 1회 실패(목록 행을 기다리지 않고 allInnerTexts 를 읽는 경합, cells[4] undefined). 단독 재실행 통과, 전체 재실행 47/47 통과. 이번 변경과 무관한 기존 불안정 테스트로 판단.
+
+[변경 범위]
+git diff: order-detail.js(previousList 추가, 이동 변경), PRD.md 7장, INTENT.md 88행, e2e031-041.spec.ts(E2E 추가). 그 외 orders.js, orders.html, .gitignore, docs/loops README 변경과 E2E-033 안내 보강은 이전 DEV-001 작업분으로 이번 변경이 아님. 이번 변경에 무관한 수정은 없음. 오픈 리다이렉트 방지(같은 출처, 경로 정확히 /orders) 확인.
+
+[Regression]
+./gradlew compileJava compileTestJava : 성공
+./gradlew test --rerun-tasks : 24 tests, 실패 0 (DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 10, PlannerTest 12)
+npx playwright test (별도 설정, baseURL 8091, 별도 파일 DB): 1차 46 통과 1 실패(E2E-021 경합), 2차 47 통과 0 실패(예상 실패 2건 포함)
+앱 종료, worktree 와 임시 파일 삭제 완료. 8080·개발 DB 미사용.
+
+[판정] PASS
