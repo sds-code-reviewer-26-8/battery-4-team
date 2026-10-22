@@ -23,7 +23,15 @@
 				<div><dt>작성자</dt><dd>${esc(order.createdBy)}</dd></div>
 				<div><dt>경로</dt><dd>${esc(order.routeLabel)}</dd></div>
 				<div><dt>메모</dt><dd>${esc(order.memo != null ? order.memo : '-')}</dd></div>
+				<div><dt>고객사</dt><dd>${esc(order.customerName != null ? order.customerName : '-')}</dd></div>
 			</dl>`
+			+ (order.customerEditable
+				? `<form class="customer-form">
+					<label class="stack">고객사 이름 수정
+						<input type="text" id="customerInput" maxlength="100" value="${esc(order.customerName != null ? order.customerName : '')}"></label>
+					<button type="submit" class="primary">고객사 저장</button>
+				</form>`
+				: '')
 			+ (order.next.length === 0
 				? '<p class="muted">최종 상태라 더 바꿀 수 없습니다.</p>'
 				: `<div class="actions">${order.next.map(s => `
@@ -69,6 +77,18 @@
 
 	infoEl.addEventListener('submit', async e => {
 		e.preventDefault();
+		if (e.target.closest('.customer-form')) {
+			try {
+				const res = await postJson('/api/orders/' + orderId + '/customer',
+					{customerName: document.getElementById('customerInput').value, version: version});
+				await load(res.message, null);
+			} catch (err) {
+				// 충돌(409)은 다시 읽어 현재 값을 보여 주고, 입력 오류(400)는 입력값을 둔 채 이유만 보인다.
+				if (err.conflict) await load(null, err.message);
+				else showMessages(null, err.message);
+			}
+			return;
+		}
 		const f = e.target.closest('.status-form');
 		if (!f || !confirm(f.dataset.confirm)) return;
 		try {
