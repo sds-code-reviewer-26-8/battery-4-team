@@ -91,6 +91,7 @@ test.describe('공장 운영비', () => {
     const stats = await readStats(page);
     expect(stats['운영비']).toBe(`${eok(cost.operatingCost)}억원`);
     expect(stats['총 비용']).toBe(`${eok(cost.totalCost)}억원`);
+    await expect(page.locator('.old-plan-note')).toHaveCount(0);   // 운영비가 있는 주문에는 옛 주문 안내가 없다
     const rows = await readDetailsTable(page, 5);
     expect(rows.map((r) => r[1])).toEqual((cost.factoryOperations as FactoryOp[]).map((f) => `${f.days}일`));
   });
@@ -105,6 +106,7 @@ test.describe('공장 운영비', () => {
       const stored = JSON.parse(body.planJson);
       delete stored.plan.operatingCost;
       delete stored.plan.factoryOperations;
+      stored.plan.label = '운항비 최소';   // 운영비 도입 전에 확정한 주문에 저장된 옛 안 이름
       stored.master.factories.forEach((f: Record<string, unknown>) => delete f.dailyOperatingCostWon);
       stored.plan.totalCost = stored.plan.productionCost + stored.plan.shippingCost;
       oldTotal = stored.plan.totalCost;
@@ -116,6 +118,10 @@ test.describe('공장 운영비', () => {
     expect(stats['운영비']).toBe('없음');
     expect(stats['총 비용']).toBe(`${eok(oldTotal)}억원`);
     await expect(page.locator('#details')).toContainText('운영비 정보가 없습니다');
+    // 옛 안 이름 옆에 기준이 다르다는 안내가 보인다
+    const note = page.locator('.old-plan-note');
+    await expect(note).toContainText('운영비를 반영하기 전에 확정한 주문입니다');
+    await expect(note).toContainText("'운항비 최소' 안은 운항비만 비교해 고른 안");
     await expect(page.locator('.alert.error')).toHaveCount(0);
     await expect(page.locator('#anim .anim')).toBeVisible();
   });

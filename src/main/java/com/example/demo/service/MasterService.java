@@ -76,8 +76,9 @@ public class MasterService {
 				.orElseThrow(() -> new IllegalStateException("마스터 데이터가 초기화되지 않았습니다"));
 		List<Master.FactoryParam> fs = factories.findAll().stream()
 				.sorted(Comparator.comparing(Factory::getCountry))
+				// 운영비 도입 전에 만든 DB 는 initDefaults 가 보정하기 전까지 값이 비어 있을 수 있다. 보정과 같은 기본값을 쓴다.
 				.map(f -> new Master.FactoryParam(f.getCountry(), f.getMaxDaily(), f.getStockLimit(), f.getUnitCost(),
-						f.getDailyOperatingCostWon()))
+						f.getDailyOperatingCostWon() != null ? f.getDailyOperatingCostWon() : DEFAULT_OPERATING_COST_WON))
 				.toList();
 		List<Master.RouteParam> rs = routes.findAll().stream()
 				.sorted(Comparator.comparing(Route::getFromCountry).thenComparing(Route::getToCountry))

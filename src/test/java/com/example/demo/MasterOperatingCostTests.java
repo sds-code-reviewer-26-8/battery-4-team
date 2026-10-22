@@ -113,4 +113,17 @@ class MasterOperatingCostTests {
 		assertThat(factories.findById(Country.JAPAN).orElseThrow().getDailyOperatingCostWon()).isEqualTo(10 * EOK);
 		assertThat(service.currentMaster().version()).isEqualTo(version);   // 보정은 마스터 버전을 올리지 않는다
 	}
+
+	/** 보정이 끝나기 전에 마스터를 읽어도 NPE 없이 기본값(10억)으로 읽고, DB 값은 건드리지 않는다. */
+	@Test
+	void currentMasterUsesDefaultWhileOperatingCostIsStillEmpty() {
+		Factory japan = factories.findById(Country.JAPAN).orElseThrow();
+		japan.setDailyOperatingCostWon(null);
+		factories.save(japan);
+
+		var japanParam = service.currentMaster().factory(Country.JAPAN);
+
+		assertThat(japanParam.dailyOperatingCostWon()).isEqualTo(10 * EOK);
+		assertThat(factories.findById(Country.JAPAN).orElseThrow().getDailyOperatingCostWon()).isNull();
+	}
 }

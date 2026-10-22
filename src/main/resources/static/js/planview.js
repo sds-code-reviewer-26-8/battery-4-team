@@ -5,12 +5,22 @@ const PlanView = (function () {
 	const hasOperating = p => p.operatingCost !== undefined && p.operatingCost !== null;
 	const operatingText = p => hasOperating(p) ? `${eok(p.operatingCost)}억원` : '없음';
 
+	/** 운영비를 반영하기 전에 확정한 주문이면 안 이름과 비용이 당시 기준임을 알린다. */
+	const oldPlanNote = p => {
+		if (hasOperating(p)) return '';
+		const costNote = p.type === 'COST'
+			? ` '${p.label}' 안은 운항비만 비교해 고른 안이라 지금의 '총비용 최소'와 기준이 다릅니다.`
+			: ' 총 비용에 운영비가 들어 있지 않습니다.';
+		return `<p class="muted old-plan-note">운영비를 반영하기 전에 확정한 주문입니다.${costNote}</p>`;
+	};
+
 	function renderSummary(root, stored) {
 		const p = stored.plan;
 		const totalK = Object.values(stored.orders).reduce((a, b) => a + b, 0);
 		root.innerHTML = `
 			<section class="card">
 				<h2>요약 <span class="muted">· ${p.label}</span></h2>
+				${oldPlanNote(p)}
 				<div class="stats">
 					<div><span>총 수량</span><b>${fmt(totalK)}K</b></div>
 					<div><span>소요 일수</span><b>${p.totalDays}일</b></div>
