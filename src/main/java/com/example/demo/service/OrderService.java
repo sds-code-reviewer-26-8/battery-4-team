@@ -22,6 +22,8 @@ import tools.jackson.databind.ObjectMapper;
 public class OrderService {
 
 	private static final int MAX_MEMO = 1000;
+	static final int MIN_DUE_DAYS = 5;
+	static final int MAX_DUE_DAYS = 50;
 
 	private final OrderRepository orders;
 	private final OrderStatusHistoryRepository histories;
@@ -45,7 +47,10 @@ public class OrderService {
 	 */
 	@Transactional
 	public Order confirm(Map<Country, Integer> requested, String routeType, long masterVersion, String memo,
-			String user) {
+			Integer dueDays, String user) {
+		if (dueDays != null && (dueDays < MIN_DUE_DAYS || dueDays > MAX_DUE_DAYS)) {
+			throw new BusinessException("필요 납기일은 %d~%d 사이의 정수로 입력하세요".formatted(MIN_DUE_DAYS, MAX_DUE_DAYS));
+		}
 		SimulationResult result = simulationService.simulate(requested);
 		if (result.master().version() != masterVersion) {
 			throw new BusinessException("시뮬레이션 이후 마스터 데이터가 바뀌었습니다. 다시 시뮬레이션해 주세요", true);
@@ -64,7 +69,7 @@ public class OrderService {
 		int totalK = result.orders().values().stream().mapToInt(Integer::intValue).sum();
 		LocalDateTime now = LocalDateTime.now();
 		Order order = orders.save(new Order(now, user, totalK, plan.type(), plan.label(), plan.totalDays(),
-				plan.productionCost(), plan.shippingCost(), plan.totalCost(), note, json.writeValueAsString(stored)));
+				plan.productionCost(), plan.shippingCost(), plan.totalCost(), note, dueDays, json.writeValueAsString(stored)));
 		histories.save(new OrderStatusHistory(order.getId(), null, OrderStatus.CONFIRMED, user, now));
 		return order;
 	}

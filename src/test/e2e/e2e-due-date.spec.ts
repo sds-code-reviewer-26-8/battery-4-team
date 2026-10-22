@@ -142,15 +142,37 @@ test.describe('필요 납기일 표시', () => {
     await expect(selected).toHaveCSS('box-shadow', 'none');
   });
 
-  test('납기를 바꿔도 주문 확정 요청 본문은 기존과 같다', async ({ page }) => {
+  test('납기를 고르면 주문 확정 요청 본문에 dueDays 가 함께 간다', async ({ page }) => {
     await runSimulation(page);
     await page.locator('#dueAsap').uncheck();
     await page.locator('#dueDays').fill('5');
     const reqPromise = page.waitForRequest((r) => r.url().endsWith('/api/orders') && r.method() === 'POST');
     await page.locator('#confirmBtn').click();
     const body = (await reqPromise).postDataJSON();
-    expect(Object.keys(body).sort()).toEqual(['masterVersion', 'memo', 'orders', 'routeType']);
+    expect(Object.keys(body).sort()).toEqual(['dueDays', 'masterVersion', 'memo', 'orders', 'routeType']);
     expect(body.orders).toEqual(EVEN);
     expect(body.routeType).toBe('COST');
+    expect(body.dueDays).toBe(5);
   });
+
+  test('가능한 빨리를 고르면 dueDays 는 null 로 간다', async ({ page }) => {
+    await runSimulation(page);
+    const reqPromise = page.waitForRequest((r) => r.url().endsWith('/api/orders') && r.method() === 'POST');
+    await page.locator('#confirmBtn').click();
+    expect((await reqPromise).postDataJSON().dueDays).toBeNull();
+  });
+
+  for (const bad of ['', '4', 'abc']) {
+    test(`납기 입력이 "${bad}" 이면 확정 요청을 보내지 않고 이유를 보인다`, async ({ page }) => {
+      await runSimulation(page);
+      await page.locator('#dueAsap').uncheck();
+      await page.locator('#dueDays').fill(bad);
+      let sent = false;
+      page.on('request', (r) => { if (r.url().endsWith('/api/orders') && r.method() === 'POST') sent = true; });
+      await page.locator('#confirmBtn').click();
+      await expect(page.locator('#confirmError')).toBeVisible();
+      await expect(page.locator('#confirmError')).toContainText('5~50');
+      expect(sent).toBe(false);
+    });
+  }
 });

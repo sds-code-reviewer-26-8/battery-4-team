@@ -12,6 +12,14 @@
 			+ (error ? `<p class="alert error">${esc(error)}</p>` : '');
 	}
 
+	/** 필요 납기. 소요 일수가 납기를 넘으면 빨간색과 글자로 함께 알린다. */
+	function dueText(order) {
+		if (order.dueDays == null) return '가능한 빨리';
+		return order.dueOverDays != null
+			? `<span class="late-text">${order.dueDays}일 · 납기 초과 ${order.dueOverDays}일</span>`
+			: `${order.dueDays}일`;
+	}
+
 	function render(order) {
 		version = order.version;
 		titleEl.innerHTML = `주문 <span>#${order.id}</span>
@@ -22,6 +30,7 @@
 				<div><dt>확정 일시</dt><dd>${esc(order.confirmedAt)}</dd></div>
 				<div><dt>작성자</dt><dd>${esc(order.createdBy)}</dd></div>
 				<div><dt>경로</dt><dd>${esc(order.routeLabel)}</dd></div>
+				<div><dt>필요 납기</dt><dd>${dueText(order)}</dd></div>
 				<div><dt>메모</dt><dd>${esc(order.memo != null ? order.memo : '-')}</dd></div>
 			</dl>`
 			+ (order.next.length === 0

@@ -11,9 +11,9 @@ test('E2E-023 목록의 열이 모두 있고 방금 확정한 주문이 맨 위,
   await page.getByRole('link', { name: '주문 목록', exact: true }).first().click();
   await expect(page).toHaveURL(/\/orders$/);
 
-  // 열: 주문번호, 확정 일시, 총 수량(K), 경로, 소요 일수, 총 비용(억원), 상태, 작성자
+  // 열: 주문번호, 확정 일시, 총 수량(K), 경로, 소요 일수, 총 비용(억원), 상태, 작성자, 필요 납기
   const headers = (await page.locator('table.grid thead th').allInnerTexts()).map(normalize);
-  expect(headers).toEqual(['주문번호', '확정 일시', '총 수량(K)', '경로', '소요 일수', '총 비용(억원)', '상태', '작성자']);
+  expect(headers).toEqual(['주문번호', '확정 일시', '총 수량(K)', '경로', '소요 일수', '총 비용(억원)', '상태', '작성자', '필요 납기']);
 
   // 번호가 내림차순이고, 방금 확정한 주문이 가장 위에 있다
   const ids = (await page.locator('table.grid tbody tr.clickable td:first-child').allInnerTexts()).map((t) =>

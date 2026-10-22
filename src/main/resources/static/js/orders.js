@@ -5,6 +5,14 @@
 	const messagesEl = document.getElementById('messages');
 	const status = new URLSearchParams(location.search).get('status');
 
+	/** 필요 납기 칸. 납기를 넘으면 빨간색과 글자로 함께 알린다. */
+	function dueCell(o) {
+		if (o.dueDays == null) return '가능한 빨리';
+		return o.dueOverDays != null
+			? `<span class="late-text">${o.dueDays}일 · 납기 초과 ${o.dueOverDays}일</span>`
+			: `${o.dueDays}일`;
+	}
+
 	function render(data) {
 		const chip = (href, active, label, count) =>
 			`<a href="${href}" class="chip${active ? ' active' : ''}">${label} <span class="count">${count}</span></a>`;
@@ -13,7 +21,7 @@
 				`<span>${esc(s.label)}</span>`, s.count)).join('');
 
 		rowsEl.innerHTML = data.orders.length === 0
-			? '<tr><td colspan="8" class="empty">주문이 없습니다.</td></tr>'
+			? '<tr><td colspan="9" class="empty">주문이 없습니다.</td></tr>'
 			: data.orders.map(o => `
 				<tr class="clickable" data-id="${o.id}">
 					<td><a href="/orders/${o.id}">#${o.id}</a></td>
@@ -24,6 +32,7 @@
 					<td class="num">${esc(o.totalCostEok)}</td>
 					<td><span class="badge badge-${esc(o.status)}">${esc(o.statusLabel)}</span></td>
 					<td>${esc(o.createdBy)}</td>
+					<td>${dueCell(o)}</td>
 				</tr>`).join('');
 	}
 

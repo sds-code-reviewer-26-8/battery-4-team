@@ -124,7 +124,7 @@
 		return {master: result.master, orders: result.orders, visits: result.visits, plan};
 	}
 
-	// ---- 필요 납기일 (화면 표시용, 주문에 저장하지 않는다)
+	// ---- 필요 납기일 (카드 표시용이며, 확정할 때 주문에 함께 저장한다. 계산에는 쓰지 않는다)
 
 	const dueAsap = document.getElementById('dueAsap');
 	const dueDays = document.getElementById('dueDays');
@@ -198,13 +198,20 @@
 	confirmBtn.addEventListener('click', async () => {
 		if (!result) return;
 		confirmError.hidden = true;
+		const state = dueState();
+		if (state === 'empty' || state === 'invalid') {
+			showError(confirmError, '필요 납기일을 5~50 사이의 정수로 입력하거나 "가능한 빨리"를 체크하세요.');
+			dueDays.focus();
+			return;
+		}
 		confirmBtn.disabled = true;
 		try {
 			const res = await postJson('/api/orders', {
 				orders: values,
 				routeType: selected,
 				masterVersion: result.master.version,
-				memo: document.getElementById('memo').value
+				memo: document.getElementById('memo').value,
+				dueDays: currentDue()
 			});
 			location.href = '/orders/' + res.id;
 		} catch (e) {
