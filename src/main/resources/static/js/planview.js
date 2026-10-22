@@ -1,6 +1,10 @@
 /** 계획(stored = {master, orders, visits, plan})을 표로 보여 준다. 주문 추가와 주문 상세가 함께 쓴다. */
 const PlanView = (function () {
 
+	/** 운영비 도입 전에 확정한 주문의 계획에는 운영비 값이 없다. 0원이 아니라 '없음'으로 보여 준다. */
+	const hasOperating = p => p.operatingCost !== undefined && p.operatingCost !== null;
+	const operatingText = p => hasOperating(p) ? `${eok(p.operatingCost)}억원` : '없음';
+
 	function renderSummary(root, stored) {
 		const p = stored.plan;
 		const totalK = Object.values(stored.orders).reduce((a, b) => a + b, 0);
@@ -12,13 +16,15 @@ const PlanView = (function () {
 					<div><span>소요 일수</span><b>${p.totalDays}일</b></div>
 					<div><span>생산 원가</span><b>${eok(p.productionCost)}억원</b></div>
 					<div><span>운항비</span><b>${eok(p.shippingCost)}억원</b></div>
+					<div><span>운영비</span><b>${operatingText(p)}</b></div>
 					<div class="strong"><span>총 비용</span><b>${eok(p.totalCost)}억원</b></div>
 				</div>
 			</section>`;
 	}
 
 	function renderDetails(root, stored) {
-		root.innerHTML = ordersTable(stored) + shipsTable(stored) + dailyTable(stored) + masterTable(stored);
+		root.innerHTML = ordersTable(stored) + shipsTable(stored) + dailyTable(stored) + masterTable(stored)
+			+ operationTable(stored);
 	}
 
 	function ordersTable(stored) {
@@ -72,16 +78,32 @@ const PlanView = (function () {
 	function masterTable(stored) {
 		const m = stored.master;
 		const factories = m.factories.map(f => `<tr><td>${COUNTRY_LABEL[f.country]}</td>
-			<td class="num">${fmt(f.maxDaily)}</td><td class="num">${fmt(f.stockLimit)}</td><td class="num">${fmt(f.unitCost)}</td></tr>`).join('');
+			<td class="num">${fmt(f.maxDaily)}</td><td class="num">${fmt(f.stockLimit)}</td><td class="num">${fmt(f.unitCost)}</td>
+			<td class="num">${f.dailyOperatingCostWon == null ? '없음' : eok(f.dailyOperatingCostWon)}</td></tr>`).join('');
 		const routes = m.routes.map(r => `<tr><td>${COUNTRY_LABEL[r.from]} - ${COUNTRY_LABEL[r.to]}</td>
 			<td class="num">${r.days}일</td></tr>`).join('');
 		return `<h2>계획에 쓴 마스터 값</h2>
 			<details><summary>보기</summary>
 			<p>배 ${m.shipCount}척 · 척당 일 운항비 ${eok(m.shipDailyCostWon)}억원</p>
-			<table class="grid"><thead><tr><th>나라</th><th class="num">하루 최대(K)</th><th class="num">재고 상한(K)</th><th class="num">셀당 원가(원)</th></tr></thead>
+			<table class="grid"><thead><tr><th>나라</th><th class="num">하루 최대(K)</th><th class="num">재고 상한(K)</th><th class="num">셀당 원가(원)</th><th class="num">하루 운영비(억원)</th></tr></thead>
 			<tbody>${factories}</tbody></table>
 			<table class="grid"><thead><tr><th>항로</th><th class="num">항해 일수</th></tr></thead><tbody>${routes}</tbody></table>
 			</details>`;
+	}
+
+	/** 공장별 운영 일수(주문일부터 마지막 수거일)와 운영비. 다른 표의 순서가 바뀌지 않도록 맨 뒤에 둔다. */
+	function operationTable(stored) {
+		const p = stored.plan;
+		if (!hasOperating(p) || !p.factoryOperations) {
+			return `<h2>공장별 운영 일수·운영비</h2>
+				<p class="muted">이 주문은 공장 운영비를 반영하기 전에 확정되어 운영비 정보가 없습니다.</p>`;
+		}
+		const rows = p.factoryOperations.map(o => `<tr><td>${COUNTRY_LABEL[o.country]}</td>
+			<td class="num">${o.days}일</td><td class="num">${eok(o.cost)}</td></tr>`).join('');
+		return `<h2>공장별 운영 일수·운영비</h2>
+			<table class="grid"><thead><tr><th>나라</th><th class="num">운영 일수</th><th class="num">운영비(억원)</th></tr></thead>
+			<tbody>${rows}</tbody></table>
+			<p class="muted">운영 일수는 주문일(0일차)부터 그 공장의 마지막 수거일까지입니다. 주문이 없는 공장은 0입니다.</p>`;
 	}
 
 	return {renderSummary, renderDetails};

@@ -27,6 +27,9 @@ public class Factory {
 	@Column(nullable = false)
 	private long unitCost;
 
+	/** 하루 운영비(원). 운영비 도입 전에 만든 DB 는 비어 있다가 첫 실행 때 기본값으로 채워진다. */
+	private Long dailyOperatingCostWon;
+
 	protected Factory() {
 	}
 
@@ -35,6 +38,11 @@ public class Factory {
 		this.maxDaily = maxDaily;
 		this.stockLimit = stockLimit;
 		this.unitCost = unitCost;
+	}
+
+	public Factory(Country country, int maxDaily, int stockLimit, long unitCost, long dailyOperatingCostWon) {
+		this(country, maxDaily, stockLimit, unitCost);
+		this.dailyOperatingCostWon = dailyOperatingCostWon;
 	}
 
 	public Country getCountry() {
@@ -63,5 +71,13 @@ public class Factory {
 
 	public void setUnitCost(long unitCost) {
 		this.unitCost = unitCost;
+	}
+
+	public Long getDailyOperatingCostWon() {
+		return dailyOperatingCostWon;
+	}
+
+	public void setDailyOperatingCostWon(Long dailyOperatingCostWon) {
+		this.dailyOperatingCostWon = dailyOperatingCostWon;
 	}
 }

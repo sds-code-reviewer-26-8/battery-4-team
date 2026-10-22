@@ -15,7 +15,7 @@ class MasterFormTests {
 	@Test
 	void toFormMapsMasterToInputNamesAndEokUnit() {
 		Master m = new Master(1, 3, 300_000_000L,
-				List.of(new Master.FactoryParam(Country.CHINA, 400, 4000, 700)),
+				List.of(new Master.FactoryParam(Country.CHINA, 400, 4000, 700, 1_500_000_000L)),
 				List.of(new Master.RouteParam(Country.KOREA, Country.CHINA, 1)));
 
 		Map<String, String> form = MasterService.toForm(m);
@@ -23,6 +23,7 @@ class MasterFormTests {
 		assertThat(form).containsEntry("maxDaily_CHINA", "400")
 				.containsEntry("stockLimit_CHINA", "4000")
 				.containsEntry("unitCost_CHINA", "700")
+				.containsEntry("operatingCost_CHINA", "15")
 				.containsEntry("days_KOREA_CHINA", "1")
 				.containsEntry("shipCount", "3")
 				.containsEntry("shipDailyCost", "3");
