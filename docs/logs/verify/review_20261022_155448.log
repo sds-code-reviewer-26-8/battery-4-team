@@ -9,6 +9,7 @@
      planview.js(운영비 없으면 '없음'), order-new.js/#sameNote(두 안이 같습니다), anim.js.
    - 실행: operating-cost.spec.ts 5건 + MasterOperatingCostTests 5건 + PlannerTest 18건 통과 (아래).
    - 기존 DB 보정은 MasterOperatingCostTests(값이 있으면 유지, 비어 있는 곳만 10억)로 확인. 개발 DB 복사본 확인은 implement 단계 기록을 따랐고 이번 검증에서 다시 하지 않았다.
+     [후속 확인] 이후 개발 DB 복사본으로 직접 확인했다(공장 4곳 10억, 마스터 버전 유지, 기존 주문 저장값 유지). review_20261022_162628.log 참고.
 2. 새 테스트 존재·통과, 기존 테스트 의도 유지 : 충족
    - 새 테스트: PlannerTest 운영비 4건, MasterOperatingCostTests 5건, operating-cost.spec.ts 5건(4항목·공장별 표, 동일 안 안내 같을 때/다를 때, 확정 스냅샷, 기존 주문 없음, 마스터 상한·거부·버전).
      구체 값(1000.01 거부, 0 거부, 1000 저장, 버전+1, #sameNote 표시/숨김, 합계 등식)을 단언해 잘못 구현하면 실패한다(코드 읽어 판단).
@@ -30,6 +31,8 @@ git status/diff: 계획한 파일(Planner, Master, Plan, Factory, MasterService,
   예기치 않게 통과한 test.fail 없음 (저장소의 test.fail은 E2E-035뿐).
 - E2E-021 실패 분석: 테스트가 goto 직후 #summary.innerText()를 기다림 없이 읽는다(e2e-021.spec.ts:35). 화면은 JS가 비동기로 그리므로 첫 실행(콜드 스타트)에서 빈 문자열이 읽힌 경쟁 상태로 보인다.
   이 spec은 이번 변경에서 수정하지 않았고 운영비와 직접 관련이 없다. 추정이며 수정 전 코드로 재현하지는 않았다. implement 단계에서도 첫 실행에서만 E2E-032 한 건이 실패했다.
+  [후속 확인] 이후 원인을 재현해 확인했다. E2E-021은 목록·요약이 그려지기 전에 읽는 대기 부족(응답을 지연시키면 매번 실패),
+  E2E-032는 취소 후 앱의 이동과 page.goto가 겹침(60번 중 3번 실패). 둘 다 대기를 보강했다. review_20261022_162628.log 참고.
   2회 연속 통과 기준(실행 2, 3)은 충족했으나 첫 실행 불안정이 반복되므로 남은 이슈로 기록한다.
 
 [판정] PASS
