@@ -22,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 public class OrderService {
 
 	private static final int MAX_MEMO = 1000;
+	private static final int MAX_CUSTOMER = 100;
 
 	private final OrderRepository orders;
 	private final OrderStatusHistoryRepository histories;
@@ -45,7 +46,7 @@ public class OrderService {
 	 */
 	@Transactional
 	public Order confirm(Map<Country, Integer> requested, String routeType, long masterVersion, String memo,
-			String user) {
+			String customerName, String user) {
 		SimulationResult result = simulationService.simulate(requested);
 		if (result.master().version() != masterVersion) {
 			throw new BusinessException("시뮬레이션 이후 마스터 데이터가 바뀌었습니다. 다시 시뮬레이션해 주세요", true);
@@ -59,12 +60,13 @@ public class OrderService {
 		if (note != null && note.isEmpty()) {
 			note = null;
 		}
+		String customer = normalizeCustomer(customerName);
 
 		StoredPlan stored = new StoredPlan(result.master(), result.orders(), result.visits(), plan);
 		int totalK = result.orders().values().stream().mapToInt(Integer::intValue).sum();
 		LocalDateTime now = LocalDateTime.now();
 		Order order = orders.save(new Order(now, user, totalK, plan.type(), plan.label(), plan.totalDays(),
-				plan.productionCost(), plan.shippingCost(), plan.totalCost(), note, json.writeValueAsString(stored)));
+				plan.productionCost(), plan.shippingCost(), plan.totalCost(), note, customer, json.writeValueAsString(stored)));
 		histories.save(new OrderStatusHistory(order.getId(), null, OrderStatus.CONFIRMED, user, now));
 		return order;
 	}
@@ -117,6 +119,39 @@ public class OrderService {
 		if (target == OrderStatus.CANCELED) {
 			orders.delete(order);
 		}
+	}
+
+	/**
+	 * 고객사 이름을 바꾼다. 검사 순서는 changeStatus 와 같다: 주문 존재, version, 작성자, 상태, 입력.
+	 * 고객사 수정은 상태 이력을 남기지 않는다.
+	 */
+	@Transactional
+	public void updateCustomerName(Long id, String customerName, long expectedVersion, String user) {
+		Order order = getOrder(id);
+		if (order.getVersion() != expectedVersion) {
+			throw conflict();
+		}
+		if (user == null || !user.equals(order.getCreatedBy())) {
+			throw new BusinessException("주문을 작성한 사람만 고객사를 수정할 수 있습니다");
+		}
+		if (!order.getStatus().isCustomerEditable()) {
+			throw new BusinessException("%s 상태의 주문은 고객사를 수정할 수 없습니다".formatted(order.getStatus().getLabel()));
+		}
+		order.setCustomerName(normalizeCustomer(customerName));
+		try {
+			orders.saveAndFlush(order);
+		} catch (ObjectOptimisticLockingFailureException e) {
+			throw conflict();
+		}
+	}
+
+	/** 앞뒤 공백을 지우고, 비면 null, 100자를 넘으면 거부한다. */
+	private static String normalizeCustomer(String customerName) {
+		String name = customerName == null ? null : customerName.strip();
+		if (name != null && name.length() > MAX_CUSTOMER) {
+			throw new BusinessException("고객사 이름은 %d자 이하로 입력하세요".formatted(MAX_CUSTOMER));
+		}
+		return name == null || name.isEmpty() ? null : name;
 	}
 
 	private static BusinessException conflict() {
