@@ -192,6 +192,12 @@ public final class Planner {
 				}
 			}
 			result.add(tripStops.stream().map(stops -> shortestOrder(master, stops)).toList());
+			// 항해 일수가 가장 짧은 순서가 전체 소요 일수까지 가장 짧다는 보장은 없다(방문 순서가 재고가 차는
+			// 시점을 바꾼다). 가까운 나라부터 도는 순서도 후보에 넣어 "가장 빠르게"가 "가까운 곳부터"보다 느리지 않게 한다.
+			List<List<Country>> nearFirst = tripStops.stream().map(stops -> nearFirstOrder(master, stops)).toList();
+			if (!nearFirst.equals(result.get(result.size() - 1))) {
+				result.add(nearFirst);
+			}
 		}
 		return result;
 	}
@@ -221,6 +227,14 @@ public final class Planner {
 			}
 		}
 		return best;
+	}
+
+	/** 한국에서 가까운 나라부터 방문하는 순서 ('가까운 곳부터' 안과 같은 규칙) */
+	private static List<Country> nearFirstOrder(Master master, List<Country> stops) {
+		return stops.stream()
+				.sorted(Comparator.comparingInt((Country c) -> master.days(Country.KOREA, c))
+						.thenComparingInt(Enum::ordinal))
+				.toList();
 	}
 
 	private static int loopDays(Master master, List<Country> order) {

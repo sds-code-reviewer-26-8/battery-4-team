@@ -38,3 +38,8 @@ out/
 
 ### H2 file database ###
 data/
+
+### Node / Playwright ###
+node_modules/
+test-results/
+package-lock.json
