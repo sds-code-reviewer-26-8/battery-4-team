@@ -1,0 +1,38 @@
+점검 시각: (파일명의 시각) (/ih prepare, 회차 1/3 — 증거 폴더 기준으로는 갱신 2회차, 직전 HILP 에 대한 사람의 답변 반영)
+요청 원문: "A로 진행, 3번 기준 그대로" (이전 질문 1~3에 대한 답: 범위 A, 큰 변경 감수, 판정 기준 제안대로)
+
+[배경] 이해함 — 주문 추가 화면의 납기 비교(PR #30)는 화면에만 있고, 사용자는 확정할 때(주문시) 납기를 저장하고 주문 목록·상세에서도 납기 초과를 빨간색으로 보고 싶어 한다. 근거: 요청 원문, INTENT 5.8(100~104행), PRD R2(51행), 직전 점검 로그 inspection_20261022_163020.log, 사람의 답변.
+[목적] 이해함 — 고객이 요구한 납기를 확정 주문에 남겨, 주문을 다시 볼 때도 납기를 넘기는 경로를 글자와 빨간색으로 알아볼 수 있게 한다. 근거: 요청 문구와 사람의 답변 (1).
+
+[점검한 곳] CLAUDE.md, INTENT 5.8·6장 트레이드오프(133행), PRD R2·R3·R6, OrderService.confirm, Order 엔티티, ApiController(ConfirmRequest = orders/routeType/masterVersion/memo), OrderController(목록·상세 JSON), orders.js, order-detail.js, order-new.js(납기 입력·확정 요청), orders.html, order-detail.html, app.css(.option.late), e2e-due-date.spec.ts, application.properties(ddl-auto=update, H2 파일 DB).
+ 확인한 사실:
+ - Order 에 납기 컬럼 없음. new Order(...) 와 OrderService.confirm 호출처는 각각 OrderService 한 곳, ApiController 한 곳뿐이다(grep).
+ - e2e-due-date.spec.ts 145~155행 "납기를 바꿔도 주문 확정 요청 본문은 기존과 같다" 는 본문 키가 [masterVersion, memo, orders, routeType] 뿐이라고 단언한다. dueDays 를 추가하면 이 테스트가 실패한다. 직전 계획의 files 에 이 파일이 없었으므로 이번에 추가한다.
+ - order-new.js 는 납기 입력이 비었거나 잘못돼도 확정 버튼을 막지 않는다(currentDue 가 null). 저장하게 되면 '잘못된 값을 가능한 빨리로 저장'하는 문제가 생기므로 확정 때 막아야 한다.
+ - 주문 취소 시 주문이 삭제되므로 취소·삭제 흐름은 납기와 무관하다.
+ 추정(실행해 확인하지 못함): ddl-auto=update 가 nullable Integer 컬럼을 기존 H2 파일 DB 에 추가하고 기존 행은 null 이 된다. 구현 단계에서 메모리 DB·기존 DB 사본으로 확인한다.
+
+[규모·위험]
+ 규모: 파일 15개(소스 10, 테스트 2, 문서 2, CSS 1 포함). 엔티티·서비스·컨트롤러·화면 스크립트·테스트·팀 확정 문서를 가로지른다.
+ 위험: (High) Order 스키마와 확정 API 요청 형식 변경 — 완화: nullable 컬럼, 필드 생략=가능한 빨리(구형 요청 호환), 기존 주문은 null.
+ (High) 서버 검증 추가(원칙 7) — 5~50 정수 아니면 400. 완화: BusinessException 으로 이유와 함께 거부, JUnit 으로 고정. 계산에 쓰지 않으므로 Planner·재계산(원칙 2·11) 불변.
+ (High) 팀 확정 문서 PRD R2, INTENT 5.8·7장 수정 — 완화: 사람이 문구를 확인한 뒤에만 고친다(문구 초안을 구현 계획 승인 때 제시).
+ (Medium) 기존 E2E(e2e-due-date.spec.ts)의 확정 본문 단언이 깨짐 — 완화: 같은 테스트를 새 동작에 맞게 고치고 근거를 report 에 적는다.
+ (Medium) 납기를 스냅샷(planJson)이 아니라 컬럼에 둠. 납기는 확정 후 바뀌지 않으므로(수정 기능 없음) 불변이지만 원칙 4 의 '스냅샷' 정신과의 관계를 문서에 적는다.
+ 사용자가 알고 있는가: 예 — 사람의 답변 (2)가 서버·DB·API·문서 수정이 따르는 큰 변경(High)을 감수한다고 밝혔다.
+
+[영향 범위] 변경 대상: Order.java, OrderService.confirm, ApiController.ConfirmRequest, OrderController 목록·상세 JSON, order-new.js, orders.js, order-detail.js, orders.html, order-detail.html, app.css, OrderFlowTests, e2e-due-date.spec.ts(수정), e2e-due-date-save.spec.ts(신규), PRD.md, INTENT.md. 영향: 확정 흐름 전체의 E2E·JUnit(22건). test.fail()(E2E-033, 035, 013b) 영향 없을 것으로 추정. Planner 변경 없음.
+[INTENT 원칙 대조] 2: 서버는 납기를 계산에 쓰지 않으므로 재계산 유지. 4: 납기는 확정 후 불변인 컬럼으로 저장, 스냅샷 본문(StoredPlan)은 건드리지 않아 기존 주문 상세 그대로. 7: 서버 검증을 추가하므로 5.8 의 '화면에서만 검증' 서술이 낡아 문서 수정 필요. 11: Planner 불변. 1: 납기 초과 안도 선택 가능(막지 않음).
+
+[판단] status READY. 이유: 배경·목적 모두 이해했고, 사람이 범위(A)와 큰 변경 위험, 판정 기준을 명시적으로 승인했다. 문서 수정은 문구 확인 후에만 한다는 조건을 계획에 넣었다.
+
+[계획]
+ 범위: (1) 확정 요청에 dueDays(null=가능한 빨리, 5~50 정수) 추가, 서버 검증, Order 에 nullable 컬럼 저장. (2) 목록·상세 JSON 에 dueDays 와 초과 일수(확정한 경로의 totalDays > dueDays 일 때 totalDays-dueDays) 제공, 화면에 납기와 '납기 초과 N일'을 빨간색과 글자로 표시(가능한 빨리와 기존 주문은 '-' 또는 '가능한 빨리'로 표시하고 빨강 없음). (3) 주문 추가 화면은 납기 입력이 비었거나 잘못되면 확정을 막고 이유를 보여 준다. (4) 테스트, (5) 문서.
+ 범위 밖: Planner 변경, 납기를 계산·재계산에 반영, 확정 후 납기 수정, 스냅샷 형식 변경, 8080·개발 DB 사용.
+ 바꿀 파일: 위 영향 범위 15개.
+ 구현 순서: Order 컬럼 → ConfirmRequest·confirm 검증 → 목록·상세 JSON → order-new.js(확정 요청과 입력 오류 차단) → orders/order-detail 화면·CSS → JUnit → E2E(기존 단언 수정 포함) → 문서는 문구 확인 후.
+ 가정: 초과 판정 기준은 확정한 경로의 소요 일수 > 납기일. 잘못된 JSON 형식(5.5, "abc")은 스프링 기본 400 이 아니라 가능하면 BusinessException 문구로 안내(구현 중 확인). 목록은 열 하나('필요 납기')를 추가한다.
+[체크리스트]
+ 1. 확정 때 고른 납기(예: 5일)가 주문에 저장되고, 목록과 상세에서 소요 일수가 납기를 넘으면 빨간색과 '납기 초과 N일' 글자가 보인다. '가능한 빨리'는 표시·빨강이 없다. 확인: 별도 포트·메모리 DB 앱에서 E2E.
+ 2. 서버가 5 미만·50 초과·비정수 납기를 400 으로 거부하고, dueDays 없는 구형 요청은 기존처럼 확정되며 기존 주문 상세·스냅샷이 그대로다. 확인: OrderFlowTests 추가 케이스.
+ 3. 기존 JUnit·E2E(알려진 결함 3건 제외)가 같은 결과이고, 고친 e2e-due-date.spec.ts 의 확정 본문 단언이 새 계약(dueDays 포함)과 맞다. 확인: .\gradlew.bat test, 별도 포트 E2E 전체.
