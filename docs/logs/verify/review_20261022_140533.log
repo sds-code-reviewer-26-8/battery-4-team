@@ -1,0 +1,25 @@
+검증 로그 (verify) 1회차 / Loop 유형: bugfix
+점검 시각: 2026-10-22 14:05:33
+작업: BUG-003 취소 후 뒤로 가기 시 삭제된 주문 상세 재진입
+
+[체크리스트]
+1. 재현 절차에서 삭제된 주문 상세·오류 화면이 열리지 않는다: 충족
+   별도 포트 8095, 별도 DB 로 새 E2E(e2e031-041.spec.ts 224행) 실행, 통과.
+2. 재발 방지 E2E 가 있고 통과, 수정 전 실패: 충족
+   테스트는 URL 과 Whitelabel 문구를 직접 검증. 수정 전 코드(HEAD worktree, 포트 8096)에서 실패
+   (기대 not /orders/1, 실제 http://localhost:8096/orders/1). 새 테스트 1개. worktree 는 삭제함.
+3. 기존 JUnit·E2E 전체 기대한 결과: 충족
+   E2E-033, DEV-001, BUG-002 테스트 통과. test.fail() 인 E2E-035, E2E-013b 는 그대로 실패(예상 실패).
+
+[변경 범위]
+git diff: order-detail.js 81행 location.replace(previousList()) + 주석 1줄, e2e031-041.spec.ts 에 E2E 1개.
+계획과 일치. 무관한 변경 없음. (.gitignore, docs/loops/yeri/README.md 는 작업 전부터 변경된 파일)
+
+[Regression Test]
+./gradlew compileJava compileTestJava test --rerun-tasks : BUILD SUCCESSFUL, 24 tests, 실패 0
+npx playwright test (임시 설정, 포트 8095, 임시 H2 DB):
+  1차 실행: 47 통과, 1 실패 - E2E-021 (cells[4] undefined). 단독 재실행 통과.
+  2차 전체 실행: 48 기대한 결과 (통과 46 + 예상 실패 2: E2E-035, E2E-013b), 비기대 실패 0.
+  E2E-021 은 이번 변경과 무관한 영역이라 간헐 실패로 판단. 원인은 확인 못 함.
+
+[판정] PASS
