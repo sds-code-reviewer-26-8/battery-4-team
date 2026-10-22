@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="report@2">
+<title>구현 결과 보고 · REFACTOR-001 master-days</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.two,.three{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.step{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--card);border-top:4px solid var(--accent)}
+.step.prep{border-top-color:var(--prep)}.step.impl{border-top-color:var(--impl)}.step.ver{border-top-color:var(--ver)}
+.step h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:800}
+.step.prep .no{background:var(--prep)}.step.impl .no{background:var(--impl)}.step.ver .no{background:var(--ver)}
+.step ul{margin:0;padding-left:18px;font-size:14px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 진행 막대, 큰 숫자 */
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:999px}
+.bar.bad>i{background:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.big small{font-size:14px;font-weight:600;color:var(--muted)}
+/* 타임라인 */
+.tl{list-style:none;margin:6px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 12px;padding-left:14px}
+.tl li::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="refactor" data-status="HITL">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge">⚠ HITL — 사람 확인 필요</div>
+  <h1>구현 결과 보고</h1>
+  <p class="target"><span data-slot="task">Master.days()가 항로 목록(routes)을 호출할 때마다 처음부터 찾는다. 항로를 조회용 표(Map)로 만들어 두고 거기서 바로 꺼내도록 바꿔, 같은 결과를 더 간단히 얻게 한다. 계산 결과·오류 메시지·화면·저장 형식은 한 글자도 바뀌면 안 된다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-21</span></span><span><span data-slot="rounds">3</span>회차 시도 — 통과 판정을 받지 못함(사람에게 넘김)</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/battery-hyemiJung4</span> · 기준 커밋 <span data-slot="commit">e838460</span> (commit 하지 않음)</span><span>작성 <span data-slot="author">정혜미</span></span></p>
+</header>
+
+<section class="sec" id="steps">
+  <h2><span class="no">1</span>한눈에 보기 <span class="hint">— 세 단계에서 한 일</span></h2>
+  <p><b>판정: 통과하지 못함(3/3회 시도).</b> 빌드·단위 테스트·E2E·전후 사진 비교는 모두 기대대로였지만, 승인된 계획(조회표를 Master 인스턴스 안에 둔다)을 지키지 못하고 정적 캐시로 대체했기 때문에 사람의 확인이 필요합니다.</p>
+  <div class="three">
+    <div class="step prep"><h3><span class="no">1</span>Prepare</h3>
+      <ul><li><span data-slot="prepare-1">days() 의 선형 탐색을 나라 쌍 조회표로 바꾸되 동작은 한 글자도 바꾸지 않는 리팩토링.</span></li><li><span data-slot="prepare-2">경고: 계획이 Master 인스턴스 안의 조회표를 요구하지만, record 는 인스턴스 필드를 가질 수 없고 같은 계획이 컴포넌트·접근자·생성자 추가를 금지해 서로 모순됨.</span></li><li><span data-slot="prepare-3">계획 4단계(안전망 → Master.java 변경 → 전체 검증 → 발견 사항은 보고만). 허용 파일은 Master.java 와 MasterTest.java 두 개.</span></li></ul></div>
+    <div class="step impl"><h3><span class="no">2</span>Implement</h3>
+      <ul><li><span data-slot="implement-1">days() 가 방향 무관 나라 쌍(PairKey) 조회표를 쓰도록 변경. 조회표는 Master 값별 정적 WeakHashMap 캐시에 보관(계획과 다름).</span></li><li><span data-slot="implement-2">2개 파일: Master.java(수정), MasterTest.java(신규 테스트).</span></li><li><span data-slot="implement-3">변경 전 코드에서 MasterTest 통과 확인, 변경 후 ./gradlew test 전체 통과.</span></li></ul></div>
+    <div class="step ver"><h3><span class="no">3</span>Verify</h3>
+      <ul><li><span data-slot="verify-1">체크리스트 3개 중 2개 충족, 1개 미충족(계획 준수).</span></li><li><span data-slot="verify-2">JUnit 28/28 통과. E2E 정상 통과 42 + 알려진 결함 3(예상대로 실패), 예상 밖 결과 0.</span></li><li><span data-slot="verify-3">계획과 다른 구현 방식의 승인, 정적 캐시의 단순화·성능 효과 불확실(6절 참고).</span></li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">2</span>체크리스트 3개 결과</h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">안전망: 변경 전 코드에서 MasterTest 가 days()·JSON·equals/hashCode/toString 을 고정하고 통과한다</span></b>
+    <span class="chip" data-state="ok" data-slot="check-1-result">충족</span>
+    <div class="how">근거: <span data-slot="check-1-evidence">시도 3의 구현 기록 — 변경 전 코드에서 MasterTest 5개 통과(최종 파일은 6개). 파일 <code>src/test/java/com/example/demo/simulation/MasterTest.java</code>.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">변경 후 동작이 같다: MasterTest, ./gradlew test 전체, E2E, 전후 사진 13개 비교</span></b>
+    <span class="chip" data-state="ok" data-slot="check-2-result">충족</span>
+    <div class="how">근거: <span data-slot="check-2-evidence">./gradlew clean build 성공(28/28), E2E 45건 모두 기대대로(<code>e2e-result.json</code>), 사진 13개 비교에서 다른 값 0.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">계획 준수: 조회표를 Master 인스턴스 안에 두고, 컴포넌트·접근자·생성자를 추가하지 않는다</span></b>
+    <span class="chip" data-state="bad" data-slot="check-3-result">미충족</span>
+    <div class="how">근거: <span data-slot="check-3-evidence"><code>Master.java</code> 의 <code>DAYS_TABLES</code> 는 static WeakHashMap 이다. record 는 인스턴스 필드를 가질 수 없어 계획대로는 구현할 수 없었다. 컴포넌트·접근자·생성자·routes() 는 바뀌지 않았다.</span></div></div></div>
+</section>
+
+<section class="sec" id="regression">
+  <h2><span class="no">3</span>Regression Test <span class="hint">— 있는 테스트를 모두 실행</span></h2>
+  <div class="two">
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">28</span><small> / <span data-slot="junit-total">28</span> 통과</small></div>
+      <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
+    <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">45</span><small> / <span data-slot="e2e-total">45</span> 기대한 결과 (정상 통과 42 + 알려진 결함 3)</small></div>
+      <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
+  </div>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB가 아니라, 따로 띄운 앱(포트 8081, 메모리 DB <code>jdbc:h2:mem:loop</code>)에서 실행했습니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상이며, 정상 통과와 따로 적습니다. 이번 실행에서 예상 실패로 집계된 테스트: <span data-slot="expected-fail">3건 (E2E-013b, E2E-033, E2E-035)</span>. 예상 밖 실패 0건, 예상 밖 통과 0건.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td class="num"><span data-slot="junit-OrderFlowTests-total">9</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">9</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-state">통과</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td class="num"><span data-slot="junit-PlannerTest-total">12</span></td><td class="num"><span data-slot="junit-PlannerTest-pass">12</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-PlannerTest-state">통과</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td class="num"><span data-slot="junit-DemoApplicationTests-total">1</span></td><td class="num"><span data-slot="junit-DemoApplicationTests-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-DemoApplicationTests-state">통과</span></td></tr>
+      <tr data-repeat="junit-extra"><td><span data-slot="junit-extra"><b>MasterTest</b> (이번에 새로 추가)<div class="hint">항로 일수 양방향·a==b·중복 항로·항로 없음 메시지·JSON 키 5개·equals/hashCode/toString</div></span></td><td class="num"><span data-slot="junit-extra-total">6</span></td><td class="num"><span data-slot="junit-extra-pass">6</span></td><td><span class="chip" data-state="ok" data-slot="junit-extra-state">통과</span></td></tr>
+    </tbody></table></div>
+  <h3>E2E (<code>src/test/e2e</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>구분</th><th class="num">건수</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-e2e="정상 통과"><td><b>정상 통과</b><div class="hint">기대한 대로 성공한 테스트</div></td>
+        <td class="num"><span data-slot="e2e-normal-total">42</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-normal-state">통과</span></td></tr>
+      <tr data-e2e="알려진 결함(예상대로 실패)"><td><b>알려진 결함 — 예상대로 실패</b><div class="hint">E2E-013b, E2E-033, E2E-035 (<code>test.fail()</code>). 정상 통과가 아니라 별도 항목입니다.</div></td>
+        <td class="num"><span data-slot="e2e-known-total">3</span></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-known-state">예상대로 실패</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">흐름별(로그인·주문·경로안 등) 건수는 이번 실행 결과에 따로 집계하지 않아 <b>확인하지 못함</b>. 전체 결과는 <code>e2e-result.json</code> 참고.</p>
+  <p class="hint">실행한 명령: <span data-slot="commands">./gradlew clean build (단위 테스트 포함) · Playwright E2E 45건 (포트 8081, 메모리 DB jdbc:h2:mem:loop)</span></p>
+</section>
+
+<section class="sec" id="changes">
+  <h2><span class="no">4</span>변경 요약</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">계산</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/simulation/Master.java</code></td><td><span data-slot="change-what">days() 의 routes.stream().filter(...) 선형 탐색을 조회표 조회로 교체(+30 −5줄). 방향 무관 키 PairKey(나라 순서값이 작은 쪽이 먼저)를 만들고, putIfAbsent 로 표를 채워 중복 항로는 첫 항목이 이긴다. a==b 는 조회 전에 0 반환. 항로가 없으면 같은 메시지 &quot;항로 정보가 없습니다: a-b&quot;(호출자 인자 순서)로 IllegalStateException. 조회표는 Master 값별 static WeakHashMap(synchronized)에 둔다.</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">테스트</span></td>
+      <td><code data-slot="change-file">src/test/java/com/example/demo/simulation/MasterTest.java</code></td><td><span data-slot="change-what">새 파일(추적 전, untracked). 변경 전 동작을 고정하는 6개 테스트.</span></td></tr>
+    </tbody></table></div>
+  <h3>범위 대조</h3>
+  <p>바뀐 파일은 위 두 개뿐이고 둘 다 승인된 허용 목록 안입니다. 범위 밖 변경 0건, 화면·컨트롤러·템플릿·엔티티·Plan JSON·오류 메시지 변경 0건. Planner, BatteryService, AppController, 기존 테스트(PlannerTest, OrderFlowTests, DemoApplicationTests)는 수정하지 않았습니다. 근거: <code>git diff</code> 전체 확인과 사진 비교 단계의 범위 대조.</p>
+  <h3>전후 사진 비교</h3>
+  <p>13개 케이스를 변경 전(<code>snapshot/before/</code>)과 변경 후(<code>snapshot/after/</code>)로 찍어 정규화한 JSON 값 기준으로 비교했고, <b>다른 곳은 0건</b>입니다. 누락된 케이스 파일은 없습니다. 이 비교는 시도 3(Master.java 변경이 적용된 상태)에서 한 것입니다. 시도 1·2의 사진은 코드가 바뀌지 않은 상태였으므로 증거로 쓰지 않습니다. 마스터 값(shipCount)을 바꾼 케이스는 모두 원래 값으로 되돌리고 확인했습니다.</p>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 결과</h2>
+  <ul class="list"><li>동작이 그대로임을 확인한 방법: <span data-slot="refactor-proof">MasterTest 6개(변경 전 코드에서 먼저 통과), JUnit 28/28, E2E 45건 모두 기대대로, 전후 사진 13개 값 동일. 단, 계획 제약 일부를 지키지 못했으므로 &quot;완전한 통과&quot;로 보지 않음.</span></li><li>정리한 것: <span data-slot="refactor-done">days() 의 선형 탐색을 조회표 조회로 바꿈. 다만 정적 캐시와 PairKey 가 늘어 코드는 오히려 길어졌고(+30 −5), &quot;더 간단히&quot;라는 목적을 달성했는지는 사람이 판단해야 함.</span></li><li>손대지 않은 것: <span data-slot="refactor-out">Master.factory() 의 선형 탐색, Planner, 화면·저장 형식, 기존 테스트.</span></li></ul>
+</section>
+
+<section class="sec" id="history">
+  <h2><span class="no">5</span>회차 이력</h2>
+  <ul class="tl">
+    <li data-repeat="round"><b><span data-slot="round-no">1</span>회차 — <span data-slot="round-result">FAIL (1단계만 완료하고 멈춤)</span></b><div class="hint"><span data-slot="round-note">MasterTest 를 만들고 변경 전 코드에서 통과를 확인했으나, record 가 인스턴스 필드를 가질 수 없어 계획 2단계를 구현하지 못했다. Master.java 는 수정하지 않았다. 빌드·단위 28/28, E2E 45건은 기대대로였고 사진은 코드가 안 바뀐 상태에서 같았다.</span></div></li>
+    <li data-repeat="round"><b><span data-slot="round-no">2</span>회차 — <span data-slot="round-result">FAIL (구현 없음)</span></b><div class="hint"><span data-slot="round-note">같은 모순 때문에 Master.java 를 바꾸지 않았다. 수정된 계획의 승인이 전달되지 않았고, 대안(정적 캐시 / class 전환 / 현행 유지)을 임의로 고르지 않았다. 사진 단계에서도 추적 파일 변경이 없다고 경고했다.</span></div></li>
+    <li data-repeat="round"><b><span data-slot="round-no">3</span>회차 — <span data-slot="round-result">검증은 모두 통과했으나 최종 판정은 &quot;통과하지 못함&quot;</span></b><div class="hint"><span data-slot="round-note">&quot;모두 권장대로 진행해줘&quot;를 정적 캐시(WeakHashMap) 승인으로 해석해 구현했다(구현자의 해석이며, 사용자가 정적 캐시를 명시적으로 승인했는지는 확인하지 못함). 빌드 28/28, E2E 45건 기대대로, 사진 13개 동일, 범위 대조 이상 없음. 계획과 다른 구현이라 사람에게 넘김.</span></div></li>
+  </ul>
+</section>
+
+<section class="sec" id="remaining">
+  <h2><span class="no">6</span>남은 이슈 · 확인하지 못한 것</h2>
+  <h3>계획과 다르게 한 것</h3>
+  <ul class="list"><li><span data-slot="remaining">계획 2단계의 &quot;Master 인스턴스 안 조회표&quot;는 record 제약상 불가능해 정적 캐시로 구현함. 이 방식의 채택 승인이 필요함. 다른 선택지: record 를 class 로 바꾸기(접근자·Jackson·equals 영향 검토 필요) 또는 현행 유지.</span></li></ul>
+  <h3>구현 중 발견했지만 고치지 않은 것 (foundIssues)</h3>
+  <ul class="list">
+    <li data-repeat="remaining"><span data-slot="remaining">정적 캐시의 키가 Master 자체라서 days() 를 부를 때마다 Master 의 hashCode(factories, routes 전체 해시)를 계산한다. 항로가 10개뿐이라 기존 스트림 탐색과 비슷한 비용일 수 있고, 성능 개선 효과는 측정하지 않아 확인하지 못함.</span></li>
+    <li data-repeat="remaining"><span data-slot="remaining">routes 가 변경 가능한 List 라면 생성 뒤 내용이 바뀔 때 WeakHashMap 키의 해시가 어긋나 캐시가 틀릴 수 있다. 현재 코드는 routes 를 바꾸지 않지만 보장 장치는 없다. 후속으로 routes 불변 복사 또는 class 전환을 검토할 수 있음.</span></li>
+    <li data-repeat="remaining"><span data-slot="remaining">Master.factory() 도 호출마다 스트림으로 선형 탐색한다. 이번 범위 밖이라 고치지 않음.</span></li>
+    <li data-repeat="remaining"><span data-slot="remaining">중복 항로가 있어도 오류 없이 첫 항목이 쓰인다. 현재 동작이며 MasterTest 가 고정함.</span></li>
+    <li data-repeat="remaining"><span data-slot="remaining">MasterTest.java 는 git 에 추적되지 않는 상태(untracked)이며, 계획대로 commit 하지 않았음.</span></li>
+  </ul>
+  <h3>확인하지 못한 것</h3>
+  <ul class="list">
+    <li>정적 캐시가 동시 호출에서 안전한지 별도 테스트로는 확인하지 못함(synchronized 로 보호했다는 코드 읽기 근거만 있음).</li>
+    <li>성능 개선 여부(측정 없음).</li>
+    <li>E2E 의 흐름별 건수(집계 없음).</li>
+    <li>사용자가 &quot;권장대로&quot;로 정적 캐시를 의도했는지.</li>
+    <li>시도 3의 최종 MasterTest 가 변경 전 코드에서 6개 모두 통과했는지: 변경 전 확인 기록은 5개 통과로만 남아 있음.</li>
+  </ul>
+</section>
+
+<section class="sec" id="logs">
+  <h2><span class="no">7</span>기록 위치</h2>
+  <ul class="list">
+    <li>구현 전 점검: <code data-slot="precheck-path">docs/evidence/정혜미/REFACTOR-001-master-days/precheck.html</code></li>
+    <li>점검 로그: <code data-slot="prepare-log">해당 없음 (docs/logs/prepare 폴더가 없음)</code></li>
+    <li>검증 로그: <code data-slot="verify-log">해당 없음 (docs/logs/verify 폴더가 없음). E2E 결과는 docs/evidence/정혜미/REFACTOR-001-master-days/e2e-result.json, 사진은 같은 폴더의 snapshot/before, snapshot/after</code></li>
+    <li>실행 환경: <span data-slot="env">Java 17.0.12 · Node v24.21.0 · 검증용 앱 포트 8081 · 별도(메모리) DB. 8080 개발 앱은 건드리지 않았고 검증용 앱은 종료함.</span></li>
+    <li>이 Report: <code data-slot="report-path">docs/evidence/정혜미/REFACTOR-001-master-days/report.html</code></li>
+  </ul>
+</section>
+
+<p class="footer">report@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용)</p>
+</div>
+</body>
+</html>

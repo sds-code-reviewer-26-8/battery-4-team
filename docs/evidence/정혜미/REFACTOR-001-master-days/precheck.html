@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · Master.days() 항로 조회 Map 전환</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="refactor" data-status="HITL">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">HITL</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">Master.days()가 항로 목록(routes)을 호출할 때마다 처음부터 찾는다. 항로를 조회용 표(Map)로 만들어 두고 거기서 바로 꺼내도록 바꿔, 같은 결과를 더 간단히 얻게 한다. 계산 결과·오류 메시지·화면·저장 형식은 한 글자도 바뀌면 안 된다. (REFACTOR-001 master-days)</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-21 17:05:21</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 prepare 에이전트</span><span>브랜치 <span data-slot="branch">feature/battery-hyemiJung4</span> · 커밋 <span data-slot="commit">a0ac971 (기준선 기록값; 작성 시점 HEAD 는 e838460)</span></span><span>요청자 <span data-slot="requester">정혜미</span></span><span>로그 <span data-slot="log-path">해당 없음</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">진행 가능한 순수 리팩토링이지만, 안전망을 먼저 보강하려면 테스트 파일 1개를 추가해도 되는지 사람의 답이 필요하다 (needs-clarification).</span></b></p>
+  <h3>이유</h3>
+  <ul class="list">
+    <li><span data-slot="reason">문서 규칙과 blocking 충돌은 없다. 주의(caution) 3건뿐이다: Master 는 StoredPlan 에 담겨 planJson 으로 저장되므로 Map 이 JSON 에 새면 저장 형식이 바뀐다(원칙 4), 중복 항로는 첫 항목 우선이고 오류 메시지는 그대로여야 한다(원칙 6·8), 조회표는 Master 인스턴스에서 파생된 값이어야 한다.</span></li>
+    <li><span data-slot="reason">변경 대상은 <code>src/main/java/com/example/demo/simulation/Master.java</code> 한 파일이다(Node B). 기존 JUnit 22건과 E2E 45건은 기준선에서 모두 예상대로 통과했다(unit 22/22, E2E 45/45, 알려진 결함 3건 E2E-013b·033·035 는 test.fail 로 실패가 정상).</span></li>
+    <li><span data-slot="reason">안전망 구멍이 크다. days() 를 직접 검사하는 테스트가 없고, 항로 누락 메시지·역방향·a==b·중복 항로(첫 항목 우선)·Master JSON 모양이 어떤 테스트에도 고정돼 있지 않다(Node B gaps). 그래서 계획 맨 앞에 안전망 보강 단계를 둔다.</span></li>
+    <li><span data-slot="reason">직접 테스트를 넣으려면 허용 파일(Master.java 와 증거 폴더)을 벗어나 새 테스트 파일이 필요하다. 충돌하면 더 안전한 쪽을 택한다는 규칙에 따라 사람에게 먼저 묻는다.</span></li>
+  </ul>
+  <div class="only-hitl">
+    <h3>⚠ 경고</h3>
+    <ul class="list">
+      <li><span data-slot="warning">Map 을 record 컴포넌트나 public 접근자로 두면 planJson 과 /api/master 응답에 항로 표가 섞이고, 과거 주문 스냅샷 읽기와 <code>new Master(...)</code> 호출부(BatteryService:100, PlannerTest:18)가 깨질 수 있다. 가장 큰 위험이다.</span></li>
+      <li><span data-slot="warning">단순 <code>put</code> 이나 <code>toMap</code> 으로 만들면 중복 항로에서 마지막 항목이 이기거나 중복 키 예외가 난다. 첫 항목 우선(<code>putIfAbsent</code>)을 지켜야 한다.</span></li>
+      <li><span data-slot="warning">항로가 10개뿐이라 성능 이득은 거의 없다. 이 변경의 가치는 코드 단순화이며, 성능 개선으로 설명하면 안 된다.</span></li>
+      <li><span data-slot="warning">정리 필요: 기준선 작업 중 잘못된 경로 입력으로 의도하지 않은 폴더 <code>C:/c</code> (하위에 docs/evidence/정혜미/REFACTOR-001-master-days/e2e-result.json)가 만들어졌다. 안전 검사에 막혀 지우지 못했으니 사용자가 C:\c 폴더를 직접 삭제해야 한다.</span></li>
+    </ul>
+    <h3>사용자에게 확인할 질문</h3>
+    <ul class="list">
+      <li><span data-slot="question">days() 동작을 고정하는 작은 JUnit 테스트(예: <code>src/test/java/com/example/demo/simulation/MasterTest.java</code>)를 새로 추가해도 되는가? 안 된다면 특성 확인(characterization)은 증거 폴더에만 남기고 테스트는 추가하지 않는다.</span></li>
+      <li><span data-slot="question">routes 에 같은 구간이 두 번 있으면 지금처럼 목록의 첫 항목이 이기는 것으로 보존해도 되는가? DB 에 중복이 실제로 들어올 수 있는가(확인하지 못함)?</span></li>
+      <li><span data-slot="question">조회표를 Master 안(지연 생성 또는 비직렬화 보관)에 두는 것으로 해도 되는가? 호출하는 쪽(Planner 등)으로 옮기는 안은 범위를 넓혀 채택하지 않는다.</span></li>
+      <li><span data-slot="question">결과를 feature/battery-hyemiJung4 에 커밋할 것인가, 작업 폴더에만 남겨 검토할 것인가? (이번 단계에서는 commit·push 를 하지 않는다.)</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">Master.days(a, b) 는 호출마다 routes 목록을 스트림으로 처음부터 훑어 두 나라 사이 항로를 찾는다. Planner 가 정렬·순회·일정 계산에서 이 메서드를 자주 부른다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">요청 문구, <code>Master.java</code> days() 21~30행, Node B 호출처 목록(Planner 134·230·233·258·312·316행)</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">항로를 Map 으로 한 번 만들어 두고 바로 꺼내 코드를 단순하게 한다. 끝난 뒤에도 계산 결과, 오류 메시지, 화면, 저장 형식은 한 글자도 달라지면 안 된다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">요청 문구 "같은 결과를 더 간단히", "한 글자도 바뀌면 안 된다"</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="small"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">예</span></b> <span class="hint">— <span data-slot="user-aware-why">"한 글자도 바뀌면 안 된다"고 불변 조건을 직접 밝혔다. 규모는 파일 1개·메서드 1개로 작다.</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr data-repeat="risk"><td><span data-slot="risk">Map 이 JSON(planJson, /api/master)에 새어 저장 형식이 바뀐다 / 과거 스냅샷을 못 읽는다</span></td><td><span class="chip" data-state="bad" data-slot="risk-level">높음</span></td><td><span data-slot="risk-fix">record 컴포넌트·생성자 시그니처·public 접근자를 추가하지 않는다. 변경 전후 Master JSON 을 바이트 단위로 비교하고, 옛 planJson 이 읽히는지 확인한다.</span></td></tr>
+      <tr data-repeat="risk"><td><span data-slot="risk">중복 항로에서 첫 항목 우선이 마지막 우선으로 바뀐다</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">putIfAbsent 로 구성한다. 중복 항로 사례를 변경 전에 기록해 두고 변경 후와 비교한다.</span></td></tr>
+      <tr data-repeat="risk"><td><span data-slot="risk">오류 메시지 "항로 정보가 없습니다: a-b" 가 달라진다 (인자 순서가 정규화됨)</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">메시지는 호출자가 준 (a, b) 순서의 열거형 이름으로 만든다. 키 정규화가 메시지로 새지 않게 한다. 직접 단언하는 확인을 추가한다.</span></td></tr>
+      <tr data-repeat="risk"><td><span data-slot="risk">record 의 equals/hashCode/toString 이 바뀌거나, 공유 Master 에서 가변 캐시가 스레드 안전하지 않다</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">조회표는 routes 에서 파생된 불변 값으로, 인스턴스 단위로만 보관한다. 정적 캐시는 쓰지 않는다. 동등성 비교에 끼지 않게 한다.</span></td></tr>
+      <tr data-repeat="risk"><td><span data-slot="risk">테스트가 얇아 같은 결과인지 알아채지 못한다</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">변경 전에 5개국 모든 순서쌍 days 값을 기록한다(특성 확인). 안전망 보강을 맨 앞 단계로 둔다.</span></td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list">
+    <li data-repeat="assumption"><span data-slot="assumption">실습용 시스템이라 데이터가 불완전할 수 있다. DB 의 routes 에 중복 항로가 들어올 수 있는지는 확인하지 못했다(유니크 키가 있을 것이라는 추측일 뿐이다).</span></li>
+    <li data-repeat="assumption"><span data-slot="assumption">Jackson 3(tools.jackson)이 record 를 직렬화·역직렬화하는 세부 규칙(비컴포넌트 필드나 접근자가 JSON 에 나타나는지)은 코드로 직접 확인하지 못했다. Node A·C 의 설명에 따른다. 변경 후 실제 JSON 비교로 확인해야 한다.</span></li>
+    <li data-repeat="assumption"><span data-slot="assumption">PRD·INTENT 는 작업 폴더에 로컬 파일(PRD.local.md, INTENT.local.md)로만 있고, 아래 R·원칙 번호는 Node A 의 인용과 템플릿 목록을 따른 것이다. 문서 버전은 확인하지 못했다.</span></li>
+    <li data-repeat="assumption"><span data-slot="assumption">작성 시점 HEAD(e838460)와 기준선에 기록된 커밋(a0ac971)이 다르다. 그 사이 Master.java 가 바뀌었는지는 확인하지 못했다(현재 파일은 읽어 확인했고 Node A·B 의 설명과 같다).</span></li>
+    <li data-repeat="assumption"><span data-slot="assumption">개발 앱(8080)과 개발 DB 는 건드리지 않았다. 기준선 검증은 8081·메모리 DB 로만 했고 8081 은 종료했다. 이번 prepare 에서는 앱을 새로 띄우지 않았다.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">확인하지 못함 (로컬 PRD.local.md 만 있음)</span> · INTENT.md <span data-slot="intent-version">확인하지 못함 (로컬 INTENT.local.md 만 있음)</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="yes" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="no" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="yes" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="yes" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="no" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="no" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="yes" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="yes" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="yes" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="yes" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="yes" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="no" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">R2 / 원칙 2</span></td><td><span data-slot="relation">경로 계산의 일수 조회를 바꾸는 것이므로 계산 결과가 같아야 한다. 서버 재계산 결과도 같아야 한다.</span></td></tr>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">R4 / 원칙 4</span></td><td><span data-slot="relation">Master 는 StoredPlan 에 JSON 스냅샷으로 저장된다. Map 이 직렬화에 새면 저장 형식이 바뀌고 기존 주문이 깨질 수 있다. 가장 중요한 관계다.</span></td></tr>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">R8</span></td><td><span data-slot="relation">기준 정보(항로 일수)는 마스터 화면에서 편집된다. 편집 결과가 조회표에도 똑같이 반영돼야 한다(Master 는 BatteryService.currentMaster 에서 매번 새로 만든다고 Node B 에 적혀 있다).</span></td></tr>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">원칙 6 · 8</span></td><td><span data-slot="relation">항로가 없을 때 IllegalStateException 메시지(원인 포함)를 그대로 유지해야 한다.</span></td></tr>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">원칙 10</span></td><td><span data-slot="relation">days() 규칙이 직접 테스트로 고정돼 있지 않다. 보강이 필요하다.</span></td></tr>
+      <tr data-repeat="relation"><td><span data-slot="relation-id">원칙 11</span></td><td><span data-slot="relation">Master 는 DB·화면을 모르는 순수 계산 쪽이다. 이 성질을 유지하고 Planner 는 수정하지 않는다.</span></td></tr>
+    </tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉하지 않음 (동작 변화 없는 내부 정리이다. PRD 10장 원문은 직접 확인하지 못함)</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li data-repeat="conflict"><span data-slot="conflict">Node A: blocking 충돌 없음, 주의 3건(저장 형식, 오류 메시지·중복 항로, 조회표 파생성). 문서끼리의 불일치는 발견하지 못했다. 문서와 코드의 차이는 없다. 다만 기준선 커밋(a0ac971)과 현재 HEAD(e838460)가 다르다(위 가정 참고).</span></li></ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr data-layer="화면 템플릿"><td><b>화면 템플릿</b><div class="hint"><code>src/main/resources/templates/*.html</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-1-state">없음</span></td>
+        <td><span data-slot="layer-1-files">해당 없음</span><div class="hint">login · orders · order-new · order-detail · master · fragments</div></td>
+        <td><span data-slot="layer-1-why">화면은 그대로여야 한다.</span></td></tr>
+      <tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-2-state">없음</span></td>
+        <td><span data-slot="layer-2-files">해당 없음 (planview.js 가 m.routes.map 으로 JSON 을 읽는다. 수정 없음)</span><div class="hint">order-new.js · planview.js · anim.js · common.js</div></td>
+        <td><span data-slot="layer-2-why">JSON 의 routes 모양이 그대로이면 영향 없음.</span></td></tr>
+      <tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/AppController.java</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-3-state">확인만</span></td>
+        <td><span data-slot="layer-3-files">AppController.toForm(155-156), masterJson(168) — 수정 없음</span><div class="hint">화면 요청·JSON API·로그인 처리</div></td>
+        <td><span data-slot="layer-3-why">m.routes() 와 Master JSON 응답이 그대로인지 확인만 한다.</span></td></tr>
+      <tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>service/BatteryService.java</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-4-state">확인만</span></td>
+        <td><span data-slot="layer-4-files">currentMaster(96-100), simulate(192), confirm(228·241) — 수정 없음</span><div class="hint">확정·상태 변경·기준 정보 검증·버전 검사 (BusinessException)</div></td>
+        <td><span data-slot="layer-4-why">Master 생성자 시그니처가 그대로여야 한다.</span></td></tr>
+      <tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/Planner.java · Master · Plan · StoredPlan</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-5-state">변경</span></td>
+        <td><span data-slot="layer-5-files"><code>simulation/Master.java</code> 의 days() 와 조회표 구성만. Planner.java·Plan·StoredPlan 은 수정 없음.</span><div class="hint">DB·화면을 모르는 순수 계산 (원칙 11)</div></td>
+        <td><span data-slot="layer-5-why">요청의 유일한 대상이다.</span></td></tr>
+      <tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/* · H2 ./data/battery</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-6-state">없음</span></td>
+        <td><span data-slot="layer-6-files">해당 없음. 단 Order.planJson 에 저장된 Master JSON 형식은 그대로여야 한다.</span><div class="hint">Order · OrderStatusHistory · Factory · Route · Setting</div></td>
+        <td><span data-slot="layer-6-why">DB 컬럼·엔티티 변경 없음.</span></td></tr>
+      <tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/*</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-7-state">없음</span></td>
+        <td><span data-slot="layer-7-files">해당 없음</span><div class="hint">LoginInterceptor · WebConfig · DataInitializer</div></td>
+        <td><span data-slot="layer-7-why">관련 없음.</span></td></tr>
+      <tr data-repeat="layer-extra"><td><span data-slot="layer-extra">테스트 (조건부)</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files"><code>src/test/java/com/example/demo/simulation/MasterTest.java</code> 새 파일 1개 — 사용자 승인 후에만</span></td><td><span data-slot="layer-extra-why">days() 직접 테스트가 없어 동작을 고정하기 위해.</span></td></tr>
+      <tr data-repeat="layer-extra"><td><span data-slot="layer-extra">증거 파일</span></td><td><span class="chip" data-state="ok">변경</span></td><td><span data-slot="layer-extra-files"><code>docs/evidence/정혜미/REFACTOR-001-master-days/</code> 아래 새 파일만</span></td><td><span data-slot="layer-extra-why">전후 비교와 결과 기록.</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 목록은 <code>grep -rn "test.fail" src/test/e2e</code> 로 확인해 주세요.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-rel">관련</span></td>
+        <td><span data-slot="junit-OrderFlowTests-note">시뮬레이션·확정 흐름, planJson 에 master·plan 포함, /api/master 를 확인한다. 하지만 routes JSON 의 정확한 모양이나 역직렬화한 Master 동등성은 비교하지 않는다.</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-PlannerTest-rel">관련</span></td>
+        <td><span data-slot="junit-PlannerTest-note">10개 항로 Master 로 days() 를 간접적으로 지나간다(12건). 결과는 속성 단언이라 모든 항로 쌍을 고정하지는 않고, days() 를 직접 부르지 않으며, 항로 누락 사례가 없다.</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-DemoApplicationTests-rel">영향 없음</span></td>
+        <td><span data-slot="junit-DemoApplicationTests-note">컨텍스트 로드만 확인한다.</span></td></tr>
+      <tr data-repeat="junit-extra"><td><span data-slot="junit-extra">없음</span></td><td><span class="chip" data-state="none" data-slot="junit-extra-rel">영향 없음</span></td><td><span data-slot="junit-extra-note">해당 없음 (기준선의 JUnit 22건 = 1 + 9 + 12 와 일치. src/test/java 목록은 직접 다시 확인하지 못함)</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-1-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-1-note">해당 없음</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-2-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-2-note">해당 없음 (입력 검증 쪽)</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b></td><td>E2E-011~014</td><td><code>simulation.spec.ts</code></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-3-rel">관련</span></td>
+        <td><span data-slot="e2e-3-note">경로 일수·비용 화면 결과를 확인한다. E2E-013b 는 test.fail (알려진 결함). 항로 누락 오류 화면을 확인하는 시나리오는 없다.</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts · e2e-021.spec.ts</code></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-4-rel">관련</span></td>
+        <td><span data-slot="e2e-4-note">확정(스냅샷 저장), 마스터 버전 불일치, /master 화면을 지난다. 저장 JSON 의 정확한 모양은 비교하지 않는다.</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b></td><td>E2E-022~026</td><td><code>e2e-022~026.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-5-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-5-note">저장된 스냅샷이 화면에 나오는 부분은 간접적으로 관련될 수 있으나 확인하지 못함.</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b></td><td>E2E-027~035</td><td><code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-6-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-6-note">E2E-033·035 는 test.fail (알려진 결함). 이번 작업과 무관.</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b></td><td>E2E-036~040</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-7-rel">관련</span></td>
+        <td><span data-slot="e2e-7-note">마스터 항로 일수 폼·저장(original.routes 순회, 309행 부근)을 확인한다. 중복·누락 항로는 다루지 않는다.</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b></td><td>E2E-041</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-8-rel">관련</span></td>
+        <td><span data-slot="e2e-8-note">입력부터 확정까지 한 번에 지나가므로 전체 회귀 확인에 쓴다.</span></td></tr>
+      <tr data-repeat="e2e-extra"><td><span data-slot="e2e-extra">없음</span></td><td><span data-slot="e2e-extra-ids">해당 없음</span></td><td><code data-slot="e2e-extra-file">해당 없음</code></td><td><span class="chip" data-state="none" data-slot="e2e-extra-rel">영향 없음</span></td><td><span data-slot="e2e-extra-note">해당 없음</span></td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">test.fail() 테스트(E2E-013b, 033, 035)에 영향 없음. 기준선에서 이 3건은 예상대로 실패했다.</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list">
+    <li data-repeat="gap"><span data-slot="gap">항로 누락 오류 메시지("항로 정보가 없습니다: A-B", 인자 순서 포함)를 확인하는 테스트가 없다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">역방향 조회와 a==b(0)를 days() 로 직접 확인하는 테스트가 없다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">중복·양방향 항로에서 첫 항목 우선인지 고정하는 테스트가 없다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">Master JSON 직렬화와 planJson 왕복(필드 집합, 동등성)을 정확히 비교하는 테스트가 없다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">Master equals/hashCode/toString, factory() 오류 메시지를 확인하는 테스트가 없다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">5개국 25개 쌍 전체의 days() 값(골든 값)이 없다. 한 쌍만 잘못 매핑돼도 PlannerTest 가 놓칠 수 있다.</span></li>
+    <li data-repeat="gap"><span data-slot="gap">공유 Master 의 동시 호출 안전성과 조회 성능은 테스트도 측정도 없다(확인하지 못함).</span></li>
+  </ul>
+  <h3>추가·수정할 테스트 <span class="hint">(중복되거나 필요 없는 테스트는 만들지 말아 주세요)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody>
+      <tr data-repeat="new-test"><td><span data-slot="new-test">MasterTest (days: a==b 는 0, 양방향 25쌍 값, 누락 항로 메시지 정확 단언, 중복 항로 첫 항목 우선, factory 누락 메시지)</span></td><td><span data-slot="new-test-kind">JUnit (사용자 승인 후에만 추가)</span></td><td><span data-slot="new-test-why">변경 전에 먼저 작성해 현재 코드에서 통과하는 것을 확인하고, 변경 후에도 같은 결과임을 고정한다.</span></td></tr>
+      <tr data-repeat="new-test"><td><span data-slot="new-test">Master JSON 모양 확인(필드 5개, routes 배열 모양)과 옛 planJson 읽기</span></td><td><span data-slot="new-test-kind">JUnit (같은 MasterTest 안, 승인 후) 또는 증거 폴더의 변경 전후 JSON 비교</span></td><td><span data-slot="new-test-why">Map 이 저장 형식에 새지 않았음을 확인한다.</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 Loop 점검</h2>
+  <ul class="list">
+    <li>바뀌면 안 되는 동작(불변 목록): <span data-slot="refactor-invariants">(1) days(a,b): a==b 는 조회 전에 0, 아니면 방향 상관없이 해당 항로 일수. (2) 중복 항로는 목록의 첫 항목 우선. (3) 항로 없음: IllegalStateException, 메시지 "항로 정보가 없습니다: " + a + "-" + b (호출자가 준 순서, 열거형 이름 그대로). (4) factory() 와 "공장 정보가 없습니다: " 메시지는 손대지 않는다. (5) Master 의 record 컴포넌트(version, shipCount, shipDailyCostWon, factories, routes)와 순서, FactoryParam·RouteParam 은 그대로이고, 새 컴포넌트·public getter 를 만들지 않는다. planJson 과 /api/master 의 JSON 은 바이트 단위로 같아야 하고 옛 planJson 도 읽혀야 한다. (6) Planner 결과(일수·비용·일정)와 Planner.java, BatteryService, AppController, 템플릿, planview.js, DB 엔티티, Planner 오류 메시지는 그대로. (7) Master 의 equals/hashCode/toString 과 기존 public 생성자 시그니처 유지. (8) 기존 테스트(PlannerTest, OrderFlowTests, DemoApplicationTests)를 고치거나 약하게 하지 않는다.</span></li>
+    <li>동작이 같음을 보장하는 안전망: <span data-slot="refactor-safety">기준선(unit 22/22, E2E 45/45, 스냅샷 13건: docs/evidence/정혜미/REFACTOR-001-master-days/snapshot/before/)과 변경 후를 비교한다. PlannerTest 12건(간접), OrderFlowTests 9건(저장·API), E2E simulation·confirm·e2e031-041. 단 직접 안전망은 얇으므로, 변경 전에 days() 25쌍·중복·누락 메시지·Master JSON 샘플을 기록하는 특성 확인을 먼저 한다.</span></li>
+    <li>이번에 하지 않는 정리: <span data-slot="refactor-out">Planner 쪽 호출 방식 변경, 항로 DB 스키마·유니크 키 정리, Master 의 factory() 도 Map 으로 바꾸기, record 구조 변경, 성능 측정·최적화, 기존 테스트 수정.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">0</span></td><td><span data-slot="plan-detail">(질문 답을 받은 뒤) 기준선 확인: 현재 커밋을 기록하고 기존 테스트 결과를 증거 폴더에 "변경 전"으로 저장한다. 이미 실패하는 것이 있으면 멈추고 보고한다. (기준선 unit 22/22, E2E 45/45 는 이미 기록돼 있고 작업 시점에 다시 확인한다.)</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">1</span></td><td><span data-slot="plan-detail">안전망 먼저 보강(맨 앞): 변경 전 코드에서 days() 를 5개국 모든 순서쌍(a==b 포함), 중복 항로(첫 항목 우선), 누락 항로 메시지, Master JSON 샘플, Master equals/toString 으로 확인해 증거 폴더에 저장한다. 사용자가 승인하면 같은 내용을 MasterTest.java 로 만들어 변경 전 코드에서 통과하는 것을 확인한다. 승인하지 않으면 테스트 파일은 만들지 않고 증거 폴더 기록만으로 간다.</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">2</span></td><td><span data-slot="plan-detail">변경: Master.java 만 고친다. routes 에서 나라 쌍(방향 무관 키)으로 조회표를 만들되 putIfAbsent 로 첫 항목이 이기게 한다. days() 는 a==b 이면 0, 조회표에서 찾고, 없으면 기존과 같은 메시지의 IllegalStateException 을 던진다. 조회표는 record 컴포넌트·public 접근자가 아니고 JSON 에 나타나지 않으며(필요할 때만 @JsonIgnore), 불변이고 인스턴스 단위(정적 캐시 아님)이며 equals/hashCode 에 끼지 않는다.</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">3</span></td><td><span data-slot="plan-detail">생성 방식 결정: 조회표를 지연 생성할지 생성 시점에 만들지 정하되, 기존 public 생성자 시그니처와 옛 planJson 역직렬화(Jackson 3 의 생성자 선택)가 바뀌지 않게 한다. 두 번째 생성자는 추가하지 않는다. routes() 목록은 변경하지 않는다.</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">4</span></td><td><span data-slot="plan-detail">검증: 단계 1 과 같은 확인을 다시 실행해 결과가 글자 단위로 같은지 비교하고, Master JSON 샘플이 바이트 단위로 같고 옛 planJson 이 읽히는지 확인한다. JUnit 전체와 E2E(8081, 메모리 DB)를 다시 실행해 기준선과 같은 결과인지 본다.</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">5</span></td><td><span data-slot="plan-detail">범위 확인: git diff --stat 으로 Master.java(와 승인된 MasterTest.java), 증거 파일만 바뀌었는지 확인하고 diff 와 전후 비교를 증거 폴더에 저장한다. PRD.local.md 등 로컬 미추적 파일은 포함하지 않는다.</span></td></tr>
+      <tr data-repeat="plan"><td class="num"><span data-slot="plan-step">6</span></td><td><span data-slot="plan-detail">결과 메모를 증거 폴더에 짧게 쓴다(무엇을 바꿨나, 무엇을 비교했나, 결과). 요청이 없으면 commit·push 를 하지 않는다.</span></td></tr>
+    </tbody></table></div>
+  <p class="hint only-hitl">HITL이면 계획은 비워 두셔도 됩니다. 사용자의 답을 받은 뒤 다시 점검하겠습니다. (위 계획은 답을 받은 뒤 그대로 진행할 초안입니다.)</p>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">days() 가 변경 전과 똑같다: 5개국 모든 순서쌍 값(a==b 는 0), 중복 항로는 첫 항목 우선, 누락 항로 메시지 "항로 정보가 없습니다: a-b" 가 글자 단위로 동일하다.</span></b><div class="how">확인 방법: <span data-slot="check-1-how">변경 전 특성 확인 결과 파일과 변경 후 결과를 diff 한다(차이 0). 승인되면 MasterTest 통과.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">저장 형식이 그대로다: Master JSON(/api/master, planJson 속 master)이 변경 전 샘플과 바이트 단위로 같고 옛 planJson 이 읽힌다.</span></b><div class="how">확인 방법: <span data-slot="check-2-how">변경 전후 JSON 샘플 diff, OrderFlowTests 통과, 스냅샷 13건(snapshot/before 대 변경 후) 비교.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 테스트와 변경 범위가 기준선과 같다: JUnit 22/22, E2E 45건 예상대로(알려진 결함 3건 실패 유지), Master.java(와 승인된 테스트·증거 파일)만 바뀌었다.</span></b><div class="how">확인 방법: <span data-slot="check-3-how"><code>./gradlew build</code>, 8081·메모리 DB 에서 E2E 실행, <code>git diff --stat</code>.</span></div></div></div>
+  <p class="hint">정확히 3개로 부탁드립니다. 가장 중요한 것만 골라 주세요.</p>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용) · 점검 로그 <span data-slot="footer-log">해당 없음</span></p>
+</div>
+</body>
+</html>
