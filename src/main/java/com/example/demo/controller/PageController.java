@@ -43,7 +43,7 @@ public class PageController {
 
 	@GetMapping("/orders/{id}")
 	public String detail(@PathVariable Long id, HttpServletResponse response) {
-		orderService.getOrder(id); // 없는 주문이면 예외를 그대로 던진다 (알려진 결함: INTENT 9장 1·2번)
+		orderService.getOrder(id); // 없는 주문이면 예외를 그대로 던진다 (알려진 결함: INTENT 9장 2번)
 		return page("order-detail", response);
 	}
 

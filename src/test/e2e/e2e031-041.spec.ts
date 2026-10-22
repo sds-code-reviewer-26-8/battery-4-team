@@ -109,8 +109,7 @@ test('E2E-031 허용되지 않은 상태 변경은 직접 요청해도 거부된
  *
  * 한계: 시나리오의 "DB(order_status_history)에 이력이 남아 있다" 확인은 화면에서 볼 수 없고
  *       Playwright 에서 DB 에 붙을 수 없어 이 테스트에 넣지 않았다. (JUnit/수동 확인 필요)
- * 참고: 취소 직후 이동하는 화면은 현재 HTTP 500 이다(E2E-033). 이 테스트는 그 화면을 보지 않고
- *       목록을 직접 연다.
+ * 참고: 취소 직후 이동은 E2E-033 이 확인한다. 이 테스트는 목록을 직접 연다.
  */
 async function expectCancelRemovesOrder(page: Page, orderId: number) {
   // 취소 전 상태 기록
@@ -162,16 +161,9 @@ test.describe('E2E-032 취소하면 주문은 삭제된다', () => {
  * E2E-033 취소 직후에는 이전 페이지로 이동한다
  *
  * 정한 동작(PRD 7장): 취소 직후 이전 페이지(주문 목록)로 이동하고 오류 화면이 열리지 않는다.
- * 현재 구현: 삭제된 주문의 상세(/orders/{번호})로 이동해 HTTP 500 기본 오류 화면(Whitelabel Error Page)이 열린다.
- *           (알려진 결함: INTENT 9장 1번)
- *
- * 고치기 전까지 test.fail() 로 표시한다. 이 테스트는 "실패하는 것이 정상"이다.
- * 고치고 나면 test.fail() 줄을 지워 일반 테스트로 전환한다. (고친 뒤에도 test.fail() 이 남아 있으면
- * 테스트가 통과하면서 "예상한 실패가 일어나지 않았다"며 오히려 실패로 보고되어 알 수 있다.)
+ * 이전에는 삭제된 주문의 상세(/orders/{번호})로 이동해 HTTP 500 기본 오류 화면이 열렸다. (BUG-001 로 수정)
  */
 test('E2E-033 취소 직후에는 이전 페이지(주문 목록)로 이동한다', async ({ page }) => {
-  test.fail(true, '알려진 결함: 취소 후 삭제된 주문 상세로 이동해 HTTP 500 (INTENT 9장 1번)');
-
   await login(page);
   const id = await createOrder(page, { memo: 'E2E-033' });
 

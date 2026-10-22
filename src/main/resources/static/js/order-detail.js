@@ -66,8 +66,8 @@
 			const res = await postJson('/api/orders/' + orderId + '/status',
 				{status: f.dataset.status, version: version});
 			if (f.dataset.status === 'CANCELED') {
-				// 취소하면 주문이 삭제되지만 지금은 정해 둔 대로 상세 화면으로 이동한다. (알려진 결함: INTENT 9장 1번)
-				location.href = '/orders/' + orderId;
+				// 취소하면 주문이 삭제되므로 상세가 아니라 이전 페이지(주문 목록)로 이동한다.
+				location.href = '/orders';
 				return;
 			}
 			await load(res.message, null);
