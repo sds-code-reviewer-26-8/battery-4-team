@@ -129,6 +129,41 @@ class PlannerTest {
 		assertThat(fast.totalDays()).isLessThanOrEqualTo(cost.totalDays()).isLessThanOrEqualTo(near.totalDays());
 	}
 
+	/** E2E-013b(HJ-S14-08): 배 1척, 5000/2000/0/8000 에서 가장 빠르게(47일)가 가까운 곳부터(45일)보다 느렸다. */
+	@Test
+	void fastOptionIsNotSlowerThanNearForReportedCase() {
+		List<Plan> plans = Planner.plan(master(1), orders(5000, 2000, 0, 8000));
+		assertThat(plans.get(1).totalDays()).isLessThanOrEqualTo(plans.get(2).totalDays());
+	}
+
+	/** 배 1~4척, 나라별 주문 조합 전체에서 가장 빠르게는 어느 안보다 느리지 않고 운항비 최소는 어느 안보다 비싸지 않다. */
+	@Test
+	void fastAndCostOptionsAreBestForEveryShipAndOrderCombination() {
+		int[] amounts = {0, 2000, 5000, 8000};
+		for (int ships = 1; ships <= 4; ships++) {
+			for (int c : amounts) {
+				for (int j : amounts) {
+					for (int v : amounts) {
+						for (int i : amounts) {
+							if (c + j + v + i == 0) {
+								continue;
+							}
+							List<Plan> plans = Planner.plan(master(ships), orders(c, j, v, i));
+							Plan cost = plans.get(0);
+							Plan fast = plans.get(1);
+							Plan near = plans.get(2);
+							String input = "배 %d척 %d/%d/%d/%d".formatted(ships, c, j, v, i);
+							assertThat(fast.totalDays()).as(input + " FAST ≤ COST 일수").isLessThanOrEqualTo(cost.totalDays());
+							assertThat(fast.totalDays()).as(input + " FAST ≤ NEAR 일수").isLessThanOrEqualTo(near.totalDays());
+							assertThat(cost.shippingCost()).as(input + " COST ≤ FAST 운항비").isLessThanOrEqualTo(fast.shippingCost());
+							assertThat(cost.shippingCost()).as(input + " COST ≤ NEAR 운항비").isLessThanOrEqualTo(near.shippingCost());
+						}
+					}
+				}
+			}
+		}
+	}
+
 	@Test
 	void usesAtMostAvailableShips() {
 		for (Plan plan : Planner.plan(master(2), orders(3000, 3000, 3000, 3000))) {

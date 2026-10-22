@@ -90,6 +90,14 @@ pre.code{margin:0;background:#020c06;border:1px solid var(--line);border-radius:
   </div>
 </header>
 
+<aside class="meta" style="margin:12px 0;padding:10px 14px;border:1px solid #22c55e;border-radius:8px">
+  <span><b>수정 완료</b> · PR #27 (<b>fix/fast-route-not-fastest</b>)</span>
+  <span>수정: 왕복 방문 순서 후보에 "가까운 나라부터" 순서 추가 (Planner.groupStructures)</span>
+  <span>수정 후: 보고 사례(배 1척, 5000/2000/0/8000) FAST 47일 → 45일(NEAR와 같음), E2E-013b 일반 통과</span>
+  <span>검증: JUnit 전체, E2E 45건 통과. 배 1~4척 · 주문 조합 전체에서 FAST ≤ NEAR 확인(PlannerTest)</span>
+  <span>아래 본문은 수정 전(bc51583) 기록입니다.</span>
+</aside>
+
 <nav role="tablist" id="tabs" aria-label="리포트 탭"></nav>
 <section class="panel" id="panel" role="tabpanel"></section>
 </div>
