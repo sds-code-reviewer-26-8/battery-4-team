@@ -324,6 +324,28 @@ class OrderFlowTests {
 	}
 
 	@Test
+	void canEditCustomerDependsOnCreatorAndStatus() throws Exception {
+		MockHttpSession s = login();
+		long id = confirmedId(confirmWithCustomer(s, "\"판정 확인\""));
+		var confirmed = orderService.getOrder(id);
+		assertThat(OrderService.canEditCustomer(confirmed, "admin")).isTrue();
+		assertThat(OrderService.canEditCustomer(confirmed, "other")).isFalse();
+		assertThat(OrderService.canEditCustomer(confirmed, null)).isFalse();
+
+		orderService.changeStatus(id, OrderStatus.IN_PROGRESS, confirmed.getVersion(), "admin");
+		var inProgress = orderService.getOrder(id);
+		assertThat(OrderService.canEditCustomer(inProgress, "admin")).isTrue();
+		assertThat(OrderService.canEditCustomer(inProgress, "other")).isFalse();
+		assertThat(OrderService.canEditCustomer(inProgress, null)).isFalse();
+
+		orderService.changeStatus(id, OrderStatus.COMPLETED, inProgress.getVersion(), "admin");
+		var done = orderService.getOrder(id);
+		assertThat(OrderService.canEditCustomer(done, "admin")).isFalse();
+		assertThat(OrderService.canEditCustomer(done, "other")).isFalse();
+		assertThat(OrderService.canEditCustomer(done, null)).isFalse();
+	}
+
+	@Test
 	void customerNameOfCanceledOrderCannotBeEdited() throws Exception {
 		MockHttpSession s = login();
 		long id = confirmedId(confirmWithCustomer(s, "\"취소될 고객사\""));

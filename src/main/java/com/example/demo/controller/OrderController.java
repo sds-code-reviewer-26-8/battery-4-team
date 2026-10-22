@@ -80,8 +80,7 @@ public class OrderController {
 			body.put("routeLabel", o.getRouteLabel());
 			body.put("memo", o.getMemo());
 			body.put("customerName", o.getCustomerName());
-			body.put("customerEditable", o.getStatus().isCustomerEditable() && user != null
-					&& user.equals(o.getCreatedBy()));
+			body.put("customerEditable", OrderService.canEditCustomer(o, user));
 			body.put("next", o.getStatus().next().stream()
 					.map(s -> Map.of("status", s.name(), "label", s.getLabel())).toList());
 			body.put("history", orderService.history(id).stream().map(OrderController::historyRow).toList());

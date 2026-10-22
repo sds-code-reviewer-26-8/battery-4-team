@@ -131,7 +131,7 @@ public class OrderService {
 		if (order.getVersion() != expectedVersion) {
 			throw conflict();
 		}
-		if (user == null || !user.equals(order.getCreatedBy())) {
+		if (!isCreator(order, user)) {
 			throw new BusinessException("주문을 작성한 사람만 고객사를 수정할 수 있습니다");
 		}
 		if (!order.getStatus().isCustomerEditable()) {
@@ -143,6 +143,16 @@ public class OrderService {
 		} catch (ObjectOptimisticLockingFailureException e) {
 			throw conflict();
 		}
+	}
+
+	/** 주문 작성자인가. 작성자 판정은 이 메서드 한 곳에서만 한다. */
+	public static boolean isCreator(Order order, String user) {
+		return user != null && user.equals(order.getCreatedBy());
+	}
+
+	/** 사용자가 이 주문의 고객사를 고칠 수 있는가(작성자이고 확정·진행 상태). */
+	public static boolean canEditCustomer(Order order, String user) {
+		return isCreator(order, user) && order.getStatus().isCustomerEditable();
 	}
 
 	/** 앞뒤 공백을 지우고, 비면 null, 100자를 넘으면 거부한다. */
