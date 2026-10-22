@@ -7,7 +7,7 @@ import java.util.List;
 public record Master(long version, int shipCount, long shipDailyCostWon, List<FactoryParam> factories,
 		List<RouteParam> routes) {
 
-	public record FactoryParam(Country country, int maxDaily, int stockLimit, long unitCost) {
+	public record FactoryParam(Country country, int maxDaily, int stockLimit, long unitCost, long dailyOperatingCostWon) {
 	}
 
 	public record RouteParam(Country from, Country to, int days) {

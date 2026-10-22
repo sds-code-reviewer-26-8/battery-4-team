@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 공장 운영비 기능 구현</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="develop" data-status="GO">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-develop">개발</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">GO</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">공장 운영비 기능 구현: 공장마다 하루 운영비를 정해 총 비용에 반영하고, 비용 기준 안을 총비용 최소로 바꾼다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 15:39:33</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 prepare 에이전트</span><span>브랜치 <span data-slot="branch">feature/admin</span> · 커밋 <span data-slot="commit">f38632f</span></span><span>요청자 <span data-slot="requester">yeri</span></span><span>로그 <span data-slot="log-path">docs/logs/prepare/inspection_20261022_153933.log</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">GO: 공장 운영비는 문서에 근거가 있는 새 기능이고, 직전 점검의 질문 4개에 사용자가 답해 빈칸이 없다. 승인된 계획대로 구현한다.</span></b></p>
+  <h3>이유</h3>
+  <ul class="list"><li><span data-slot="reason">개발 근거 있음: PRD 9장 공장 운영비 항목에 6가지 결정이 확정돼 있고 PRD 6장이 9장을 가리킨다. INTENT 8.4에 같은 방향이 있다. PRD 10장 범위 밖과 무관하다.</span></li><li><span data-slot="reason">직전 점검(DEV-002)의 질문 4개에 사용자가 답했다: 동일 안 안내를 넣는다, 하루 운영비 상한은 1,000억 원 이하, 비개발자용 안내서는 이번에 고치지 않는다, 운영 일수의 끝은 그 공장의 마지막 수거일이다.</span></li><li><span data-slot="reason">답으로 정해진 두 가지(동일 안 안내, 1,000억 원 상한)는 요구 변경이 아니라 PRD 9장의 빈칸을 채운 것이라 PRD 9장에 반영한다.</span></li><li><span data-slot="reason">경고(진행): 변경이 크다(여러 계층, DB 컬럼 추가, 마스터 버전·확정 스냅샷·총 비용 정의 접촉). 사용자가 요청에서 이를 알고 구현 전 계획을 이미 승인했으므로 경고만 기록하고 진행한다.</span></li><li><span data-slot="reason">경고(진행): 기존 DB 보정은 개발 DB 복사본으로만 확인하고 개발 DB(./data/battery)와 8080 서버는 건드리지 않는다.</span></li></ul>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">지금 총 비용은 생산 원가와 운항비뿐이라 공장을 운영하는 비용이 계획 비교에 반영되지 않는다. 운영 담당자는 공장 4곳의 하루 운영비를 마스터에서 정하고, 주문일부터 그 공장의 마지막 수거일까지의 운영비가 총 비용에 들어가길 원한다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">요청 문구, PRD 6장 비용과 일수, PRD 9장 공장 운영비, Planner.java toPlan(totalCost = 생산 원가 + 운항비), MasterService.initDefaults(운영비 없음).</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">경로안 비교와 확정 주문의 총 비용이 공장 운영비까지 반영하게 한다. 비용 기준 안은 총비용 최소가 되고, 확정 주문은 확정 당시 운영비를 스냅샷으로 보존하며, 기존 주문은 그대로 열리고 운영비는 없음으로 보인다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">PRD 9장(계산·경로안·화면·기존 주문), INTENT 8.4, 원칙 4(스냅샷)·7(전부 검증)·12(원 단위 정수).</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="large"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">예</span></b> <span class="hint">— <span data-slot="user-aware-why">요청에 &quot;구현 전 계획은 사람이 이미 승인했다&quot;, 6가지 결정에 첫 실행 보정·마스터 버전 증가·스냅샷·기존 주문 처리가 들어 있다.</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td><span data-slot="risk">기존 DB(이미 행이 있는 Factory 테이블)에 컬럼을 추가할 때 실패하거나 값이 비어 앱이 깨진다</span></td><td><span class="chip" data-state="bad" data-slot="risk-level">높음</span></td><td><span data-slot="risk-fix">nullable 컬럼으로 추가하고 첫 실행 때 비어 있는 곳만 10억으로 채우며 값이 있으면 덮어쓰지 않는다. 개발 DB 복사본으로 확인한다.</span></td></tr><tr><td><span data-slot="risk">이전 형식 확정 주문(운영비 필드 없음)을 열면 화면이 깨지거나 애니메이션 총 비용이 어긋난다</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">화면 JS가 필드 없음을 없음으로 표시하고 저장된 총 비용은 그대로 쓴다. planJson은 다시 쓰지 않는다. 기존 주문 없음 표시 테스트를 추가한다.</span></td></tr><tr><td><span data-slot="risk">기존 E2E의 문구·표 순서·숫자 단언이 깨진다</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">새 표는 맨 뒤에 두고, 문구·숫자만 새 규칙에 맞게 고쳐 확인 의도는 유지한다.</span></td></tr><tr><td><span data-slot="risk">가장 빠르게와 총비용 최소가 같은 안이 되는 경우가 늘어 두 카드가 같아 보인다</span></td><td><span class="chip" data-state="ok" data-slot="risk-level">낮음</span></td><td><span data-slot="risk-fix">같은 안일 때 안 카드 아래에 두 안이 같습니다 한 줄 안내를 보여 준다(사용자 결정).</span></td></tr><tr><td><span data-slot="risk">운영비 입력값이 너무 커 계산 결과가 비현실적이거나 long 범위를 넘는다</span></td><td><span class="chip" data-state="ok" data-slot="risk-level">낮음</span></td><td><span data-slot="risk-fix">하루 운영비 상한 1,000억 원 이하(사용자 결정)로 검증하고 상한 테스트를 둔다. 상한 x 운영 일수 x 4곳은 long 범위에 한참 못 미친다.</span></td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list"><li><span data-slot="assumption">Factory의 nullable 컬럼 추가가 기존 H2 파일 DB에서 실제로 되는지는 구현 때 개발 DB 복사본으로 확인한다(아직 확인하지 못함).</span></li><li><span data-slot="assumption">E2E-036~040이 입력칸을 읽어 되돌려 저장하는 방식이라 새 입력칸이 늘어도 영향이 작다고 추정한다(확인 필요).</span></li><li><span data-slot="assumption">운영 일수의 끝은 그 공장의 마지막 수거일(배가 그 공장에 도착한 날)이다. 사용자가 확인했다.</span></li></ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">8223e60 + 미커밋 수정(9장 공장 운영비 6가지 결정)</span> · INTENT.md <span data-slot="intent-version">f38632f + 미커밋 수정(8.4)</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="yes" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="yes" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="yes" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="yes" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="yes" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="yes" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="yes" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="no" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="yes" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="yes" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="yes" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="yes" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="no" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="no" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="yes" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="yes" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="yes" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="no" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody><tr><td><span data-slot="relation-id">R2</span></td><td><span data-slot="relation">경로안 비교에 운영비가 들어가고 비용 기준 안이 총비용 최소가 된다.</span></td></tr><tr><td><span data-slot="relation-id">R3·R4</span></td><td><span data-slot="relation">확정할 때 운영비를 스냅샷에 담는다. 확정 주문은 확정 당시 값 그대로 보인다.</span></td></tr><tr><td><span data-slot="relation-id">R5</span></td><td><span data-slot="relation">하루 운영비를 저장하면 마스터 버전이 올라 낡은 시뮬레이션은 확정할 수 없다.</span></td></tr><tr><td><span data-slot="relation-id">R6</span></td><td><span data-slot="relation">상세에 운영비와 공장별 운영 일수가 보이고 기존 주문은 없음으로 보인다. 목록은 총 비용만 보인다.</span></td></tr><tr><td><span data-slot="relation-id">R8·R9</span></td><td><span data-slot="relation">마스터에 공장별 하루 운영비 입력이 생기고, 0 초과 1,000억 원 이하 검증과 이유 모아 알림을 한다.</span></td></tr><tr><td><span data-slot="relation-id">원칙 1</span></td><td><span data-slot="relation">세 안의 의미를 다시 점검하고 같은 안이면 화면에서 드러낸다.</span></td></tr><tr><td><span data-slot="relation-id">원칙 2·6</span></td><td><span data-slot="relation">서버가 운영비까지 다시 계산한다. 일정·재고 시뮬레이션과 검산은 바꾸지 않는다.</span></td></tr><tr><td><span data-slot="relation-id">원칙 3·4</span></td><td><span data-slot="relation">운영비를 바꾸면 버전이 오르고, 확정 스냅샷에 운영비를 담는다.</span></td></tr><tr><td><span data-slot="relation-id">원칙 7·12·13</span></td><td><span data-slot="relation">운영비도 같은 검증 틀에 넣고 원 단위 정수로 다루며 마스터 데이터로 둔다.</span></td></tr><tr><td><span data-slot="relation-id">원칙 11</span></td><td><span data-slot="relation">Planner는 DB·화면을 모르는 채 Master 값만으로 운영비를 계산한다.</span></td></tr></tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉하지 않음. PRD 10장 범위 밖 항목과 무관하다(공장 직접 운영 전제와 일치).</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li><span data-slot="conflict">PRD 4·5·6장과 INTENT 1장·원칙 1·5.2·8.3은 아직 운항비 최소와 총 비용 = 생산 원가 + 운항비로 적혀 있어 구현 후 고친다(이번 범위에 포함).</span></li><li><span data-slot="conflict">PRD 9장에는 동일 안 안내와 1,000억 원 상한이 아직 없다. 사용자 답으로 확정됐으므로 문서 정리 때 넣는다.</span></li><li><span data-slot="conflict">비개발자용 안내서(docs/understand/*/basic_guide.html)는 옛 이름·숫자가 남지만 사용자 결정으로 이번에 고치지 않는다.</span></li></ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr data-layer="화면 템플릿"><td><b>화면 템플릿</b><div class="hint"><code>src/main/resources/templates/*.html</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-1-state">확인만</span></td>
+        <td><span data-slot="layer-1-files">master.html 등 입력칸이 템플릿에 있는지 확인만 한다(입력칸을 JS가 만들면 변경 없음).</span><div class="hint">login · orders · order-new · order-detail · master · fragments</div></td>
+        <td><span data-slot="layer-1-why">마스터 표는 master.js가 그리는 것으로 추정한다(확인 필요).</span></td></tr>
+      <tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-2-state">변경</span></td>
+        <td><span data-slot="layer-2-files">master.js(공장별 하루 운영비 입력, 억 원), planview.js(안별 4항목, 공장별 운영 일수·운영비 표를 맨 뒤에, 없음 처리), order-new.js(안 카드 4항목, 동일 안 안내, 이름), anim.js(총 비용에 운영비 반영)</span><div class="hint">order-new.js · planview.js · anim.js · common.js</div></td>
+        <td><span data-slot="layer-2-why">운영비를 보여 주고 입력받으며 기존 주문은 없음으로 보여 준다.</span></td></tr>
+      <tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/AppController.java</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-3-state">확인만</span></td>
+        <td><span data-slot="layer-3-files">OrderController, 마스터 API 확인만</span><div class="hint">화면 요청·JSON API·로그인 처리</div></td>
+        <td><span data-slot="layer-3-why">운영비를 폼 값으로 주고받는 방식을 확인한다. 목록은 총 비용만 쓰므로 변경 없음 예상.</span></td></tr>
+      <tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>service/BatteryService.java</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-4-state">변경</span></td>
+        <td><span data-slot="layer-4-files">MasterService.java: initDefaults 보정(비어 있는 곳만 10억), currentMaster, toForm, updateMaster(0 초과 1,000억 이하 검증, 오류 모음)</span><div class="hint">확정·상태 변경·기준 정보 검증·버전 검사 (BusinessException)</div></td>
+        <td><span data-slot="layer-4-why">마스터 값 저장·검증·기본값. 저장 시 버전 증가는 이미 호출되고 있다.</span></td></tr>
+      <tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/Planner.java · Master · Plan · StoredPlan</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-5-state">변경</span></td>
+        <td><span data-slot="layer-5-files">Planner.java(COST 선택 기준, toPlan 비용, 라벨 총비용 최소, 나라별 운영 일수), Master.java(FactoryParam에 운영비), Plan.java(운영비·공장별 내역)</span><div class="hint">DB·화면을 모르는 순수 계산 (원칙 11)</div></td>
+        <td><span data-slot="layer-5-why">운영비 계산과 총 비용 정의. 일정·재고 시뮬레이션은 바꾸지 않는다.</span></td></tr>
+      <tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/* · H2 ./data/battery</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-6-state">변경</span></td>
+        <td><span data-slot="layer-6-files">Factory.java: 하루 운영비 컬럼(nullable Long)</span><div class="hint">Order · OrderStatusHistory · Factory · Route · Setting</div></td>
+        <td><span data-slot="layer-6-why">마스터 값은 데이터로 둔다(원칙 13). 기존 행에 NOT NULL 컬럼 추가 실패를 피한다.</span></td></tr>
+      <tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/*</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-7-state">없음</span></td>
+        <td><span data-slot="layer-7-files">없음</span><div class="hint">LoginInterceptor · WebConfig · DataInitializer</div></td>
+        <td><span data-slot="layer-7-why">설정·로그인은 바꾸지 않는다.</span></td></tr>
+      <tr><td><span data-slot="layer-extra">테스트 보조 파일</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files">helpers.ts, common-helpers.ts(ROUTE_LABEL 이름)</span></td><td><span data-slot="layer-extra-why">이름이 총비용 최소로 바뀐다.</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 목록은 <code>grep -rn "test.fail" src/test/e2e</code> 로 확인해 주세요.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-OrderFlowTests-rel">관련</span></td>
+        <td><span data-slot="junit-OrderFlowTests-note">options[0].type == COST 확인은 유지. 운영비 포함 확정 스냅샷과 마스터 검증 단언은 없다(공백).</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-PlannerTest-rel">관련</span></td>
+        <td><span data-slot="junit-PlannerTest-note">총 비용 = 생산+운항비 단언과 운항비만 비교하는 단언 2곳을 새 기준으로 수정. 운영비 계산 단언은 없다(공백).</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-DemoApplicationTests-rel">영향 없음</span></td>
+        <td><span data-slot="junit-DemoApplicationTests-note">컨텍스트 기동만 확인. 컬럼 추가 뒤에도 뜨는지 간접 확인된다.</span></td></tr>
+      <tr><td><span data-slot="junit-extra">MasterFormTests</span></td><td><span class="chip" data-state="warn" data-slot="junit-extra-rel">관련</span></td><td><span data-slot="junit-extra-note">FactoryParam 생성자가 바뀌어 수정. 마스터 검증·상한 테스트 추가 후보.</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-1-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-1-note">영향 없음.</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-2-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-2-note">영향 없음.</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b></td><td>E2E-011~014</td><td><code>simulation.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-3-rel">관련</span></td>
+        <td><span data-slot="e2e-3-note">E2E-011~014: 운항비 최소 문구, 요약 항목 수, 총 비용 = 생산+운항비, COST 운항비 비교 단언을 새 규칙에 맞게 수정.</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts · e2e-021.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-4-rel">관련</span></td>
+        <td><span data-slot="e2e-4-note">E2E-015~021: 확정 화면의 이름·비용 문구 수정, 스냅샷에 운영비가 같은 항목으로 보이는지.</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b></td><td>E2E-022~026</td><td><code>e2e-022~026.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-5-rel">관련</span></td>
+        <td><span data-slot="e2e-5-note">E2E-022~026: 상세 표 항목 변화와 목록 총 비용. 기존 주문 없음 표시 시나리오 추가 후보.</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b></td><td>E2E-027~035</td><td><code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-6-rel">관련</span></td>
+        <td><span data-slot="e2e-6-note">E2E-027~035: 이름·숫자 확인. E2E-033, E2E-035는 test.fail()이라 건드리지 않는다.</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b></td><td>E2E-036~040</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-7-rel">관련</span></td>
+        <td><span data-slot="e2e-7-note">E2E-036~040: 새 입력칸을 함께 저장. 운영비 검증·상한 시나리오 추가.</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b></td><td>E2E-041</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-8-rel">관련</span></td>
+        <td><span data-slot="e2e-8-note">E2E-041: 대표 흐름의 이름·비용 문구 수정.</span></td></tr>
+      <tr><td><span data-slot="e2e-extra">운영비 신규</span></td><td><span data-slot="e2e-extra-ids">신규(번호는 구현 때 정함)</span></td><td><code data-slot="e2e-extra-file">operating-cost.spec.ts (신규 1개)</code></td><td><span class="chip" data-state="warn" data-slot="e2e-extra-rel">관련</span></td><td><span data-slot="e2e-extra-note">마스터 검증과 상한, 동일 안 안내, 기존 주문 없음.</span></td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">test.fail() 테스트(E2E-033, E2E-035)에는 영향 없음. 이번 작업과 무관하므로 건드리지 않고, 예기치 않게 통과하면 보고한다.</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list"><li><span data-slot="gap">운영비 계산 단언 없음(PlannerTest).</span></li><li><span data-slot="gap">마스터 하루 운영비 입력·검증·상한·버전 증가 테스트 없음.</span></li><li><span data-slot="gap">같은 안 한 줄 안내 테스트 없음.</span></li><li><span data-slot="gap">기존 주문 운영비 없음 표시 테스트 없음.</span></li><li><span data-slot="gap">기존 DB 보정(첫 실행 때 채움) 확인 없음.</span></li></ul>
+  <h3>추가·수정할 테스트 <span class="hint">(중복되거나 필요 없는 테스트는 만들지 말아 주세요)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody><tr><td><span data-slot="new-test">PlannerTest 운영비 계산</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">운영 일수=마지막 수거일, 주문 없는 공장 0, 총 비용 합계, 총비용 최소 선택 기준을 고정한다.</span></td></tr><tr><td><span data-slot="new-test">마스터 검증과 상한(MasterFormTests 또는 OrderFlowTests)</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">0 이하·1,000억 초과·원 단위 아님이 하나라도 있으면 아무것도 저장되지 않고 이유가 모아지며, 유효하면 버전이 오르는지 확인한다.</span></td></tr><tr><td><span data-slot="new-test">운영비 화면 시나리오(operating-cost.spec.ts)</span></td><td><span data-slot="new-test-kind">E2E</span></td><td><span data-slot="new-test-why">안별 4항목과 공장별 표, 동일 안 한 줄 안내, 기존 주문 없음, 마스터 상한 거부를 화면에서 확인한다.</span></td></tr><tr><td><span data-slot="new-test">기존 PlannerTest·E2E 숫자·이름 수정</span></td><td><span data-slot="new-test-kind">JUnit·E2E</span></td><td><span data-slot="new-test-why">확인 의도는 유지하고 새 규칙(총비용 최소, 운영비 포함 총 비용)에 맞춘다.</span></td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-develop" id="loop-develop">
+  <h2><span class="no">★</span>개발 Loop 점검</h2>
+  <ul class="list">
+    <li>이번에 만드는 것(범위): <span data-slot="develop-scope">공장별 하루 운영비 설정(기본 10억, 0 초과 1,000억 이하), 운영비 계산(주문일부터 그 공장 마지막 수거일), 총비용 최소 안, 안별 비용 4항목과 공장별 표, 확정 스냅샷, 기존 주문 없음 표시, 동일 안 한 줄 안내, 기존 DB 첫 실행 보정, 새 테스트, PRD·INTENT 정리.</span></li>
+    <li>이번에 만들지 않는 것: <span data-slot="develop-out">주문 목록 열 추가, 확정 주문 재계산, 기존 planJson 갱신, 일정 계산 규칙 변경, 공장·나라 확장, 비개발자용 안내서 수정, 포맷·리팩토링, 커밋·푸시.</span></li>
+    <li>화면·API 변화 요약: <span data-slot="develop-change">마스터에 공장 4곳 하루 운영비 입력칸. 시뮬레이션 안마다 생산 원가·운항비·운영비·총 비용과 공장별 운영 일수·운영비. 안 이름이 총비용 최소로 바뀜. 두 안이 같으면 카드 아래 한 줄 안내. 확정 주문 상세도 같은 항목. 기존 주문은 운영비 없음. 주문 목록은 총 비용만.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody><tr><td class="num"><span data-slot="plan-step">1</span></td><td><span data-slot="plan-detail">Planner·Master·Plan: 나라별 마지막 수거일로 운영 일수를 구하고 운영비·총 비용을 계산한다. COST 선택 기준을 운항비+운영비 최소(동률은 소요 일수 짧은 안)로 바꾸고 이름을 총비용 최소로 바꾼다. FAST·NEAR는 그대로.</span></td></tr><tr><td class="num"><span data-slot="plan-step">2</span></td><td><span data-slot="plan-detail">Factory·MasterService: 하루 운영비 nullable 컬럼, 첫 실행 보정(비어 있는 곳만 10억), 검증(0 초과 1,000억 이하, 오류를 모아 한 번에 알림, 하나라도 틀리면 저장 안 함), 저장 시 버전 증가 유지. 개발 DB 복사본으로 보정을 확인한다.</span></td></tr><tr><td class="num"><span data-slot="plan-step">3</span></td><td><span data-slot="plan-detail">화면 JS 4개: master.js 입력칸(억 원), planview.js 안별 4항목과 공장별 표(맨 뒤)와 기존 주문 없음, order-new.js 카드 4항목과 동일 안 한 줄 안내, anim.js 총 비용에 운영비 반영.</span></td></tr><tr><td class="num"><span data-slot="plan-step">4</span></td><td><span data-slot="plan-detail">기존 테스트(PlannerTest, E2E, JUnit) 이름·숫자를 새 규칙에 맞게 고친다. 확인 의도는 유지하고 test.fail()은 건드리지 않는다.</span></td></tr><tr><td class="num"><span data-slot="plan-step">5</span></td><td><span data-slot="plan-detail">새 테스트: PlannerTest 운영비 계산, 마스터 검증과 상한 JUnit, E2E 1개 파일(동일 안 안내, 기존 주문 없음, 마스터 상한).</span></td></tr><tr><td class="num"><span data-slot="plan-step">6</span></td><td><span data-slot="plan-detail">구현 후 문서: PRD 9장 항목 정리와 4·5·6장, INTENT 1장·원칙 1·5.2·8.3·8.4를 현재 상태로 고친다. 안내서는 고치지 않는다.</span></td></tr><tr><td class="num"><span data-slot="plan-step">7</span></td><td><span data-slot="plan-detail">검증: JUnit + 전체 E2E를 별도 포트·별도 DB에서 연속 2번 통과시킨다. 이번에 하지 않는 것은 위 범위 밖 목록과 같다.</span></td></tr></tbody></table></div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">인수 기준대로 동작한다: 마스터 저장·거부·상한·버전 증가, 안마다 4항목과 공장별 표와 동일 안 안내, 확정 주문 스냅샷 동일, 기존 주문은 운영비 없음.</span></b><div class="how">확인 방법: <span data-slot="check-1-how">별도 포트·별도 DB 앱에서 화면 확인과 E2E, JUnit. 개발 DB 복사본으로 첫 실행 때 비어 있는 곳만 10억이 채워지고 기존 값은 그대로인지 확인(개발 DB·8080은 건드리지 않음).</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">운영비 새 테스트(계산, 마스터 검증과 상한, 동일 안 안내, 기존 주문 없음)가 있고 통과하며, 고친 기존 테스트가 같은 의도를 유지한다.</span></b><div class="how">확인 방법: <span data-slot="check-2-how">./gradlew test(PlannerTest 등)와 playwright 신규·수정 spec. 새 테스트는 잘못 구현하면 실제로 실패해야 한다.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 Regression Test(JUnit + 전체 E2E)가 연속 2번 모두 기대한 결과다. E2E-033, E2E-035의 test.fail()은 그대로 실패해야 한다.</span></b><div class="how">확인 방법: <span data-slot="check-3-how">같은 검증을 연속 2번 실행. 예기치 않게 통과한 test.fail()이 있으면 보고한다.</span></div></div></div>
+  <p class="hint">정확히 3개로 부탁드립니다. 가장 중요한 것만 골라 주세요.</p>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용) · 점검 로그 <span data-slot="footer-log">docs/logs/prepare/inspection_20261022_153933.log</span></p>
+</div>
+</body>
+</html>

@@ -23,11 +23,11 @@ test.describe('3. 경로안 계산·비교', () => {
       await expect(o).toContainText(ROUTE_LABEL[t]);
       await expect(o).toContainText(/소요 \d+일/);
       await expect(o).toContainText(/총 비용 [\d.]+억원/);
-      await expect(o).toContainText(/운항비 [\d.]+억원 · 배 \d+척/);
+      await expect(o).toContainText(/생산 원가 [\d.]+억원 · 운항비 [\d.]+억원 · 운영비 [\d.]+억원 · 배 \d+척/);
     }
     await expect(page.locator('.option[data-type="COST"]')).toHaveClass(/selected/);
 
-    await expect(page.locator('#summary h2')).toContainText('운항비 최소');
+    await expect(page.locator('#summary h2')).toContainText('총비용 최소');
     for (const title of ['나라별 주문 수량', '배 경로', '일별 생산·비용', '계획에 쓴 마스터 값']) {
       await expect(page.locator('#details h2', { hasText: title })).toBeVisible();
     }
@@ -47,6 +47,7 @@ test.describe('3. 경로안 계산·비교', () => {
       expect(num(stats['소요 일수'])).toBe(expected.totalDays);
       expect(stats['총 비용']).toBe(`${eok(expected.totalCost)}억원`);
       expect(stats['운항비']).toBe(`${eok(expected.shippingCost)}억원`);
+      expect(stats['운영비']).toBe(`${eok(expected.operatingCost)}억원`);
       // 배 경로 표의 가장 늦은 귀환일이 소요 일수와 같다
       const returns = await page.locator('#details table.grid').nth(1).locator('tbody tr').evaluateAll(
         (trs) => trs.map((tr) => (tr.querySelectorAll('td')[4].textContent ?? '')),
@@ -57,16 +58,18 @@ test.describe('3. 경로안 계산·비교', () => {
 
   test('E2E-013 세 안의 기간·비용 대소 관계가 맞는다 (기본 수량)', async ({ page }) => {
     await runSimulation(page);
-    const rows: Record<string, { days: number; ship: number; prod: number; total: number }> = {};
+    const rows: Record<string, { days: number; ship: number; op: number; prod: number; total: number }> = {};
     for (const t of TYPES) {
       await pickOption(page, t);
       const s = await readStats(page);
-      rows[t] = { days: num(s['소요 일수']), ship: num(s['운항비']), prod: num(s['생산 원가']), total: num(s['총 비용']) };
-      // 총 비용 = 생산 원가 + 운항비 (표시가 소수 2자리라 ±0.01 허용)
-      expect(Math.abs(rows[t].total - (rows[t].prod + rows[t].ship))).toBeLessThanOrEqual(0.011);
+      rows[t] = { days: num(s['소요 일수']), ship: num(s['운항비']), op: num(s['운영비']), prod: num(s['생산 원가']), total: num(s['총 비용']) };
+      // 총 비용 = 생산 원가 + 운항비 + 운영비 (표시가 소수 2자리라 ±0.01 허용)
+      expect(Math.abs(rows[t].total - (rows[t].prod + rows[t].ship + rows[t].op))).toBeLessThanOrEqual(0.011);
     }
     expect(rows.FAST.days).toBeLessThanOrEqual(Math.min(rows.COST.days, rows.NEAR.days));
-    expect(rows.COST.ship).toBeLessThanOrEqual(Math.min(rows.FAST.ship, rows.NEAR.ship));
+    // 총비용 최소 안은 운항비+운영비가 가장 낮다
+    const shipOp = (r: { ship: number; op: number }) => r.ship + r.op;
+    expect(shipOp(rows.COST)).toBeLessThanOrEqual(Math.min(shipOp(rows.FAST), shipOp(rows.NEAR)) + 0.011);
     expect(rows.COST.prod).toBe(rows.FAST.prod);
     expect(rows.FAST.prod).toBe(rows.NEAR.prod);
   });

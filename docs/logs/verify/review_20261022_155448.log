@@ -1,0 +1,38 @@
+검증 로그 (verify)
+점검 시각: 2026-10-22 15:54 ~ 16:05
+회차: 1회차 (Loop 유형: develop, 작업 DEV-002-factory-operating-cost)
+
+[체크리스트]
+1. 인수 기준 A1~A5 : 충족
+   - 코드 읽기: MasterService(parseOperatingCost: 0 초과 1,000억 이하, 오류 모아서 알림, 저장 시 버전 증가 유지, initDefaults는 빈 운영비만 10억 보정),
+     Planner(나라별 마지막 도착일 = 운영 일수, 총비용 최소 = 운항비+운영비 최소, 동률은 소요 일수), Plan(operatingCost, factoryOperations),
+     planview.js(운영비 없으면 '없음'), order-new.js/#sameNote(두 안이 같습니다), anim.js.
+   - 실행: operating-cost.spec.ts 5건 + MasterOperatingCostTests 5건 + PlannerTest 18건 통과 (아래).
+   - 기존 DB 보정은 MasterOperatingCostTests(값이 있으면 유지, 비어 있는 곳만 10억)로 확인. 개발 DB 복사본 확인은 implement 단계 기록을 따랐고 이번 검증에서 다시 하지 않았다.
+     [후속 확인] 이후 개발 DB 복사본으로 직접 확인했다(공장 4곳 10억, 마스터 버전 유지, 기존 주문 저장값 유지). review_20261022_162628.log 참고.
+2. 새 테스트 존재·통과, 기존 테스트 의도 유지 : 충족
+   - 새 테스트: PlannerTest 운영비 4건, MasterOperatingCostTests 5건, operating-cost.spec.ts 5건(4항목·공장별 표, 동일 안 안내 같을 때/다를 때, 확정 스냅샷, 기존 주문 없음, 마스터 상한·거부·버전).
+     구체 값(1000.01 거부, 0 거부, 1000 저장, 버전+1, #sameNote 표시/숨김, 합계 등식)을 단언해 잘못 구현하면 실패한다(코드 읽어 판단).
+   - 기존 테스트 변경(git diff): 라벨 '운항비 최소'->'총비용 최소', 운영비 항목 추가, 비용 대소를 운항비+운영비로 변경. 확인 의도 유지. test.fail() 변경 없음.
+3. Regression 연속 2회 기대한 결과 : 충족
+   - 실행 2, 3 연속 53/53 기대한 결과. 실행 1은 E2E-021 한 건 실패(아래 참고)
+
+[변경 범위]
+git status/diff: 계획한 파일(Planner, Master, Plan, Factory, MasterService, JS 4개, order-new.html, 테스트, PRD.md, INTENT.md)만 변경.
+.gitignore, docs/loops/yeri/README.md 는 작업 전부터 수정돼 있던 파일. 기능 범위 밖 변경 없음. 안내서 미수정(요청대로).
+
+[Regression Test]
+- ./gradlew compileJava compileTestJava : BUILD SUCCESSFUL
+- ./gradlew cleanTest test : BUILD SUCCESSFUL, 35건 (DemoApplicationTests 1, MasterFormTests 1, MasterOperatingCostTests 5, OrderFlowTests 10, PlannerTest 18) 실패 0
+- E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts (포트 8092, 메모리 DB, 개발 8080·개발 DB 미사용). 앱은 테스트가 띄우고 종료. 종료 후 8092 LISTEN 없음 확인.
+  실행 1: 53건 중 1건 실패(E2E-021: expect(summary).toContain('소요 일수 20일'), 받은 값 '' )
+  실행 2: 53 passed (E2E-035 test.fail 예상 실패 포함)
+  실행 3: 53 passed (E2E-035 예상 실패 'x'. E2E-033은 이미 일반 테스트로 통과)
+  예기치 않게 통과한 test.fail 없음 (저장소의 test.fail은 E2E-035뿐).
+- E2E-021 실패 분석: 테스트가 goto 직후 #summary.innerText()를 기다림 없이 읽는다(e2e-021.spec.ts:35). 화면은 JS가 비동기로 그리므로 첫 실행(콜드 스타트)에서 빈 문자열이 읽힌 경쟁 상태로 보인다.
+  이 spec은 이번 변경에서 수정하지 않았고 운영비와 직접 관련이 없다. 추정이며 수정 전 코드로 재현하지는 않았다. implement 단계에서도 첫 실행에서만 E2E-032 한 건이 실패했다.
+  [후속 확인] 이후 원인을 재현해 확인했다. E2E-021은 목록·요약이 그려지기 전에 읽는 대기 부족(응답을 지연시키면 매번 실패),
+  E2E-032는 취소 후 앱의 이동과 page.goto가 겹침(60번 중 3번 실패). 둘 다 대기를 보강했다. review_20261022_162628.log 참고.
+  2회 연속 통과 기준(실행 2, 3)은 충족했으나 첫 실행 불안정이 반복되므로 남은 이슈로 기록한다.
+
+[판정] PASS
