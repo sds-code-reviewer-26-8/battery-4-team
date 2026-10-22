@@ -1,0 +1,33 @@
+점검 시각: 2026-10-22 17:32:20 (/ih prepare, 회차 1/3, 사람 답변 반영 후 재점검)
+요청 원문: origin/main 을 현재 브랜치(feature/battery-hyemiJung-due-date)에 병합(--no-commit --no-ff)하고 충돌을 풀어 납기·고객사(#29)·운영비(#31)가 함께 동작하게 한다. 사람 답변: (1) 목록 열 순서 A(...작성자 | 필요 납기 | 고객사), e2e-customer 의 cells[8]→cells[9]. (2) 병합 기준은 현재 origin/main(79b8143, #28 포함), 요청문의 '#28 미병합'은 무시, INTENT.md 충돌은 양쪽 합침.
+
+[배경] 이해함 — 로컬 커밋 3개가 예전 main 위에 있고 그 뒤 main 에 #29·#31·#28 이 병합돼 PR #30 이 충돌한다. 근거: 요청문, 직전 점검 로그 inspection_20261022_172505.log, git merge-tree 재모의.
+[목적] 이해함 — PR #30 이 main 과 충돌하지 않고 납기·고객사·운영비가 모두 같이 동작한다. 근거: 요청문 [목적], 사람 답변.
+
+[점검한 곳]
+ - git merge-tree --write-tree HEAD origin/main 재실행: 충돌 10개(INTENT.md, PRD.md, ApiController, OrderController, Order, OrderService, order-new.js, orders.js, orders.html, e2e-023.spec.ts), origin/main=79b8143 (확인한 사실)
+ - origin/main 의 e2e-customer.spec.ts: 37행 toHaveLength(9), 38행 cells[8] 로 고객사를 읽음. 열이 10개가 되므로 길이 단언도 10으로 바꿔야 한다 (확인한 사실)
+ - origin/main 의 e2e-023: cells[2],[3],[6],[7] 은 그대로, cells[8] 고객사 단언은 합치면 필요 납기(cells[8])와 고객사(cells[9])로 나뉜다. e2e-024 nth-child(7)=상태 열은 열 삽입이 뒤라 영향 없음 (확인한 사실)
+ - 직전 회차 점검 내용(충돌 구간 직접 읽음)을 이어받음. 재확인 대상 없음.
+ - 추정(확인하지 못함): 자동 병합 파일 의미 일치, test.fail() 영향 없음. 앱 기동·테스트 실행은 하지 않음.
+
+[규모·위험]
+ 규모: 충돌 10개 파일 + 열 번호 의존 E2E(e2e-customer) 1개 = 11개 파일. 계층: entity·service·controller·static js/html·문서·테스트.
+ 위험: (High) Order·confirm 합치기에서 dueDays/customerName 소실·순서 어긋남 — 컴파일·JUnit 으로 완화
+        (High) PRD·INTENT 팀 확정 문서 합치기 — 양쪽 문구만 잇고 새 문구 없음
+        (Medium) 열 번호 의존 E2E(e2e-023, e2e-customer 길이·열 번호) — 수정 후 E2E 전체
+        (Medium) 자동 병합 파일 의미 불일치 — 읽기와 별도 포트 E2E
+        (Medium) ConfirmRequest JSON 계약 — 둘 다 레코드에 둠
+        (Low) Planner·Plan 과의 충돌 — 수정하지 않음
+ 사용자가 알고 있는가: 예 — 요청문 [위험]에 큰 변경이라 적었고 이번 답변으로 진행을 승인함. 같은 질문 되풀이하지 않음.
+
+[영향 범위] 변경 대상: 아래 계획 파일. 영향받는 곳: 확정 API, 주문 상세 응답, 목록. 관련 테스트: OrderFlowTests, e2e-customer, e2e-due-date*, e2e-023/024, operating-cost, login-access. test.fail()(E2E-033, 035, 013b) 영향 없음으로 추정.
+[INTENT 원칙 대조] 4(스냅샷에 고객사·납기 미포함)·7·8(검증·이유)·10(테스트 고정)과 관련, 합치기만 하므로 깨지지 않음. 11(Planner) 미수정.
+
+[판단] status READY. 이유: 배경·목적 명확, 열 순서·병합 기준이 사람 답변으로 확정, 큰 변경 위험을 사용자가 알고 있음.
+
+[계획] 범위: 병합, 충돌 해결, 열 순서 A 반영, e2e-023·e2e-customer 열 단언 수정. 범위 밖: 새 기능, 확정 뒤 납기 수정, Planner·Plan, 병합 커밋·푸시, 새 테스트. 바꿀 파일: Order, OrderService, ApiController, OrderController, order-new.js, orders.js, orders.html, PRD.md, INTENT.md, e2e-023.spec.ts, e2e-customer.spec.ts. 구현 순서: 병합 → Order → OrderService → 컨트롤러 → 화면 → PRD·INTENT → E2E 수정 → 검증. 가정: confirm 인자 순서 (…, memo, customerName, dueDays, user), 목록 10열, PRD R6 '(맨 끝 열)' 유지.
+[체크리스트]
+ 1. 충돌 표지 0 상태에서 확정 요청·Order 생성자·목록(...작성자|필요 납기|고객사)·상세에 고객사와 필요 납기가 모두 있다. 확인: git diff --diff-filter=U 0, '<<<<<<<' 0건, 별도 포트·메모리 DB 에서 둘 다 넣어 확정 후 목록·상세 확인.
+ 2. JUnit·E2E(#29·#31·#28 추가분 포함)가 병합 전과 같은 결과(알려진 결함 3건 외 실패 없음), e2e-customer 는 10열·cells[9] 기준. 확인: ./gradlew test, BASE_URL 설정 E2E 전체.
+ 3. PRD·INTENT 가 양쪽 문구만 합쳐졌고 새 문구가 없으며 planJson 에 고객사·납기가 없고 병합 커밋이 없다. 확인: git diff PRD.md INTENT.md, git status 에서 MERGE_HEAD 상태.
