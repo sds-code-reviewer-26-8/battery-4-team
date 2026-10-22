@@ -1,5 +1,6 @@
 검증 로그 (verify) 1회차 / Loop 유형: develop
 기록 시각: 2026-10-22 15:48:25 (PR #29 리뷰 2·3번 반영으로 결과를 옮겨 적음)
+원본(Workflow 결과 파일 tasks/*.output)은 세션 임시 폴더에 있어 저장소에 포함하지 않았다. 이 로그는 그 원본을 옮겨 적은 것이다. 기록 시각은 옮겨 적은 시각이며 원래 실행 시각이 아니다.
 작업: TASK-001-customer-name 고객사 이름 입력 기능
 원본: Workflow 결과 파일 tasks/wjrg2p1kx.output (result.verdict) 와 Feedback 후 재검증 결과.
 
@@ -34,3 +35,12 @@
  - 개발 DB(./data/battery)에 새 컬럼이 실제로 붙는지는 확인하지 못했다.
 
 [판정] PASS
+
+[Feedback 2회 재검증] (PR 리뷰 보완 1~3번: E2E 간헐 실패 대응)
+ 배경: 팀원이 전체 E2E 를 직접 돌렸을 때 e2e-customer.spec.ts 1건이 간헐 실패했다. 이전 기록의 "flaky 0"은 우리 실행에서만 0 이었다는 뜻이다(팀원 실행에서 1건 관찰).
+ 변경: e2e-customer.spec.ts 의 listCustomerCell 에서 이동 뒤 목록 행이 보일 때까지 기다리게 했다(2줄). 원인은 행이 그려지기 전에 읽는 경합. 응답을 500ms 지연시켜 수정 전 코드로 돌리면 4건 중 3건 실패(재현), 수정 후 같은 지연에서 3번 모두 4/4 통과.
+ JUnit 연속 2회(--rerun-tasks): 2회 모두 37/37 통과 (DemoApplicationTests 1, MasterFormTests 1, OrderFlowTests 21, PlannerTest 14).
+ E2E 연속 2회: 52 passed, 0 failed, 0 flaky (58.6초, 60초). 예상 실패 E2E-035 (test.fail) 1개 포함, 예상 밖 실패 없음.
+ 반복 실행: e2e-customer.spec.ts --repeat-each=10 으로 40개 중 40개 통과, 실패 0.
+ 한계: 반복 횟수가 적고 한 번의 실행이라 불안정이 완전히 없어졌다는 증거로는 약하다. 팀원이 겪은 실제 환경의 실패는 직접 보지 못했고 같은 원인이라는 것은 지연 재현에 근거한 판단이다. E2E-035 가 실패하는 이유는 이번 범위 밖이라 확인하지 못했다. 다른 spec 파일은 살펴보지 못했다.
+ 앱 로그는 실패가 없어 만들지 않았다.

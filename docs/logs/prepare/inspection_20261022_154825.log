@@ -1,5 +1,6 @@
 점검 기록 (prepare) 1회차 / Loop 유형: develop
 기록 시각: 2026-10-22 15:48:25 (PR #29 리뷰 2·3번 반영으로 원본 점검 결과를 옮겨 적음)
+원본(Workflow 결과 파일 tasks/*.output)은 세션 임시 폴더에 있어 저장소에 포함하지 않았다. 이 로그는 그 원본을 옮겨 적은 것이다. 기록 시각은 옮겨 적은 시각이며 원래 실행 시각이 아니다.
 작업: TASK-001-customer-name 고객사 이름 입력 기능 (PDF 추가 미션 4 · 기능 추가 1)
 원본: Workflow 결과 파일 tasks/wcixnaf7y.output (result.a, result.b, result.c, result.plan). 원본에 없는 내용은 적지 않았다.
 
