@@ -142,6 +142,26 @@ class OrderFlowTests {
 	}
 
 	@Test
+	void loginReplacesSessionIdOnlyOnSuccess() throws Exception {
+		// 로그인 전에 쥐고 있던 세션 ID 로는 로그인 상태가 되지 않는다 (세션 고정 방지)
+		MockHttpSession session = new MockHttpSession();
+		String before = session.getId();
+		mvc.perform(post("/api/login").session(session).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"admin\",\"password\":\"admin\"}"))
+				.andExpect(status().isOk());
+		assertThat(session.getId()).isNotEqualTo(before);
+		mvc.perform(get("/api/me").session(session)).andExpect(status().isOk());
+
+		// 로그인에 실패하면 세션 ID 를 바꾸지 않는다
+		MockHttpSession failed = new MockHttpSession();
+		String failedBefore = failed.getId();
+		mvc.perform(post("/api/login").session(failed).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"admin\",\"password\":\"x\"}"))
+				.andExpect(status().isBadRequest());
+		assertThat(failed.getId()).isEqualTo(failedBefore);
+	}
+
+	@Test
 	void wrongPasswordIsRejected() throws Exception {
 		mvc.perform(post("/api/login").contentType(MediaType.APPLICATION_JSON)
 						.content("{\"username\":\"admin\",\"password\":\"x\"}"))
