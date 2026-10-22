@@ -108,7 +108,7 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
   <div class="status-badge">✔ PASS</div>
   <h1>구현 결과 보고</h1>
   <p class="target"><span data-slot="task">고객사 이름 입력 기능 추가 (PDF 추가 미션 4 · 기능 추가 1) — 주문 시 고객사를 입력할 수 있고, 주문 이후에는 수정할 수 있으며, 완료·삭제 이후에는 수정할 수 없다.</span></p>
-  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/customer-name</span> · 커밋 <span data-slot="commit">아직 커밋하지 않음 (기준 f38632f)</span></span><span>작성 <span data-slot="author">Claude Code (허주 작업)</span></span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/customer-name</span> · 커밋 <span data-slot="commit">기준 f38632f 에서 작업, 결과 커밋 eab6e38(기능)·4bfa6cd(문서), 리뷰 반영 커밋 1aabed1</span></span><span>작성 <span data-slot="author">Claude Code (허주 작업)</span></span></p>
 </header>
 
 <section class="sec" id="steps">
@@ -119,7 +119,7 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
     <div class="step impl"><h3><span class="no">2</span>Implement</h3>
       <ul><li><span data-slot="implement-1">Order 에 customerName 컬럼, 수정 API(POST /api/orders/{id}/customer), 화면 3곳(추가·목록·상세)을 더했다.</span></li><li><span data-slot="implement-2">소스·화면 10개, 테스트 3개, 문서 2개(PRD·INTENT)를 바꿨다. precheck.html 도 결정에 맞게 고쳤다.</span></li><li><span data-slot="implement-3">구현 단계 자가검증: compileJava 오류 없음, 고객사 JUnit 10개와 E2E 5개 통과(에이전트 보고).</span></li></ul></div>
     <div class="step ver"><h3><span class="no">3</span>Verify</h3>
-      <ul><li><span data-slot="verify-1">체크리스트 3개 모두 충족(근거는 2장).</span></li><li><span data-slot="verify-2">JUnit 36/36 통과, E2E 52개 중 51개 통과 + 예상 실패 1개(E2E-035), 연속 2회 동일.</span></li><li><span data-slot="verify-3">남은 이슈는 6장 참고(화면에서 충돌을 만드는 E2E 없음 등).</span></li></ul></div>
+      <ul><li><span data-slot="verify-1">체크리스트 3개 모두 충족(근거는 2장).</span></li><li><span data-slot="verify-2">재검증(리뷰 반영 후): JUnit 37/37 통과(연속 2회), E2E 52개 중 51개 통과 + 예상 실패 1개(E2E-035), 연속 2회 동일.</span></li><li><span data-slot="verify-3">남은 이슈는 6장 참고(화면에서 충돌을 만드는 E2E 없음 등).</span></li></ul></div>
   </div>
 </section>
 
@@ -133,13 +133,13 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
     <div class="how">근거: <span data-slot="check-2-evidence">코드를 직접 열어 확인: <code>OrderService.updateCustomerName</code> 이 존재 → version(불일치 시 conflict) → <code>user.equals(order.getCreatedBy())</code> → <code>isCustomerEditable()</code> → 입력 검증 순서로 검사하고, 상세 응답의 <code>customerEditable</code> 도 같은 작성자 조건을 쓴다. JUnit <code>customerNameCannotBeEditedAfterCompleted</code>, <code>customerNameOfCanceledOrderCannotBeEdited</code>, <code>staleVersionOnCustomerEditIsConflict</code>, <code>onlyTheOrderCreatorCanEditCustomerName</code>(작성자가 아닌 사용자 거부), <code>customerApisNeedLogin</code> 통과. E2E "완료 상태에서는 수정 입력란이 없고 API 로 직접 보내도 거부된다" 통과.</span></div></div></div>
   <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">같은 검증을 연속 2번 통과(알려진 결함 테스트는 예상 실패로 유지)</span></b>
     <span class="chip" data-state="ok" data-slot="check-3-result">충족</span>
-    <div class="how">근거: <span data-slot="check-3-evidence">검증 1회차에서 <code>./gradlew test --rerun-tasks</code> BUILD SUCCESSFUL(36/36), Playwright 전체(<code>playwright.all.config.ts</code>)를 연달아 2회 실행해 둘 다 51 통과 + 예상 실패 E2E-035 1개, 예상 밖 실패·flaky 0. JUnit 은 전체 1회만 실행했다(JUnit 연속 2회는 확인하지 못함).</span></div></div></div>
+    <div class="how">근거: <span data-slot="check-3-evidence">구현 직후 검증은 <code>./gradlew test --rerun-tasks</code> 36/36, Playwright 전체(<code>playwright.all.config.ts</code>) 연속 2회 모두 51 통과 + 예상 실패 E2E-035 1개. 리뷰 반영 뒤 재검증에서는 JUnit 을 연속 2회(모두 37/37), Playwright 를 연속 2회(모두 52 passed = 일반 통과 51 + 예상 실패 1, 예상 밖 실패·flaky 0) 실행했다.</span></div></div></div>
 </section>
 
 <section class="sec" id="regression">
   <h2><span class="no">3</span>Regression Test <span class="hint">— 있는 테스트를 모두 실행</span></h2>
   <div class="two">
-    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">36</span><small> / <span data-slot="junit-total">36</span> 통과</small></div>
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">37</span><small> / <span data-slot="junit-total">37</span> 통과</small></div>
       <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
     <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">52</span><small> / <span data-slot="e2e-total">52</span> 기대한 결과</small></div>
       <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
@@ -150,7 +150,7 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
     <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
     <tbody>
       <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름·고객사 이름 (MockMvc)</div></td>
-        <td class="num"><span data-slot="junit-OrderFlowTests-total">20</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">20</span></td>
+        <td class="num"><span data-slot="junit-OrderFlowTests-total">21</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">21</span></td>
         <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-state">통과</span></td></tr>
       <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
         <td class="num"><span data-slot="junit-PlannerTest-total">14</span></td><td class="num"><span data-slot="junit-PlannerTest-pass">14</span></td>
@@ -192,12 +192,12 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
       <tr data-repeat="e2e-extra"><td><span data-slot="e2e-extra"><b>9 고객사 이름 (새)</b><div class="hint"><code>e2e-customer.spec.ts</code> 4개 시나리오</div></span></td><td class="num"><span data-slot="e2e-extra-total">4</span></td><td class="num"><span data-slot="e2e-extra-pass">4</span></td><td><span class="chip" data-state="ok" data-slot="e2e-extra-state">통과</span></td></tr>
     </tbody></table></div>
   <p class="hint">흐름별 전체 수는 검증 결과의 파일별 집계(confirm 6, e2e-021~030 각 1, e2e-customer 4, e2e031-041 17, login-access 5, order-quantity 5, simulation 5)를 흐름에 나누어 더한 값이며, 합계 52 입니다. e2e031-041 안의 흐름 배분(6번 9개·7번 7개·8번 1개)은 테스트 제목으로 직접 나눈 것입니다.</p>
-  <p class="hint">실행한 명령: <span data-slot="commands"><code>./gradlew test --rerun-tasks</code> · <code>npx playwright test -c src/test/e2e/playwright.all.config.ts</code> 2회 (포트 8092, 메모리 DB)</span></p>
+  <p class="hint">실행한 명령: <span data-slot="commands"><code>./gradlew test --rerun-tasks</code> 2회 · <code>npx playwright test -c src/test/e2e/playwright.all.config.ts</code> 2회 (포트 8092, 메모리 DB). 리뷰 반영 후 재검증 값 기준</span></p>
 </section>
 
 <section class="sec" id="changes">
   <h2><span class="no">4</span>변경 요약</h2>
-  <p class="hint">git status 로 직접 확인한 변경 파일 17개(수정 14 + 새 파일 e2e-customer.spec.ts + precheck.html + 이 report). 아직 커밋하지 않았습니다. precheck 의 "바꿀 파일" 계획과 대조하면 계획에 있었는데 바뀌지 않은 파일은 없고(<code>order-detail.html</code>, <code>Planner</code>, <code>StoredPlan</code>, <code>config/*</code> 는 계획에서도 "바꾸지 않음"), 계획 밖 보조 변경도 없습니다. 계획에 없던 것은 "작성자만" 결정에 맞춘 precheck.html 자체의 수정뿐입니다.</p>
+  <p class="hint">git status 로 직접 확인한 변경 파일 17개(수정 14 + 새 파일 e2e-customer.spec.ts + precheck.html + 이 report). precheck 의 "바꿀 파일" 계획과 대조하면 계획에 있었는데 바뀌지 않은 파일은 없고(<code>order-detail.html</code>, <code>Planner</code>, <code>StoredPlan</code>, <code>config/*</code> 는 계획에서도 "바꾸지 않음"), 구현 때는 계획 밖 보조 변경이 없었습니다. 다만 PR 리뷰 반영으로 계획 밖 변경이 생겼습니다(아래 표의 리뷰 반영 행). 계획에 없던 것은 "작성자만" 결정에 맞춘 precheck.html 수정과 이 리뷰 반영입니다.</p>
   <div class="tbl"><table>
     <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
     <tbody>
@@ -206,15 +206,15 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">엔티티·DB</span></td>
       <td><code data-slot="change-file">entity/Order.java · entity/OrderStatus.java</code></td><td><span data-slot="change-what">customerName 컬럼(길이 100, nullable)과 생성자 인자·getter·setter. <code>isCustomerEditable()</code> 은 확정·진행만 true.</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">서비스</span></td>
-      <td><code data-slot="change-file">service/OrderService.java</code></td><td><span data-slot="change-what">confirm 에 customerName 인자, 새 <code>updateCustomerName</code>(존재→version→작성자→상태→입력 순), <code>normalizeCustomer</code>(공백 제거·빈 값 null·100자 초과 거부). 수정 이력은 남기지 않음.</span></td></tr>
+      <td><code data-slot="change-file">service/OrderService.java</code></td><td><span data-slot="change-what">confirm 에 customerName 인자, 새 <code>updateCustomerName</code>(존재→version→작성자→상태→입력 순), <code>normalizeCustomer</code>(공백 제거·빈 값 null·100자 초과 거부). 수정 이력은 남기지 않음. 리뷰 반영: 작성자 판정을 <code>isCreator</code> 한 곳으로 모으고 <code>canEditCustomer(order, user)</code> 를 추가(오류 문구·검사 순서는 그대로).</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">컨트롤러</span></td>
-      <td><code data-slot="change-file">controller/ApiController.java · controller/OrderController.java</code></td><td><span data-slot="change-what">확정 요청에 customerName, 목록·상세 응답에 customerName, 상세에 customerEditable(상태와 작성자 조건), 새 <code>POST /api/orders/{id}/customer</code>(200 / 400 / 409).</span></td></tr>
+      <td><code data-slot="change-file">controller/ApiController.java · controller/OrderController.java</code></td><td><span data-slot="change-what">확정 요청에 customerName, 목록·상세 응답에 customerName, 상세에 customerEditable(상태와 작성자 조건; 리뷰 반영으로 <code>OrderService.canEditCustomer</code> 한 줄 호출), 새 <code>POST /api/orders/{id}/customer</code>(200 / 400 / 409).</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">화면</span></td>
       <td><code data-slot="change-file">static/order-new.html · static/orders.html</code></td><td><span data-slot="change-what">주문 확정 카드에 고객사 입력칸(<code>id=customerName</code>, maxlength 100), 목록 맨 끝에 "고객사" 머리글.</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">스크립트</span></td>
       <td><code data-slot="change-file">static/js/order-new.js · orders.js · order-detail.js</code></td><td><span data-slot="change-what">확정 요청에 고객사 전송, 목록 열 추가(null 은 "-", esc() 사용, 빈 목록 colspan 9), 상세 고객사 표시와 customerEditable 일 때만 수정 폼.</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">테스트</span></td>
-      <td><code data-slot="change-file">OrderFlowTests.java · e2e-023.spec.ts · e2e-customer.spec.ts(새 파일)</code></td><td><span data-slot="change-what">JUnit 고객사 테스트 10개(+184줄), e2e-023 에 머리글 "고객사"·열 9개·값 "-" 확인 추가(확인을 늘리는 방향), 새 E2E 4개 시나리오.</span></td></tr>
+      <td><code data-slot="change-file">OrderFlowTests.java · e2e-023.spec.ts · e2e-customer.spec.ts(새 파일)</code></td><td><span data-slot="change-what">JUnit 고객사 테스트 10개(+184줄), e2e-023 에 머리글 "고객사"·열 9개·값 "-" 확인 추가(확인을 늘리는 방향), 새 E2E 4개 시나리오. 리뷰 반영: OrderFlowTests 에 <code>canEditCustomer</code> 테스트 1개 추가(확정·진행·완료 × admin/다른 사용자/null), JUnit 고객사 테스트 합계 11개.</span></td></tr>
     <tr data-repeat="change"><td><span class="chip" data-state="warn" data-slot="change-layer">문서(점검)</span></td>
       <td><code data-slot="change-file">docs/evidence/허주/TASK-001-customer-name/precheck.html</code></td><td><span data-slot="change-what">HITL ① 결정(특히 "작성자만 수정")에 맞게 판단·가정·계획·테스트 목록 갱신.</span></td></tr>
     </tbody></table></div>
@@ -229,7 +229,7 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
 
 <section class="sec" id="history">
   <h2><span class="no">5</span>회차 이력 <span class="hint">— 1회차에 통과했다면 "없음"이라고 적어 주세요</span></h2>
-  <ul class="tl"><li data-repeat="round"><b><span data-slot="round-no">1</span>회차 — <span data-slot="round-result">PASS (수정 없이 통과)</span></b><div class="hint"><span data-slot="round-note">없음. 실패와 Feedback 이 없었고 되돌아간 적이 없습니다.</span></div></li></ul>
+  <ul class="tl"><li data-repeat="round"><b><span data-slot="round-no">1</span>회차 — <span data-slot="round-result">PASS (구현 검증 통과 후, PR 리뷰 반영 Feedback 1회)</span></b><div class="hint"><span data-slot="round-note">구현 검증은 1회차에 통과. 이후 PR 리뷰(youngeun9110) 1~3번을 반영하는 Feedback 1회: 작성자 판정을 OrderService.isCreator/canEditCustomer 한 곳으로 모으고, 로그와 표기를 정리했다. 재검증도 통과. (이 Feedback 은 검증 실패가 아니라 PR 리뷰 지적에 따른 것입니다.)</span></div></li></ul>
 </section>
 
 <section class="sec" id="remaining">
@@ -239,8 +239,9 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
     <li><span data-slot="remaining">화면에서 충돌(409)을 만드는 E2E 는 추가하지 않았습니다. 409 는 JUnit(<code>staleVersionOnCustomerEditIsConflict</code>)으로만 확인했고, 409 때 화면이 다시 읽어 현재 값을 보여 주는 동작은 자동 테스트로 확인하지 못했습니다.</span></li>
     <li><span data-slot="remaining">"작성자만 수정"은 계정이 admin 하나뿐이라 화면(E2E)에서는 확인할 수 없고 JUnit 으로만 확인했습니다.</span></li>
     <li><span data-slot="remaining">개발 DB(<code>./data/battery</code>)에 새 컬럼이 실제로 붙는지는 확인하지 못했습니다(<code>ddl-auto=update</code> 로 붙을 것이라는 가정, 개발 DB 는 건드리지 않음).</span></li>
-    <li><span data-slot="remaining">JUnit 전체는 연속 2회가 아니라 1회 실행했습니다. 이번 Loop 에서 별도 점검·검증 로그 파일은 남기지 않았고, 앱 로그도 실패가 없어 만들지 않았습니다.</span></li>
-    <li><span data-slot="remaining">아직 커밋·push 하지 않았습니다. <code>playwright-report/</code>, <code>.claude/</code>, <code>.ua/</code> 등 이번 기능과 무관한 추적 안 된 폴더가 작업 트리에 있습니다.</span></li>
+    <li><span data-slot="remaining">리뷰 반영 후 재검증에서 JUnit 과 Playwright 를 각각 연속 2회 실행해 모두 통과했습니다(구현 직후 검증은 JUnit 1회였음). 점검·검증 로그는 <code>docs/logs</code> 에 있고, 앱 로그는 실패가 없어 만들지 않았습니다.</span></li>
+    <li><span data-slot="remaining">커밋·push·PR #29 는 끝났습니다(리뷰 반영 커밋 해시는 헤더의 임시 표시를 사람이 실제 값으로 바꿉니다). <code>playwright-report/</code>, <code>.claude/</code>, <code>.ua/</code> 등 이번 기능과 무관한 추적 안 된 폴더가 작업 트리에 있습니다.</span></li>
+    <li><span data-slot="remaining">PR #28(회원 가입) 머지 후 "작성자만 수정" 규칙을 다시 검토합니다(PR 리뷰 후속 확인 4번).</span></li>
   </ul>
 </section>
 
@@ -248,8 +249,8 @@ body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{di
   <h2><span class="no">7</span>기록 위치</h2>
   <ul class="list">
     <li>구현 전 점검: <code data-slot="precheck-path">docs/evidence/허주/TASK-001-customer-name/precheck.html</code></li>
-    <li>점검 로그: <code data-slot="prepare-log">남기지 않음 (docs/logs/prepare 의 기존 파일은 이전 작업의 것)</code></li>
-    <li>검증 로그: <code data-slot="verify-log">남기지 않음 (docs/logs/verify 의 기존 파일은 이전 작업의 것)</code></li>
+    <li>점검 로그: <code data-slot="prepare-log">docs/logs/prepare/inspection_20261022_154825.log</code></li>
+    <li>검증 로그: <code data-slot="verify-log">docs/logs/verify/review_20261022_154825.log</code></li>
     <li>실행 환경: <span data-slot="env">Java 17 · Node 24 · E2E 앱 포트 8092 · 별도(메모리) DB</span></li>
     <li>이 Report: <code data-slot="report-path">docs/evidence/허주/TASK-001-customer-name/report.html</code></li>
   </ul>
