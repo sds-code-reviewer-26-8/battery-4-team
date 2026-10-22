@@ -48,6 +48,15 @@
 		}
 	}
 
+	/** 취소 후 돌아갈 목록 주소. 필터를 걸어 보던 목록(/orders?...)에서 들어왔으면 그 주소, 아니면 전체 목록. */
+	function previousList() {
+		try {
+			const ref = new URL(document.referrer);
+			if (ref.origin === location.origin && ref.pathname === '/orders') return ref.pathname + ref.search;
+		} catch (ignore) { /* 직접 연 상세 등 referrer 가 없으면 전체 목록 */ }
+		return '/orders';
+	}
+
 	/** 주문을 새로 읽어 화면을 갱신한다. 안내 문구는 갱신된 화면과 함께 보여 준다. */
 	async function load(message, error) {
 		try {
@@ -67,7 +76,9 @@
 				{status: f.dataset.status, version: version});
 			if (f.dataset.status === 'CANCELED') {
 				// 취소하면 주문이 삭제되므로 상세가 아니라 이전 페이지(주문 목록)로 이동한다.
-				location.href = '/orders';
+				// 성공 안내는 목록에서 한 번 보여 주려고 넘긴다. 저장소를 못 써도 이동은 한다.
+				try { sessionStorage.setItem('flashMessage', res.message); } catch (ignore) { /* 안내만 생략 */ }
+				location.href = previousList();
 				return;
 			}
 			await load(res.message, null);

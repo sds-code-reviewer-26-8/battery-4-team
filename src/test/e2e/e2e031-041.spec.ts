@@ -178,6 +178,44 @@ test('E2E-033 취소 직후에는 이전 페이지(주문 목록)로 이동한�
   await expect(page).toHaveURL(/\/orders$/);
   await expect(page.getByRole('heading', { name: '주문 목록' })).toBeVisible();
   await expect(page.getByText('Whitelabel Error Page')).toHaveCount(0);
+
+  // 성공 안내가 목록에 보인다
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
+});
+
+/**
+ * 취소 후 목록의 성공 안내는 한 번만 보이고, 새로고침하면 사라진다 (DEV-001)
+ */
+test('취소 후 목록의 성공 안내는 새로고침하면 사라진다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'DEV-001' });
+  await page.goto(`/orders/${id}`);
+  await changeStatusByButton(page, '취소');
+
+  await expect(page).toHaveURL(/\/orders$/);
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '주문 목록' })).toBeVisible();
+  await expect(page.locator('.alert.ok')).toHaveCount(0);
+});
+
+/**
+ * 필터로 보던 목록에서 들어와 취소하면 같은 필터의 목록으로 돌아온다 (BUG-002)
+ */
+test('필터(확정)로 보던 목록에서 주문을 취소하면 같은 필터 목록으로 돌아온다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'BUG-002' });
+
+  await page.goto('/orders?status=CONFIRMED');
+  await page.locator(`a[href="/orders/${id}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${id}$`));
+
+  await changeStatusByButton(page, '취소');
+
+  await expect(page).toHaveURL(/\/orders\?status=CONFIRMED$/);
+  await expect(page.locator('.filters .chip', { hasText: '확정' })).toHaveClass(/active/);
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
 });
 
 // ======================================================================
