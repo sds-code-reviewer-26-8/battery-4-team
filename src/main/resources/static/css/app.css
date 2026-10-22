@@ -132,9 +132,12 @@ details summary { cursor: pointer; color: var(--primary); margin: 4px 0 8px; }
 .option.late { border-color: #d93025; color: #b3261e; background: #fdecea; }
 .option.late.selected { border-color: #d93025; box-shadow: 0 0 0 2px #d93025; } /* late 가 selected 의 배경·테두리를 덮으므로 바깥 링으로 선택을 구별한다 */
 .late-note { font-weight: 700; color: #b3261e; }
+.option.late .muted { color: #8d4742; } /* 연한 분홍 배경(#fdecea) 위에서 대비 5.9:1 (기본 muted 는 4.0:1 로 AA 미달) */
 .due { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
 .due-days input { width: 70px; }
 .due-error { flex-basis: 100%; margin: 0; color: #b3261e; font-size: 13px; }
+.due-hint { flex-basis: 100%; margin: 0; font-size: 13px; }
+.due-days input[aria-invalid="true"] { border-color: #d93025; }
 
 /* 애니메이션 */
 .anim-stage { position: relative; width: 100%; aspect-ratio: 1536 / 1024; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #5bbcff; }

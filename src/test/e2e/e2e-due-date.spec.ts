@@ -54,16 +54,70 @@ test.describe('필요 납기일 표시', () => {
     await expect(page.locator('#dueDays')).toBeDisabled();
   });
 
-  for (const bad of ['4', '51', '0', '-5', '10.5', 'abc', '']) {
+  for (const bad of ['4', '51', '0', '-5', '10.5', 'abc']) {
     test(`잘못된 납기 "${bad}" 는 오류 문구를 보이고 빨간 표시를 하지 않는다`, async ({ page }) => {
       await runSimulation(page);
       await page.locator('#dueAsap').uncheck();
       await page.locator('#dueDays').fill(bad);
       await expect(page.locator('#dueError')).toBeVisible();
       await expect(page.locator('#dueError')).toContainText('5~50');
+      await expect(page.locator('#dueHint')).toBeHidden();
       await expect(page.locator('.option.late')).toHaveCount(0);
     });
   }
+
+  test('체크를 해제한 직후 아직 비어 있을 때는 오류가 아니라 안내 문구를 보이고 입력칸에 포커스가 간다', async ({ page }) => {
+    await runSimulation(page);
+    await page.locator('#dueAsap').uncheck();
+    await expect(page.locator('#dueDays')).toBeFocused();
+    await expect(page.locator('#dueHint')).toBeVisible();
+    await expect(page.locator('#dueHint')).toContainText('5~50');
+    await expect(page.locator('#dueError')).toBeHidden();
+    await expect(page.locator('.option.late')).toHaveCount(0);
+
+    // 값을 지우면 다시 안내 문구, 잘못된 값이면 오류, 올바른 값이면 둘 다 없다
+    await page.locator('#dueDays').fill('4');
+    await expect(page.locator('#dueError')).toBeVisible();
+    await page.locator('#dueDays').fill('');
+    await expect(page.locator('#dueHint')).toBeVisible();
+    await expect(page.locator('#dueError')).toBeHidden();
+    await page.locator('#dueDays').fill('20');
+    await expect(page.locator('#dueHint')).toBeHidden();
+    await expect(page.locator('#dueError')).toBeHidden();
+  });
+
+  test('납기를 입력해도 요약·상세·지도는 다시 그리지 않고 경로안 카드만 갱신한다', async ({ page }) => {
+    await runSimulation(page);
+    // 요약 제목에 표지를 달아 두고, 납기를 입력한 뒤에도 같은 요소가 남아 있는지 본다
+    await page.evaluate(() => {
+      document.querySelector('#summary h2')!.setAttribute('data-keep', '1');
+      document.querySelector('#details h2')!.setAttribute('data-keep', '1');
+    });
+    await page.locator('#dueAsap').uncheck();
+    await page.locator('#dueDays').fill('20');
+    await expect(page.locator('.option.late').first()).toBeVisible(); // 카드는 갱신됐다
+    await expect(page.locator('#summary h2[data-keep="1"]')).toHaveCount(1);
+    await expect(page.locator('#details h2[data-keep="1"]')).toHaveCount(1);
+  });
+
+  test('오류는 보조 기술에 알려지고 입력칸에 잘못된 값 표시가 붙는다', async ({ page }) => {
+    await runSimulation(page);
+    await page.locator('#dueAsap').uncheck();
+    await expect(page.locator('#dueError')).toHaveAttribute('role', 'alert');
+    await expect(page.locator('#dueDays')).toHaveAttribute('aria-invalid', 'false');
+    await page.locator('#dueDays').fill('4');
+    await expect(page.locator('#dueDays')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#dueDays')).toHaveAttribute('aria-describedby', /dueError/);
+    await page.locator('#dueDays').fill('20');
+    await expect(page.locator('#dueDays')).toHaveAttribute('aria-invalid', 'false');
+  });
+
+  test('납기 초과 카드의 보조 글자는 연한 분홍 배경에서도 읽을 수 있는 색이다', async ({ page }) => {
+    await runSimulation(page);
+    await page.locator('#dueAsap').uncheck();
+    await page.locator('#dueDays').fill('5'); // 모든 안이 납기를 넘는다
+    await expect(page.locator('.option.late .muted').first()).toHaveCSS('color', 'rgb(141, 71, 66)'); // #8d4742: #fdecea 위 대비 5.9:1 (AA 4.5:1 이상)
+  });
 
   test('납기 초과 안이 선택돼도 선택된 안이 다른 초과 안과 구별된다', async ({ page }) => {
     await runSimulation(page);
