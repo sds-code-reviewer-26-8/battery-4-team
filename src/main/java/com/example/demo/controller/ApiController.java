@@ -24,7 +24,7 @@ public class ApiController {
 	}
 
 	public record ConfirmRequest(Map<Country, Integer> orders, String routeType, long masterVersion, String memo,
-			Object dueDays) {
+			String customerName, Object dueDays) {
 	}
 
 	private final MasterService masterService;
@@ -56,7 +56,7 @@ public class ApiController {
 	public ResponseEntity<?> confirm(@RequestBody ConfirmRequest request, @SessionAttribute(name = LoginInterceptor.SESSION_USER, required = false) String user) {
 		try {
 			Order order = orderService.confirm(request.orders(), request.routeType(), request.masterVersion(),
-					request.memo(), parseDueDays(request.dueDays()), user);
+					request.memo(), request.customerName(), parseDueDays(request.dueDays()), user);
 			return ResponseEntity.ok(Map.of("id", order.getId()));
 		} catch (BusinessException e) {
 			return apiError(e);

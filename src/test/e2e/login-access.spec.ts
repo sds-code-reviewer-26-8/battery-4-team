@@ -74,4 +74,79 @@ test.describe('1. 로그인·접근 통제', () => {
     await expect(page.getByRole('heading', { name: '주문 목록' })).toHaveCount(0);
     await expect(page.locator('table.grid')).toHaveCount(0);
   });
+  test('E2E-042 가입 화면에서 가입한 뒤 로그인하고, 로그인 전에는 여전히 막힌다', async ({ page }) => {
+    const username = `user${Date.now() % 1e9}`;
+    await page.goto('/login');
+    await page.getByRole('link', { name: '회원 가입' }).click();
+    await expect(page).toHaveURL(/\/signup$/);
+
+    // 규칙 위반은 이유와 함께 거부된다
+    await page.locator('input[name=username]').fill('admin');
+    await page.locator('input[name=password]').fill('abc');
+    await page.getByRole('button', { name: '가입' }).click();
+    await expect(page.locator('.alert.error')).toContainText('사용할 수 없는 아이디입니다');
+
+    await page.locator('input[name=username]').fill(username);
+    await page.locator('input[name=password]').fill('pass1234');
+    await page.getByRole('button', { name: '가입' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    await page.goto('/orders');
+    await expect(page).toHaveURL(/\/login$/);
+
+    await loginUi(page, username, 'pass1234');
+    await expect(page).toHaveURL(/\/orders$/);
+    await expect(page.locator('.topbar .user span')).toHaveText(username);
+  });
+
+  test('E2E-043 한도를 넘겨 429 가 오면 로그인·가입 화면에 이유가 보인다', async ({ page }) => {
+    // E2E 앱은 한도를 풀어 두었으므로 서버 응답을 가로채 429 를 만든다. 화면이 이유를 그대로 보여 주는지만 확인한다.
+    // (한도 계산과 429 응답 자체는 JUnit: RateLimitTests, RateLimitWiringTests)
+    const message = '요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요';
+    const tooMany = (route: import('@playwright/test').Route) =>
+      route.fulfill({
+        status: 429,
+        contentType: 'application/json; charset=utf-8',
+        headers: { 'Retry-After': '30' },
+        body: JSON.stringify({ error: message, conflict: false }),
+      });
+
+    await page.route('**/api/login', tooMany);
+    await loginUi(page, 'admin', 'admin');
+    await expect(page).toHaveURL(/\/login(;jsessionid=\w+)?$/);
+    await expect(page.locator('.alert.error')).toHaveText(message);
+
+    await page.route('**/api/signup', tooMany);
+    await page.goto('/signup');
+    await page.locator('input[name=username]').fill(`user${Date.now() % 1e9}`);
+    await page.locator('input[name=password]').fill('pass1234');
+    await page.getByRole('button', { name: '가입' }).click();
+    await expect(page.locator('.alert.error')).toHaveText(message);
+  });
+
+  test('E2E-044 로그인하면 세션 ID 가 바뀌고, 로그인 전의 세션 ID 로는 접근할 수 없다', async ({ page, playwright, baseURL }) => {
+    // 로그인 전 세션: 틀린 비밀번호로 한 번 요청하면 서버가 세션 쿠키를 만든다
+    const failed = await page.request.post('/api/login', { data: { username: 'admin', password: 'wrong' } });
+    expect(failed.status()).toBe(400);
+    const sessionCookie = async () => (await page.context().cookies()).find((c) => c.name === 'JSESSIONID');
+    const before = await sessionCookie();
+    expect(before, '로그인 전 세션 쿠키').toBeDefined();
+
+    const ok = await page.request.post('/api/login', { data: { username: 'admin', password: 'admin' } });
+    expect(ok.status()).toBe(200);
+    const after = await sessionCookie();
+    expect(after, '로그인 뒤 세션 쿠키').toBeDefined();
+    expect(after!.value).not.toBe(before!.value);
+
+    // 새 세션은 로그인 상태다
+    expect((await page.request.get('/api/me')).status()).toBe(200);
+
+    // 로그인 전에 쥐고 있던 세션 ID 로는 로그인 상태가 되지 않는다 (세션 고정 방지)
+    const old = await playwright.request.newContext({
+      baseURL,
+      extraHTTPHeaders: { Cookie: `JSESSIONID=${before!.value}` },
+    });
+    expect((await old.get('/api/me')).status()).toBe(401);
+    await old.dispose();
+  });
 });

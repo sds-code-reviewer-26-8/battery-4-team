@@ -5,7 +5,7 @@ export type Country = (typeof COUNTRIES)[number];
 export type RouteType = 'COST' | 'FAST' | 'NEAR';
 export type Orders = Record<Country, number>;
 
-export const ROUTE_LABEL: Record<RouteType, string> = { COST: '운항비 최소', FAST: '가장 빠르게', NEAR: '가까운 곳부터' };
+export const ROUTE_LABEL: Record<RouteType, string> = { COST: '총비용 최소', FAST: '가장 빠르게', NEAR: '가까운 곳부터' };
 export const STATUS_LABEL = { IN_PROGRESS: '진행', COMPLETED: '완료', CANCELED: '취소' } as const;
 
 /** 기본 수량: 4개국 각 3,000K (총 12,000K) */
@@ -94,7 +94,7 @@ export async function historyRows(page: Page): Promise<string[][]> {
   return rows.evaluateAll((trs) => trs.map((tr) => Array.from(tr.querySelectorAll('td')).map((td) => (td.textContent ?? '').trim())));
 }
 
-/** 요약 카드(총 수량, 소요 일수, 생산 원가, 운항비, 총 비용) */
+/** 요약 카드(총 수량, 소요 일수, 생산 원가, 운항비, 운영비, 총 비용) */
 export async function readStats(page: Page): Promise<Record<string, string>> {
   await page.locator('#summary .stats > div').first().waitFor();
   return page.locator('#summary .stats > div').evaluateAll((divs) => {

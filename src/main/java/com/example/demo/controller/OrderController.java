@@ -29,6 +29,9 @@ public class OrderController {
 	public record StatusRequest(OrderStatus status, long version) {
 	}
 
+	public record CustomerRequest(String customerName, long version) {
+	}
+
 	private final OrderService orderService;
 
 	public OrderController(OrderService orderService) {
@@ -52,6 +55,7 @@ public class OrderController {
 			row.put("status", o.getStatus().name());
 			row.put("statusLabel", o.getStatus().getLabel());
 			row.put("createdBy", o.getCreatedBy());
+			row.put("customerName", o.getCustomerName());
 			rows.add(row);
 		}
 		Map<OrderStatus, Long> counts = orderService.countByStatus();
@@ -64,7 +68,8 @@ public class OrderController {
 
 	/** 주문 상세: 저장된 스냅샷(planJson), 상태 이력, 다음에 바꿀 수 있는 상태, 화면에서 본 version */
 	@GetMapping("/api/orders/{id}")
-	public ResponseEntity<?> detail(@PathVariable Long id) {
+	public ResponseEntity<?> detail(@PathVariable Long id,
+			@SessionAttribute(name = LoginInterceptor.SESSION_USER, required = false) String user) {
 		try {
 			Order o = orderService.getOrder(id);
 			Map<String, Object> body = new LinkedHashMap<>();
@@ -79,6 +84,8 @@ public class OrderController {
 			body.put("totalDays", o.getTotalDays());
 			body.put("dueDays", o.getDueDays());
 			body.put("dueOverDays", o.getDueOverDays());
+			body.put("customerName", o.getCustomerName());
+			body.put("customerEditable", OrderService.canEditCustomer(o, user));
 			body.put("next", o.getStatus().next().stream()
 					.map(s -> Map.of("status", s.name(), "label", s.getLabel())).toList());
 			body.put("history", orderService.history(id).stream().map(OrderController::historyRow).toList());
@@ -95,6 +102,17 @@ public class OrderController {
 		try {
 			orderService.changeStatus(id, request.status(), request.version(), user);
 			return ResponseEntity.ok(Map.of("message", "상태를 '" + request.status().getLabel() + "'(으)로 바꿨습니다"));
+		} catch (BusinessException e) {
+			return ApiController.apiError(e);
+		}
+	}
+
+	@PostMapping("/api/orders/{id}/customer")
+	public ResponseEntity<?> updateCustomer(@PathVariable Long id, @RequestBody CustomerRequest request,
+			@SessionAttribute(name = LoginInterceptor.SESSION_USER, required = false) String user) {
+		try {
+			orderService.updateCustomerName(id, request.customerName(), request.version(), user);
+			return ResponseEntity.ok(Map.of("message", "고객사 이름을 저장했습니다"));
 		} catch (BusinessException e) {
 			return ApiController.apiError(e);
 		}

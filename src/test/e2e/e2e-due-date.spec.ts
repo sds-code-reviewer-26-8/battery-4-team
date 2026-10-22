@@ -149,7 +149,7 @@ test.describe('필요 납기일 표시', () => {
     const reqPromise = page.waitForRequest((r) => r.url().endsWith('/api/orders') && r.method() === 'POST');
     await page.locator('#confirmBtn').click();
     const body = (await reqPromise).postDataJSON();
-    expect(Object.keys(body).sort()).toEqual(['dueDays', 'masterVersion', 'memo', 'orders', 'routeType']);
+    expect(Object.keys(body).sort()).toEqual(['customerName', 'dueDays', 'masterVersion', 'memo', 'orders', 'routeType']);
     expect(body.orders).toEqual(EVEN);
     expect(body.routeType).toBe('COST');
     expect(body.dueDays).toBe(5);

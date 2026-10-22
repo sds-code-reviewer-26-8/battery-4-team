@@ -26,7 +26,7 @@ test.describe('4. 주문 확정', () => {
     const id = await confirmViaUi(page, 'COST');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(`#${id}`);
     await expect(page.locator('h1 .badge')).toHaveText('확정');
-    await expect(meta(page, '경로')).toHaveText('운항비 최소');
+    await expect(meta(page, '경로')).toHaveText('총비용 최소');
     await expect(meta(page, '메모')).toHaveText('-');
     await expect(meta(page, '작성자')).toHaveText('admin');
     const history = await historyRows(page);

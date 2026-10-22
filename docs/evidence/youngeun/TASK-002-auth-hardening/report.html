@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="report@2">
+<title>구현 결과 보고 · 가입·로그인 보안 보강</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.two,.three{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.step{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--card);border-top:4px solid var(--accent)}
+.step.prep{border-top-color:var(--prep)}.step.impl{border-top-color:var(--impl)}.step.ver{border-top-color:var(--ver)}
+.step h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:800}
+.step.prep .no{background:var(--prep)}.step.impl .no{background:var(--impl)}.step.ver .no{background:var(--ver)}
+.step ul{margin:0;padding-left:18px;font-size:14px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 진행 막대, 큰 숫자 */
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:999px}
+.bar.bad>i{background:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.big small{font-size:14px;font-weight:600;color:var(--muted)}
+/* 타임라인 */
+.tl{list-style:none;margin:6px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 12px;padding-left:14px}
+.tl li::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="refactor" data-status="PASS">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge">✔ PASS</div>
+  <h1>구현 결과 보고</h1>
+  <p class="target"><span data-slot="task">공개 가입 보안 보강 / 가입·로그인 API의 IP별 횟수 제한과 로그인 성공 시 세션 ID 재발급</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 16:26:13</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/signup</span> · 커밋 <span data-slot="commit">bd0ab7f 기준 (아직 커밋하지 않음)</span></span><span>작성 <span data-slot="author">youngeun</span></span></p>
+</header>
+
+<section class="sec" id="steps">
+  <h2><span class="no">1</span>한눈에 보기 <span class="hint">— 세 단계에서 한 일</span></h2>
+  <div class="three">
+    <div class="step prep"><h3><span class="no">1</span>Prepare</h3>
+      <ul><li><span data-slot="prepare-1">공개 가입이 열린 뒤 남은 보안 지적 두 가지(요청 횟수 제한 없음, 로그인 시 세션 ID 미재발급)를 해결한다.</span></li><li><span data-slot="prepare-2">로그인 처리 코드(INTENT 원칙 14)와 보안 범위 문서를 바꾸는 위험한 변경. 로그인 한도가 정상 사용과 E2E에 영향을 줄 수 있음.</span></li><li><span data-slot="prepare-3">IP별 인메모리 제한기, 세션 ID 재발급, 테스트, 문서 갱신 순서. 체크리스트는 한도 초과 429, 세션 ID 변경, 기존 흐름 유지 3개.</span></li></ul></div>
+    <div class="step impl"><h3><span class="no">2</span>Implement</h3>
+      <ul><li><span data-slot="implement-1">가입(시간당 10회)·로그인(분당 60회)을 IP별로 제한해 초과하면 429, 로그인 성공 시 세션 ID를 새로 만든다.</span></li><li><span data-slot="implement-2">신규 파일 4개 포함 14개 파일(코드 5, 테스트·설정 7, 문서 2).</span></li><li><span data-slot="implement-3">JUnit 전체와 login-access E2E 통과.</span></li></ul></div>
+    <div class="step ver"><h3><span class="no">3</span>Verify</h3>
+      <ul><li><span data-slot="verify-1">체크리스트 3개 모두 충족(직접 실행).</span></li><li><span data-slot="verify-2">JUnit 36/36, E2E login-access 8/8 통과.</span></li><li><span data-slot="verify-3">사람 확인 필요 항목 있음(남은 이슈 참조).</span></li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">2</span>체크리스트 3개 결과</h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">같은 IP에서 가입·로그인 한도를 넘기면 429와 이유 메시지가 오고, 한도 이내 요청은 기존처럼 성공한다</span></b>
+    <span class="chip" data-state="ok" data-slot="check-1-result">충족</span>
+    <div class="how">근거: <span data-slot="check-1-evidence">RateLimitTests 3건(가입 두 번 뒤 세 번째는 429와 Retry-After와 안내 문구, 다른 주소는 통과, 로그인은 가입과 따로 제한)과 RateLimitWiringTests 1건(app.rate-limit.* 설정값이 실제 앱에서 한도로 적용됨) 통과, OrderFlowTests 16건 통과(한도 안의 가입·로그인), E2E-043 통과(429 응답의 이유가 로그인·가입 화면에 보임). 기본값(가입 10회/시간, 로그인 60회/분)은 application.properties에 명시했다. 참고: 이 PC에서 PBKDF2 1회는 평균 62ms(100회 측정, 중앙값 61ms, p95 76ms, 8코어)여서 한 주소당 최대 부담은 로그인 약 3.7초/분, 가입 약 0.6초/시간이다.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">로그인 성공 전후로 세션 ID가 달라지고 로그인 상태(/api/me)는 유지된다</span></b>
+    <span class="chip" data-state="ok" data-slot="check-2-result">충족</span>
+    <div class="how">근거: <span data-slot="check-2-evidence">OrderFlowTests.loginReplacesSessionIdOnlyOnSuccess 통과(로그인 뒤 ID 변경, /api/me 200, 실패한 로그인은 ID 불변). E2E-044 통과(실제 서버에서 JSESSIONID 쿠키 값이 바뀌고, 로그인 전의 쿠키로 /api/me를 부르면 401). changeSessionId() 호출을 끄면 E2E-044가 실패하는 것도 확인한 뒤 복원했다.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 로그인·접근 통제 흐름이 깨지지 않는다(admin 로그인, 가입 후 로그인, 401/redirect)</span></b>
+    <span class="chip" data-state="ok" data-slot="check-3-result">충족</span>
+    <div class="how">근거: <span data-slot="check-3-evidence">E2E login-access 8/8 통과(E2E-001~005, 042~044, 포트 8095, 메모리 DB), DemoApplicationTests 통과(컨텍스트 기동), JUnit 전체 36/36 통과.</span></div></div></div>
+</section>
+
+<section class="sec" id="regression">
+  <h2><span class="no">3</span>Regression Test <span class="hint">— JUnit 전체, E2E는 영향받는 흐름만 실행</span></h2>
+  <div class="two">
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">36</span><small> / <span data-slot="junit-total">36</span> 통과</small></div>
+      <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
+    <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">8</span><small> / <span data-slot="e2e-total">8</span> 기대한 결과</small></div>
+      <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
+  </div>
+  <p class="hint">E2E는 별도 포트(8095)·메모리 DB에서 실행했다. 이번 실행에서 예상 실패로 집계된 테스트: <span data-slot="expected-fail">0건 (login-access에 test.fail 없음)</span></p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b></td><td class="num">16</td><td class="num">16</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b></td><td class="num">14</td><td class="num">14</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b></td><td class="num">1</td><td class="num">1</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr><td>RateLimitTests (신규)</td><td class="num">3</td><td class="num">3</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr><td>RateLimitWiringTests (신규)</td><td class="num">1</td><td class="num">1</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr><td>MasterFormTests</td><td class="num">1</td><td class="num">1</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+    </tbody></table></div>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th class="num">전체</th><th class="num">기대한 결과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b> (E2E-001~005, 042~044)</td><td class="num">8</td><td class="num">8</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+      <tr><td>2~8 나머지 흐름</td><td class="num">미실행</td><td class="num">미실행</td><td><span class="chip" data-state="none">미실행(영향 없음)</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">실행한 명령: <span data-slot="commands">./gradlew cleanTest test · npx playwright test login-access (playwright.all.config.ts에서 포트만 8095로 바꾼 임시 설정, 메모리 DB). Lint 설정은 프로젝트에 없어 컴파일 성공으로 대신함.</span></p>
+</section>
+
+<section class="sec" id="changes">
+  <h2><span class="no">4</span>변경 요약</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip" data-state="ok">설정</span></td><td><code>config/RateLimiter.java, config/RateLimitInterceptor.java</code></td><td>IP별 시간 창 횟수 제한기와 429 응답 인터셉터 신규(만료 항목 정리 포함)</td></tr>
+      <tr><td><span class="chip" data-state="ok">설정</span></td><td><code>config/WebConfig.java, application.properties</code></td><td>/api/signup(시간당 10회), /api/login(분당 60회)에 인터셉터 등록, 한도는 app.rate-limit.* 설정으로 변경 가능</td></tr>
+      <tr><td><span class="chip" data-state="ok">컨트롤러</span></td><td><code>controller/AuthController.java</code></td><td>로그인 성공 시 changeSessionId()로 세션 ID 재발급</td></tr>
+      <tr><td><span class="chip" data-state="ok">테스트</span></td><td><code>OrderFlowTests.java, config/RateLimitTests.java, config/RateLimitWiringTests.java, login-access.spec.ts</code></td><td>세션 ID 재발급 JUnit 1건, 제한기·인터셉터 JUnit 3건, 설정 적용 JUnit 1건, E2E-043(429 안내 화면), E2E-044(세션 쿠키 교체) 추가</td></tr>
+      <tr><td><span class="chip" data-state="ok">설정</span></td><td><code>src/test/resources/application.properties, playwright.config.ts, playwright.all.config.ts</code></td><td>테스트·E2E에서 한도를 크게 풀어 기존 흐름이 막히지 않게 함</td></tr>
+      <tr><td><span class="chip" data-state="ok">문서</span></td><td><code>PRD.md, INTENT.md</code></td><td>횟수 제한·세션 ID 재발급을 범위에 포함하고 한계(메모리, 프록시, 재시작) 기록</td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 결과</h2>
+  <ul class="list"><li>동작이 그대로임을 확인한 방법: <span data-slot="refactor-proof">불변 목록(한도 안의 가입·로그인 응답, 검증 메시지, admin/admin 로그인, 로그아웃·/api/me, 401/redirect)을 JUnit 전체 36건과 E2E login-access 8건으로 확인. 의도된 동작 변화는 가입·로그인 한도 초과 시 429와 로그인 성공 시 세션 ID 변경 두 가지(precheck에서 승인 대상으로 명시).</span></li><li>정리한 것: <span data-slot="refactor-done">제한 로직을 RateLimiter 한 클래스와 인터셉터로 분리해 컨트롤러는 세션 ID 재발급 한 줄만 추가.</span></li><li>손대지 않은 것: <span data-slot="refactor-out">CSRF 방어, 로그인 실패 계정 잠금, admin 하드코딩 제거, 다중 서버 공유 제한, 프록시 헤더 신뢰, 비밀번호 정책.</span></li></ul>
+</section>
+
+<section class="sec" id="history">
+  <h2><span class="no">5</span>회차 이력</h2>
+  <ul class="tl"><li><b>없음</b><div class="hint">1회차에 통과</div></li></ul>
+</section>
+
+<section class="sec" id="remaining">
+  <h2><span class="no">6</span>남은 이슈 · 확인하지 못한 것</h2>
+  <ul class="list">
+    <li>한계: 주소는 getRemoteAddr만 쓰므로 프록시 뒤에서는 모든 요청이 프록시 주소로 보이고, 제한은 서버를 재시작하면 초기화된다. 성공한 로그인도 횟수에 들어 한 주소를 여럿이 쓰면 분당 60회를 넘을 수 있고, 서로 다른 주소가 아주 많이 들어오는 경우의 메모리 증가는 제한하지 않는다.</li>
+    <li>E2E 나머지 흐름(2~8)은 이번 변경과 무관해 실행하지 않았다.</li>
+  </ul>
+</section>
+
+<section class="sec" id="logs">
+  <h2><span class="no">7</span>기록 위치</h2>
+  <ul class="list">
+    <li>구현 전 점검: <code>docs/evidence/youngeun/TASK-002-auth-hardening/precheck.html</code></li>
+    <li>실행 환경: <span>Windows 11 · E2E 앱 포트 8095 · 별도(메모리) DB</span></li>
+    <li>이 Report: <code>docs/evidence/youngeun/TASK-002-auth-hardening/report.html</code></li>
+  </ul>
+</section>
+
+<p class="footer">report@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용)</p>
+</div>
+</body>
+</html>

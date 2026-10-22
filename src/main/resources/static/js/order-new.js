@@ -5,6 +5,7 @@
 	const runBtn = document.getElementById('runBtn');
 	const resultEl = document.getElementById('result');
 	const optionsEl = document.getElementById('options');
+	const sameNoteEl = document.getElementById('sameNote');
 	const confirmBtn = document.getElementById('confirmBtn');
 	const confirmError = document.getElementById('confirmError');
 
@@ -171,8 +172,12 @@
 				<span>소요 ${o.totalDays}일</span>
 				${due !== null && o.totalDays > due ? `<span class="late-note">납기 초과 ${o.totalDays - due}일</span>` : ''}
 				<span>총 비용 ${eok(o.totalCost)}억원</span>
-				<span class="muted">운항비 ${eok(o.shippingCost)}억원 · 배 ${o.ships.length}척</span>
+				<span class="muted">생산 원가 ${eok(o.productionCost)}억원 · 운항비 ${eok(o.shippingCost)}억원 · 운영비 ${eok(o.operatingCost)}억원 · 배 ${o.ships.length}척</span>
 			</button>`).join('');
+		// 가장 빠르게와 총비용 최소가 같은 경로이면 한 줄로 알린다
+		const cost = result.options.find(o => o.type === 'COST');
+		const fast = result.options.find(o => o.type === 'FAST');
+		sameNoteEl.hidden = !(cost && fast && JSON.stringify(cost.ships) === JSON.stringify(fast.ships));
 		optionsEl.querySelectorAll('.option').forEach(b => b.addEventListener('click', () => {
 			selected = b.dataset.type;
 			renderResult(false);
@@ -211,7 +216,8 @@
 				routeType: selected,
 				masterVersion: result.master.version,
 				memo: document.getElementById('memo').value,
-				dueDays: currentDue()
+				dueDays: currentDue(),
+				customerName: document.getElementById('customerName').value
 			});
 			location.href = '/orders/' + res.id;
 		} catch (e) {

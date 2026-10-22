@@ -31,6 +31,14 @@ public class PageController {
 		return page("login", response);
 	}
 
+	@GetMapping("/signup")
+	public String signup(HttpSession session, HttpServletResponse response) {
+		if (session.getAttribute(LoginInterceptor.SESSION_USER) != null) {
+			return "redirect:/orders";
+		}
+		return page("signup", response);
+	}
+
 	@GetMapping("/orders")
 	public String orders(HttpServletResponse response) {
 		return page("orders", response);

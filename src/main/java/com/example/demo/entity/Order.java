@@ -52,6 +52,10 @@ public class Order {
 	@Column(nullable = true)
 	private Integer dueDays;
 
+	/** 고객사 이름(선택, 확정·진행 상태에서만 수정 가능). 스냅샷(planJson) 보존 대상이 아니다. */
+	@Column(length = 100)
+	private String customerName;
+
 	/** 확정 시점의 계획 스냅샷(주문 수량, 마스터 값, 경로, 일별 생산) JSON */
 	@Lob
 	@Column(nullable = false)
@@ -64,7 +68,8 @@ public class Order {
 	}
 
 	public Order(LocalDateTime confirmedAt, String createdBy, int totalK, String routeType, String routeLabel,
-			int totalDays, long productionCost, long shippingCost, long totalCost, String memo, Integer dueDays, String planJson) {
+			int totalDays, long productionCost, long shippingCost, long totalCost, String memo, String customerName,
+			Integer dueDays, String planJson) {
 		this.confirmedAt = confirmedAt;
 		this.createdBy = createdBy;
 		this.totalK = totalK;
@@ -75,6 +80,7 @@ public class Order {
 		this.shippingCost = shippingCost;
 		this.totalCost = totalCost;
 		this.memo = memo;
+		this.customerName = customerName;
 		this.dueDays = dueDays;
 		this.planJson = planJson;
 		this.status = OrderStatus.CONFIRMED;
@@ -139,6 +145,14 @@ public class Order {
 	/** 소요 일수가 납기를 넘은 일수. 납기가 없거나 넘지 않으면 null */
 	public Integer getDueOverDays() {
 		return dueDays != null && totalDays > dueDays ? totalDays - dueDays : null;
+	}
+
+	public String getCustomerName() {
+		return customerName;
+	}
+
+	public void setCustomerName(String customerName) {
+		this.customerName = customerName;
 	}
 
 	public String getPlanJson() {

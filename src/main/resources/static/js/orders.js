@@ -33,6 +33,7 @@
 					<td><span class="badge badge-${esc(o.status)}">${esc(o.statusLabel)}</span></td>
 					<td>${esc(o.createdBy)}</td>
 					<td>${dueCell(o)}</td>
+					<td>${esc(o.customerName != null ? o.customerName : '-')}</td>
 				</tr>`).join('');
 	}
 

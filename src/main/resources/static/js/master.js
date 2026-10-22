@@ -12,13 +12,14 @@
 			<section class="card">
 				<h2>공장</h2>
 				<table class="grid">
-					<thead><tr><th>나라</th><th>하루 최대 생산량(K)</th><th>재고 상한(K)</th><th>셀당 원가(원)</th></tr></thead>
+					<thead><tr><th>나라</th><th>하루 최대 생산량(K)</th><th>재고 상한(K)</th><th>셀당 원가(원)</th><th>하루 운영비(억 원)</th></tr></thead>
 					<tbody>${data.factories.map(c => `
 						<tr>
 							<td>${esc(c.label)}</td>
 							<td>${input('maxDaily_' + c.name, form, 'type="number" min="1"')}</td>
 							<td>${input('stockLimit_' + c.name, form, 'type="number" min="1"')}</td>
 							<td>${input('unitCost_' + c.name, form, 'type="number" min="1"')}</td>
+							<td>${input('operatingCost_' + c.name, form, 'type="text" inputmode="decimal"')}</td>
 						</tr>`).join('')}
 					</tbody>
 				</table>

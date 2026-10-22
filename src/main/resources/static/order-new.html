@@ -37,6 +37,7 @@
 			<h2>2. 시뮬레이션 결과</h2>
 			<p class="muted">시뮬레이션은 지금 시점의 마스터 데이터를 사용합니다.</p>
 			<div id="options" class="options"></div>
+			<p id="sameNote" class="muted" hidden>두 안이 같습니다 (가장 빠르게 = 총비용 최소)</p>
 			<div id="summary"></div>
 		</section>
 
@@ -51,6 +52,8 @@
 			<h2>3. 주문 확정</h2>
 			<label class="stack">메모 (선택)
 				<textarea id="memo" rows="2" maxlength="1000"></textarea></label>
+			<label class="stack">고객사 (선택)
+				<input type="text" id="customerName" maxlength="100"></label>
 			<p id="confirmError" class="alert error" hidden></p>
 			<button type="button" id="confirmBtn" class="primary">주문 확정</button>
 		</section>

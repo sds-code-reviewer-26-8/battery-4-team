@@ -1,6 +1,9 @@
 package com.example.demo.controller;
 
 import com.example.demo.config.LoginInterceptor;
+import com.example.demo.service.BusinessException;
+import com.example.demo.service.MemberService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -16,12 +19,35 @@ public class AuthController {
 
 	private static final String ACCOUNT = "admin";
 
+	private final MemberService memberService;
+
+	public AuthController(MemberService memberService) {
+		this.memberService = memberService;
+	}
+
 	public record LoginRequest(String username, String password) {
 	}
 
+	public record SignupRequest(String username, String password) {
+	}
+
+	@PostMapping("/api/signup")
+	public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
+		try {
+			memberService.signup(request.username(), request.password());
+			return ResponseEntity.ok(Map.of("message", "가입했습니다. 로그인해 주세요"));
+		} catch (BusinessException e) {
+			return ApiController.apiError(e);
+		}
+	}
+
 	@PostMapping("/api/login")
-	public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpSession session) {
-		if (ACCOUNT.equals(request.username()) && ACCOUNT.equals(request.password())) {
+	public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest,
+			HttpSession session) {
+		if ((ACCOUNT.equals(request.username()) && ACCOUNT.equals(request.password()))
+				|| memberService.authenticate(request.username(), request.password())) {
+			// 로그인 전에 쥐고 있던 세션 ID 로는 로그인 상태가 되지 않게 새로 바꾼다. (세션 고정 방지)
+			servletRequest.changeSessionId();
 			session.setAttribute(LoginInterceptor.SESSION_USER, request.username());
 			return ResponseEntity.ok(Map.of("username", request.username()));
 		}
