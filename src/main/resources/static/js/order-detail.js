@@ -78,7 +78,8 @@
 				// 취소하면 주문이 삭제되므로 상세가 아니라 이전 페이지(주문 목록)로 이동한다.
 				// 성공 안내는 목록에서 한 번 보여 주려고 넘긴다. 저장소를 못 써도 이동은 한다.
 				try { sessionStorage.setItem('flashMessage', res.message); } catch (ignore) { /* 안내만 생략 */ }
-				location.href = previousList();
+				// replace 로 현재(삭제된) 상세 기록을 목록으로 바꿔, 뒤로 가기로 오류 화면이 다시 열리지 않게 한다.
+				location.replace(previousList());
 				return;
 			}
 			await load(res.message, null);

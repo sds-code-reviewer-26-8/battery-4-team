@@ -218,6 +218,25 @@ test('필터(확정)로 보던 목록에서 주문을 취소하면 같은 필터
   await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
 });
 
+/**
+ * 취소 후 뒤로 가기를 해도 삭제된 주문 상세(오류 화면)가 다시 열리지 않는다 (BUG-003)
+ */
+test('취소 후 뒤로 가기를 해도 삭제된 주문 상세가 다시 열리지 않는다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'BUG-003' });
+
+  await page.goto('/orders');
+  await page.locator(`a[href="/orders/${id}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${id}$`));
+
+  await changeStatusByButton(page, '취소');
+  await expect(page).toHaveURL(/\/orders$/);
+
+  await page.goBack();
+  await expect(page).not.toHaveURL(new RegExp(`/orders/${id}$`));
+  await expect(page.getByText('Whitelabel Error Page')).toHaveCount(0);
+});
+
 // ======================================================================
 // E2E-034
 // ======================================================================
