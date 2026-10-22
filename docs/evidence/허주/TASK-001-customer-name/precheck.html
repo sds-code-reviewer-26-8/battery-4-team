@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 고객사 이름 입력 기능</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="develop" data-status="GO">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">GO</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">고객사 이름 입력 기능 추가 (PDF 추가 미션 4 · 기능 추가 1): 주문 시 고객사를 입력받고, 주문 이후에도 고객사 이름을 수정할 수 있다. 상태가 완료 / 삭제(취소하면 주문이 삭제됨) 이후에는 수정할 수 없다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 15:12:59</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 prepare 에이전트</span><span>브랜치 <span data-slot="branch">feature/customer-name</span> · 커밋 <span data-slot="commit">f38632f</span></span><span>요청자 <span data-slot="requester">허주</span></span><span>로그 <span data-slot="log-path">docs/logs/prepare/inspection_20261022_154825.log</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">GO: 사용자가 정한 결정 6개로 방향이 정해졌고, 열린 질문 2개(글자 수 한도, 수정 권한)도 답을 받아 해결되었다.</span></b></p>
+  <h3>이유</h3>
+  <ul class="list">
+    <li><span data-slot="reason"><b>HITL ① 결과</b> (사용자가 이미 답함): Q1 고객사는 선택 입력이다(비워도 확정 가능, 비어 있으면 목록·상세에 "-" 표시). Q2 고객사 수정 이력은 남기지 않는다. Q3 주문 목록의 고객사 열은 맨 끝(작성자 뒤)이다. Q4 PRD.md·INTENT.md에 고객사 내용을 함께 반영한다. Q5 고객사는 최대 100자(앞뒤 공백 제거 후 길이로 검사, 초과하면 이유와 함께 거부)다. Q6 수정은 주문 작성자만 할 수 있다(<code>order.createdBy</code> 가 로그인 사용자와 같을 때만). 현재 계정은 admin 하나뿐이라 화면에서는 차이가 없지만 서버 규칙과 테스트로 남긴다.</span></li>
+    <li><span data-slot="reason">기존 메모(memo) 필드와 확정 흐름(<code>OrderService.java</code> 의 <code>MAX_MEMO</code>, 56~57줄 검증)을 그대로 본뜰 수 있어 구조가 단순하다. 계산(Planner)과 스냅샷(planJson)은 건드리지 않는다.</span></li>
+    <li><span data-slot="reason">문서 충돌(PRD 10장 "확정 후 주문 수정" 제외, INTENT 128행 등)은 있지만 Q4로 문서를 먼저 고치기로 정했으므로 사람이 더 답할 것은 없다. 문서 수정을 코드보다 먼저 한다(INTENT 60행·135행 순서 규칙).</span></li>
+    <li><span data-slot="reason"><b>열린 질문 2개 해결됨:</b> (1) 글자 수 한도는 100자로 확정, (2) 수정 권한은 "로그인한 누구나" 가정에서 "주문 작성자만"으로 바뀌었다. PRD 10장은 역할별 권한을 범위 밖으로 두므로, 역할 구분이 아니라 주문 작성자 확인이라고 구분해 문서에 적는다.</span></li>
+  </ul>
+  <div class="only-hitl">
+    <h3>⚠ 경고</h3>
+    <ul class="list"><li><span data-slot="warning">없음</span></li></ul>
+    <h3>사용자에게 확인할 질문</h3>
+    <ul class="list"><li><span data-slot="question">없음</span></li></ul>
+  </div>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">주문에는 지금 어느 회사의 주문인지 적는 곳이 없다. 확정 후에는 주문 내용을 고칠 수 없고 상태만 바꿀 수 있다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">요청 문구, PRD.md 130행(확정 후 주문 수정 제외), <code>OrderService.java</code> 253~274행(상태 변경만 있음), <code>Order.java</code> 49행(memo 필드는 있고 고객사는 없음)</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">끝나면 주문 확정 때 고객사 이름을 적을 수 있고, 목록 맨 끝 열과 상세에서 볼 수 있다. 확정·진행 중에는 이름을 고칠 수 있고, 완료·취소(삭제) 뒤에는 고칠 수 없다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">요청 문구와 HITL ① 결정 Q1~Q4, PRD.md 7장(94~105행) 상태 규칙</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="medium"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">예</span></b> <span class="hint">— <span data-slot="user-aware-why">"주문 시 입력 + 주문 이후 수정 + 완료/삭제 후 수정 불가"를 요청했고, Q1~Q4로 목록 열·문서 반영까지 정했다. 화면 3곳, API, DB 컬럼 1개가 닿는다.</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td><span data-slot="risk">화면에서만 수정 버튼을 숨기면 API 직접 호출로 완료 주문을 고칠 수 있다.</span></td><td><span class="chip" data-state="bad" data-slot="risk-level">높음</span></td><td><span data-slot="risk-fix">서버(<code>OrderService</code>)에서 상태를 검사해 확정·진행이 아니면 <code>BusinessException</code> 으로 거부한다. 화면은 서버가 준 값만 보고 입력란을 보여 준다. 완료 상태 거부 테스트를 넣는다.</span></td></tr>
+      <tr><td><span data-slot="risk">동시 수정: 검사와 저장 사이에 다른 사람이 완료로 바꾸거나 고객사를 바꿀 수 있다.</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix"><code>changeStatus</code> 처럼 화면 version 을 받아 비교하고, 저장 때 <code>ObjectOptimisticLockingFailureException</code> 을 409 충돌로 바꾼다(<code>Order.java</code> 56행 <code>@Version</code>).</span></td></tr>
+      <tr><td><span data-slot="risk">입력 검증 누락(길이 초과, 공백만 입력, HTML 문자).</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">서버에서 앞뒤 공백 제거, 빈 값은 null, 길이 초과는 400(메모와 같은 방식). 화면 출력은 <code>esc()</code> 사용.</span></td></tr>
+      <tr><td><span data-slot="risk">기존 주문은 새 컬럼이 비어 있다. null 이 그대로 보일 수 있다.</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">컬럼은 nullable 로 두고, 목록·상세에서 비어 있으면 "-" 를 표시한다(Q1). 개발 DB(<code>./data/battery</code>)는 건드리지 않고 테스트 DB 로만 확인한다.</span></td></tr>
+      <tr><td><span data-slot="risk">고객사 수정도 version 을 올려, 상세 화면을 열어 둔 다른 사람의 상태 변경이 충돌(409)로 거부될 수 있다.</span></td><td><span class="chip" data-state="ok" data-slot="risk-level">낮음</span></td><td><span data-slot="risk-fix">기존 충돌 안내 문구를 그대로 쓴다. 수정 성공 뒤 화면을 다시 불러 새 version 을 받는다.</span></td></tr>
+      <tr><td><span data-slot="risk">고객사를 스냅샷(planJson)에 넣으면 원칙 4(확정 시점 값 보존)와 수정 가능성이 부딪친다.</span></td><td><span class="chip" data-state="ok" data-slot="risk-level">낮음</span></td><td><span data-slot="risk-fix">고객사는 <code>Order</code> 컬럼으로만 두고 <code>StoredPlan</code> 은 건드리지 않는다. 문서에 "보존 대상이 아님"을 적는다.</span></td></tr>
+      <tr><td><span data-slot="risk">E2E-023 이 목록 머리글 8개를 비교하므로 열을 추가하면 반드시 실패한다.</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">같은 작업에서 E2E-023 의 기대를 9개(끝에 "고객사")로 고친다.</span></td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list">
+    <li><span data-slot="assumption">해결됨(사용자 결정): 고객사 최대 길이는 100자(앞뒤 공백 제거 후). 오류 문구는 "고객사 이름은 100자 이하로 입력하세요".</span></li>
+    <li><span data-slot="assumption">해결됨(사용자 결정): 수정은 주문 작성자만 가능하다. 작성자가 아니면 "주문을 작성한 사람만 고객사를 수정할 수 있습니다"로 거부한다. 이전 가정("로그인한 누구나")은 폐기.</span></li>
+    <li><span data-slot="assumption">가정: 수정 API 는 <code>POST /api/orders/{id}/customer</code> (본문: customerName, version). 취소된 주문은 행이 삭제되어 "주문을 찾을 수 없습니다"(400)로 막힌다. 이 동작은 구현 후 테스트로 확인한다.</span></li>
+    <li><span data-slot="assumption">확인하지 못함: 개발 DB 의 실제 컬럼 추가 결과(<code>ddl-auto=update</code> 로 nullable 컬럼이 붙을 것으로 보지만 직접 실행하지 않음). 테스트 DB 가 인메모리 create-drop 이라는 점도 이번에 파일을 열어 확인하지는 않음.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">8223e60</span> · INTENT.md <span data-slot="intent-version">f38632f</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="yes" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="no" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="yes" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="yes" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="yes" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="yes" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="yes" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="yes" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="yes" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="yes" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="yes" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="yes" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="yes" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="yes" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="yes" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="no" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="yes" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody>
+      <tr><td><span data-slot="relation-id">R1 (PRD.md:50)</span></td><td><span data-slot="relation">주문 입력에 고객사 입력란이 추가된다. 선택 입력이라 잘못된 수량 규칙에는 영향이 없다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R3 (PRD.md:52)</span></td><td><span data-slot="relation">확정 요청에 고객사가 메모와 함께 담긴다. 계산에는 영향이 없다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R4 (PRD.md:53) · 원칙 4 (INTENT.md:40)</span></td><td><span data-slot="relation">고객사는 수정 가능한 값이라 스냅샷(planJson) 밖의 <code>Order</code> 컬럼에 둔다. 보존 대상(수량·기준 값·경로·비용)에서 제외된다고 문서에 적는다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R6 (PRD.md:55)</span></td><td><span data-slot="relation">목록 맨 끝(작성자 뒤)에 고객사 열 추가(Q3). 상세에도 표시. 비어 있으면 "-".</span></td></tr>
+      <tr><td><span data-slot="relation-id">R7 · 7장 (PRD.md:56, 94~105) · 원칙 9 (INTENT.md:45)</span></td><td><span data-slot="relation">완료·삭제 뒤 수정 불가는 7장 상태 규칙과 이어진다. 이력은 상태 변경만 대상이며 고객사 수정은 이력을 남기지 않는다(Q2). 문구가 부딪쳐 보일 수 있어 범위를 문서에 적는다(해석이며, 위반은 아님).</span></td></tr>
+      <tr><td><span data-slot="relation-id">R9 · 원칙 7, 8 (INTENT.md:44~45)</span></td><td><span data-slot="relation">고객사 길이 검증과, 완료·삭제 뒤 수정 시도는 이유가 담긴 오류로 처리한다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R10 · 원칙 5 (INTENT.md:41)</span></td><td><span data-slot="relation">고객사 수정에도 화면 version 비교와 낙관적 락을 적용한다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R11 · 원칙 14</span></td><td><span data-slot="relation">새 API 도 <code>/api/</code> 아래라 <code>LoginInterceptor</code> 의 로그인 검사를 그대로 받는다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">원칙 2 (INTENT.md:38)</span></td><td><span data-slot="relation">"확정 요청은 수량·경로 종류·마스터 버전·메모만 받는다" 문구가 바뀐다. 고객사는 계산과 무관하므로 서버 재계산 원칙과는 부딪치지 않는다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">원칙 10 (INTENT.md:46)</span></td><td><span data-slot="relation">수정 가능 상태 규칙과 선택 입력을 <code>OrderFlowTests</code> 로 고정한다.</span></td></tr>
+      <tr><td><span data-slot="relation-id">R2, R5, R8 · 원칙 11</span></td><td><span data-slot="relation">관련 없음. 고객사는 계산·기준 정보와 무관하고 <code>Planner</code> 에 넣지 않는다.</span></td></tr>
+    </tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉함 (1건): PRD.md 130행 "계정 관리와 역할별 권한, 보안 요건, <b>확정 후 주문 수정</b>, 다국어·통화 변환. 이번 범위에서 제외한다." 고객사 이름 수정은 확정 후 주문 수정에 해당한다. 같은 내용이 INTENT.md 128행에도 있다. 처리: Q4에 따라 코드보다 먼저 두 문서를 고쳐 "확정 후 주문 수정은 제외, 단 고객사 이름은 확정·진행 상태에서 수정 가능"으로 좁힌다. 나머지 10장 항목 중 "외부 시스템 연동, 결제, 정산"(121행)은 고객사가 단순 텍스트 입력이면 저촉하지 않는다(PRD 10장을 직접 열어 확인함). 고객사 마스터 관리·고객사별 정산은 범위 밖이라고 한 줄 추가한다.</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list">
+    <li><span data-slot="conflict">PRD.md:130 · INTENT.md:128 "확정 후 주문 수정 제외"와 요청의 "주문 이후 고객사 수정"이 정면으로 어긋난다. 두 문서의 문구를 좁혀 고친다(수량·경로·비용·계획은 여전히 수정 불가).</span></li>
+    <li><span data-slot="conflict">INTENT.md:45 원칙 9 "변경에는 흔적을 남긴다", PRD.md:56 R7 "변경할 때마다 기록"과 Q2(수정 이력 안 남김)가 문구상 부딪친다. 두 문서가 말하는 것은 상태 변경이므로 위반은 아니라고 해석하고, "고객사 수정은 이력 대상이 아님(팀 결정)"을 명시한다.</span></li>
+    <li><span data-slot="conflict">INTENT.md:38 원칙 2 문구("메모만 받는다")와 INTENT.md:40 원칙 4(보존 대상)는 고객사를 넣어 문구를 고쳐야 한다.</span></li>
+    <li><span data-slot="conflict">INTENT.md:60·135 순서 규칙: 범위 확장은 먼저 PRD.md 에 반영한다. 그러므로 문서 수정을 구현 1단계로 둔다.</span></li>
+    <li><span data-slot="conflict">문서와 코드 불일치(고객사와 직접 관계는 없음): <code>e2e031-041.spec.ts</code> 9~11줄 주석과 <code>playwright.all.config.ts</code> 11줄 주석은 E2E-033 도 test.fail 이라고 적지만, 실제 <code>test.fail()</code> 호출은 300줄(E2E-035) 하나뿐이다(grep 으로 확인). 이번 작업에서는 고치지 않는다.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr data-layer="화면 HTML"><td><b>화면 HTML</b><div class="hint"><code>src/main/resources/static/*.html</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-1-state">변경</span></td>
+        <td><span data-slot="layer-1-files"><code>order-new.html</code>(확정 카드에 고객사 입력칸 <code>customerName</code>, 선택, maxlength 100), <code>orders.html</code>(<code>th</code> "고객사" 를 작성자 뒤에 추가). <code>order-detail.html</code> 은 <code>#orderInfo</code> 를 스크립트가 그리므로 바꾸지 않는다.</span><div class="hint">login · orders · order-new · order-detail · master</div></td>
+        <td><span data-slot="layer-1-why">입력칸과 열 머리글은 정적 HTML 에 있다.</span></td></tr>
+      <tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-2-state">변경</span></td>
+        <td><span data-slot="layer-2-files"><code>order-new.js</code>(확정 요청에 customerName), <code>orders.js</code>(마지막 td 와 빈 목록 colspan 8 에서 9), <code>order-detail.js</code>(고객사 표시 "-", 수정 가능 상태에서만 입력·저장, 저장 때 version 전송 후 다시 불러오기, 완료에서는 안 보임). 수정 UI 는 <code>.actions</code> 밖에 둔다.</span><div class="hint">order-new.js · orders.js · order-detail.js · common.js</div></td>
+        <td><span data-slot="layer-2-why">실제 그리기는 JS 템플릿이 한다. 새 값은 <code>esc()</code> 로 출력한다.</span></td></tr>
+      <tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/ApiController.java · OrderController.java</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-3-state">변경</span></td>
+        <td><span data-slot="layer-3-files"><code>ApiController.ConfirmRequest</code> 에 customerName 추가 후 <code>confirm()</code> 에서 전달. <code>OrderController</code>: 목록 row 에 customerName(createdBy 뒤), 상세에 customerName 과 수정 가능 여부, 새 <code>POST /api/orders/{id}/customer</code> 와 요청 record(customerName, version).</span><div class="hint">화면 요청·JSON API</div></td>
+        <td><span data-slot="layer-3-why">JSON 응답과 요청 형식을 정하는 곳. 필드를 안 보내는 기존 호출은 null 로 호환된다.</span></td></tr>
+      <tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>service/OrderService.java</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-4-state">변경</span></td>
+        <td><span data-slot="layer-4-files"><code>confirm()</code> 에 customerName 인자(공백 제거, 빈 값은 null, 길이 검사, 새 상수 <code>MAX_CUSTOMER</code>). 새 <code>updateCustomerName(id, name, expectedVersion, user)</code>: version 비교, 작성자가 아니면 거부, 완료·취소 거부, 낙관적 락 충돌은 409 로. 이력은 남기지 않는다.</span><div class="hint">BusinessException 으로 이유 안내</div></td>
+        <td><span data-slot="layer-4-why">상태 규칙·잠금·값 정리는 서비스에 둔다(서버가 최종 판단).</span></td></tr>
+      <tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/Planner.java · Master · Plan · StoredPlan</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-5-state">없음</span></td>
+        <td><span data-slot="layer-5-files">없음 (<code>StoredPlan</code> 도 건드리지 않음)</span><div class="hint">DB·화면을 모르는 순수 계산 (원칙 11)</div></td>
+        <td><span data-slot="layer-5-why">고객사는 계산과 무관하고 스냅샷에도 넣지 않는다.</span></td></tr>
+      <tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/* · H2 ./data/battery</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-6-state">변경</span></td>
+        <td><span data-slot="layer-6-files"><code>Order.java</code>: customerName 필드(nullable, 길이 100), 생성자 인자 추가(유일한 호출은 <code>OrderService.java:66</code>), getter, 수정 메서드. <code>OrderStatus.java</code>: 수정 가능 여부 메서드 하나(확정·진행만 true).</span><div class="hint">Order · OrderStatusHistory(변경 없음)</div></td>
+        <td><span data-slot="layer-6-why"><code>ddl-auto=update</code> 로 새 nullable 컬럼이 붙을 것으로 본다. 기존 행은 NULL 이라 "-" 로 보인다. <code>@Version</code> 은 이미 있다.</span></td></tr>
+      <tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/*</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-7-state">확인만</span></td>
+        <td><span data-slot="layer-7-files">바꾸지 않음. <code>LoginInterceptor</code>(<code>/api/</code> 아래는 로그인 필요)가 새 API 에도 적용되는지 확인한다.</span><div class="hint">LoginInterceptor · WebConfig · DataInitializer</div></td>
+        <td><span data-slot="layer-7-why">새 API 도 /api/orders 아래이고 새 화면 경로가 없다.</span></td></tr>
+      <tr data-repeat="layer-extra"><td><span data-slot="layer-extra">문서 (코드보다 먼저 수정)</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files"><code>PRD.md</code>(R1·R3·R4·R6·R7·R10, 용어표, 10장 범위 밖), <code>INTENT.md</code>(원칙 2·4·5·9, 7장 표, 8.2·8.3, 9장 항목 2 확인)</span></td><td><span data-slot="layer-extra-why">Q4 결정과 INTENT 60행 순서 규칙</span></td></tr>
+      <tr data-repeat="layer-extra"><td><span data-slot="layer-extra">테스트</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files"><code>OrderFlowTests.java</code>, <code>e2e-023.spec.ts</code> 수정, 새 <code>e2e-customer.spec.ts</code> 추가</span></td><td><span data-slot="layer-extra-why">아래 6장 참고</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 목록은 <code>grep -rn "test.fail" src/test/e2e</code> 로 확인해 주세요.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-OrderFlowTests-rel">관련</span></td>
+        <td><span data-slot="junit-OrderFlowTests-note">고객사 없이 확정해도 통과해야 한다(선택 입력). 고객사 관련 테스트는 없다(빠진 부분): 저장·공백 처리·길이 초과 400, 확정·진행 수정 성공, 완료 거부, 오래된 version 409, 이력 수 불변.</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-PlannerTest-rel">영향 없음</span></td>
+        <td><span data-slot="junit-PlannerTest-note">Planner 를 바꾸지 않는다(<code>src/test/java/com/example/demo/simulation</code> 아래에 있음).</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-DemoApplicationTests-rel">관련</span></td>
+        <td><span data-slot="junit-DemoApplicationTests-note">엔티티에 필드가 늘어도 컨텍스트가 뜨는지 확인하는 안전망 역할.</span></td></tr>
+      <tr data-repeat="junit-extra"><td><span data-slot="junit-extra">MasterFormTests</span></td><td><span class="chip" data-state="none" data-slot="junit-extra-rel">영향 없음</span></td><td><span data-slot="junit-extra-note">주문 엔티티·목록과 무관. <code>new Order(</code> 호출은 <code>OrderService.java:66</code> 한 곳뿐이라고 Node B 가 확인함.</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-1-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-1-note">새 API 의 401 확인은 새 테스트에서 한다.</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-2-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-2-note">수량 입력 규칙은 그대로.</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b></td><td>E2E-011~014</td><td><code>simulation.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-3-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-3-note">계산 변경 없음.</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts · e2e-021.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-4-rel">관련</span></td>
+        <td><span data-slot="e2e-4-note">E2E-015·016·021 은 고객사 없이 확정하므로 그대로 통과해야 한다. 목록 셀 번호 [3]~[5] 는 열을 끝에 붙이면 안 바뀐다. 상세 라벨은 "메모" 와 부분 일치하는 새 라벨을 피한다. 고객사 입력 확정 E2E 는 없다(공백).</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b></td><td>E2E-022~026</td><td><code>e2e-022~026.spec.ts</code></td>
+        <td><span class="chip" data-state="bad" data-slot="e2e-5-rel">관련</span></td>
+        <td><span data-slot="e2e-5-note"><b>E2E-023(16줄)</b> 은 머리글 8개를 비교하므로 9개로 고쳐야 한다. E2E-024 는 td:nth-child(7)(상태)이라 끝 열 추가로는 안 깨진다. E2E-025 는 toContain 이라 안 깨진다.</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b></td><td>E2E-027~035</td><td><code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-6-rel">관련</span></td>
+        <td><span data-slot="e2e-6-note">E2E-029·030 이 <code>.actions button</code> 개수와 "최종 상태라 더 바꿀 수 없습니다." 문구에 의존한다. 고객사 수정 UI 는 <code>.actions</code> 밖에 두고, 완료 상태 문구는 바꾸지 않는다.</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b></td><td>E2E-036~040</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-7-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-7-note">마스터와 무관.</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b></td><td>E2E-041</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-8-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-8-note">고객사 없이 확정하는 흐름이라 그대로 통과해야 한다.</span></td></tr>
+      <tr data-repeat="e2e-extra"><td><span data-slot="e2e-extra">헬퍼</span></td><td><span data-slot="e2e-extra-ids">-</span></td><td><code data-slot="e2e-extra-file">common-helpers.ts · helpers.ts</code></td><td><span class="chip" data-state="none" data-slot="e2e-extra-rel">영향 없음</span></td><td><span data-slot="e2e-extra-note">customerName 없이 보내므로 그대로 동작한다. 새 테스트는 직접 POST 로 customerName 을 보낸다.</span></td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">영향 없음. 확인한 실제 <code>test.fail()</code> 호출은 <code>e2e031-041.spec.ts:300</code> 의 E2E-035(없는 주문 번호 안내, HTTP 500) 하나다. 고객사 기능은 이 경로를 바꾸지 않으므로 계속 "예상 실패"로 유지한다. 새 화면에서 취소된 주문 상세를 다시 열게 만드는 흐름은 넣지 않는다.</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list">
+    <li><span data-slot="gap">고객사 없이 확정했을 때 목록·상세에 "-" 가 보이는지 검사가 없다.</span></li>
+    <li><span data-slot="gap">고객사 입력·공백만 입력(null 처리)·길이 초과 400 검사가 없다.</span></li>
+    <li><span data-slot="gap">확정·진행 상태에서 수정이 되고 목록·상세에 반영되는지 검사가 없다.</span></li>
+    <li><span data-slot="gap">완료 상태에서 수정 버튼이 안 보이고, API 직접 호출도 거부되는지 검사가 없다. 취소(삭제) 뒤 수정 호출이 "주문을 찾을 수 없습니다"(400)인지도 검사가 없다.</span></li>
+    <li><span data-slot="gap">오래된 version 으로 수정하면 409 가 나는지, 수정이 상태 이력 행 수를 늘리지 않는지 검사가 없다.</span></li>
+    <li><span data-slot="gap">"&lt;b&gt;x&lt;/b&gt;" 같은 HTML 문자가 글자 그대로 보이는지 검사가 없다.</span></li>
+  </ul>
+  <h3>추가·수정할 테스트 <span class="hint">(중복되거나 필요 없는 테스트는 만들지 말아 주세요)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody>
+      <tr><td><span data-slot="new-test"><code>OrderFlowTests</code> 에 고객사 테스트 추가: 저장·공백 처리·길이 초과 400, 확정·진행 수정 성공, 작성자가 아닌 사용자 400, 완료 수정 400, 오래된 version 409, 이력 수 불변, 없이 확정해도 통과</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">서버 규칙을 고정한다(원칙 10).</span></td></tr>
+      <tr><td><span data-slot="new-test"><code>e2e-023.spec.ts</code> 수정: 머리글 9개, 마지막 "고객사"</span></td><td><span data-slot="new-test-kind">E2E</span></td><td><span data-slot="new-test-why">열 추가 후 반드시 실패하기 때문이다.</span></td></tr>
+      <tr><td><span data-slot="new-test"><code>e2e-customer.spec.ts</code> (새 파일): 입력 후 확정, "-" 표시, 확정·진행 수정, 완료 시 입력란 없음, HTML 문자 이스케이프</span></td><td><span data-slot="new-test-kind">E2E</span></td><td><span data-slot="new-test-why">화면 동작을 눈으로 보이는 형태로 고정한다.</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec for for-develop" id="loop-develop">
+  <h2><span class="no">★</span>개발 Loop 점검</h2>
+  <ul class="list">
+    <li>이번에 만드는 것(범위): <span data-slot="develop-scope">주문 확정 시 고객사 입력(선택), 목록 맨 끝 열과 상세 표시, 확정·진행 상태에서 고객사 수정(서버 검사, version 비교), 완료·삭제 뒤 수정 거부, PRD·INTENT 반영, 테스트 추가.</span></li>
+    <li>이번에 만들지 않는 것: <span data-slot="develop-out">고객사 수정 이력, 고객사 마스터 관리·고객사별 정산, 역할별 권한 체계(작성자 확인과는 별개), 고객사 검색·필터, 스냅샷(planJson) 변경, 없는 주문 번호 500 결함 수정(E2E-035).</span></li>
+    <li>화면·API 변화 요약: <span data-slot="develop-change">주문 확정 카드에 고객사 입력칸이 생긴다. 목록 맨 끝에 "고객사" 열(비면 "-")이 생긴다. 상세에 고객사가 보이고 확정·진행일 때만 수정 입력·저장이 보인다. API: 확정 요청에 customerName 추가, 목록·상세 응답에 customerName 추가, 새 <code>POST /api/orders/{id}/customer</code>.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td class="num"><span data-slot="plan-step">1</span></td><td><span data-slot="plan-detail"><b>문서 먼저.</b> PRD.md 에 고객사 선택 입력(R1·R3), 보존 대상 제외(R4), 목록 맨 끝 열과 "-"(R6), 확정·진행만 수정·이력 없음(R7), 동시 수정(R10), 용어, 10장 문구 좁히기를 반영한다. INTENT.md 에 원칙 2·4·5·9, 7장 표, 8.2 확인 목록, 8.3 변경 유형 행을 반영한다. 파일: <code>PRD.md</code>, <code>INTENT.md</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">2</span></td><td><span data-slot="plan-detail"><b>엔티티.</b> <code>Order</code> 에 nullable customerName(길이 100), 생성자·getter·수정 메서드. <code>OrderStatus</code> 에 수정 가능 여부 메서드. 파일: <code>Order.java</code>, <code>OrderStatus.java</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">3</span></td><td><span data-slot="plan-detail"><b>서비스.</b> <code>confirm()</code> 에 customerName 처리(메모 방식), <code>updateCustomerName()</code> 추가(version 비교, 작성자 검사, 상태 검사, 충돌 변환, 이력 없음). 파일: <code>OrderService.java</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">4</span></td><td><span data-slot="plan-detail"><b>컨트롤러.</b> 확정 요청 record 에 customerName, 목록·상세 응답에 customerName(과 수정 가능 여부), 새 수정 엔드포인트. 파일: <code>ApiController.java</code>, <code>OrderController.java</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">5</span></td><td><span data-slot="plan-detail"><b>화면.</b> 고객사 입력칸, 목록 열과 colspan 9, 상세 표시·수정. 파일: <code>order-new.html</code>, <code>order-new.js</code>, <code>orders.html</code>, <code>orders.js</code>, <code>order-detail.js</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">6</span></td><td><span data-slot="plan-detail"><b>테스트.</b> JUnit 고객사 테스트 추가, E2E-023 을 9열로 수정, 새 E2E 파일 추가. 파일: <code>OrderFlowTests.java</code>, <code>e2e-023.spec.ts</code>, <code>e2e-customer.spec.ts</code></span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">7</span></td><td><span data-slot="plan-detail"><b>검증.</b> 별도 포트·별도 DB 에서 JUnit 과 Playwright 전체를 연속 2번 실행한다(코드 변경 없음). E2E-035 는 예상 실패로 유지한다.</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">주문 확정 때 고객사를 적으면 목록 맨 끝 열과 상세에 보이고, 비우면 "-" 로 보인다. 확정·진행 상태에서는 상세에서 고객사를 고쳐 저장할 수 있다.</span></b><div class="how">확인 방법: <span data-slot="check-1-how">새 E2E(<code>e2e-customer.spec.ts</code>)와 별도 포트 앱 화면에서 확정 후 목록 9번째 열·상세 확인. 수정 저장 후 새로고침해도 값이 남는지 본다.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">완료 상태에서는 수정 입력란이 보이지 않고, API 로 직접 보내도 이유가 담긴 오류로 거부된다. 주문 작성자가 아니면 거부된다. 취소(삭제)한 주문도 수정되지 않는다. 오래된 version 은 409 이고 상태 이력은 늘지 않는다.</span></b><div class="how">확인 방법: <span data-slot="check-2-how"><code>OrderFlowTests</code> 의 고객사 테스트(작성자가 아닌 사용자 거부 포함)와 새 E2E 에서 완료 주문 화면·API 응답(400/409) 확인.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">같은 검증을 연속 2번 통과(알려진 결함 테스트는 예상 실패로 유지)</span></b><div class="how">확인 방법: <span data-slot="check-3-how">JUnit 전체와 Playwright 전체(<code>playwright.all.config.ts</code>, 별도 포트·별도 DB)를 연달아 2번 실행해 두 번 모두 통과하고, E2E-035(<code>test.fail()</code>)는 예상 실패로 집계되는지 본다.</span></div></div></div>
+  <p class="hint">정확히 3개로 부탁드립니다. 가장 중요한 것만 골라 주세요.</p>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용) · 점검 로그 <span data-slot="footer-log">없음 (별도 로그 파일 미작성)</span></p>
+</div>
+</body>
+</html>

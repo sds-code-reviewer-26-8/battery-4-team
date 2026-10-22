@@ -13,7 +13,7 @@
 				`<span>${esc(s.label)}</span>`, s.count)).join('');
 
 		rowsEl.innerHTML = data.orders.length === 0
-			? '<tr><td colspan="8" class="empty">주문이 없습니다.</td></tr>'
+			? '<tr><td colspan="9" class="empty">주문이 없습니다.</td></tr>'
 			: data.orders.map(o => `
 				<tr class="clickable" data-id="${o.id}">
 					<td><a href="/orders/${o.id}">#${o.id}</a></td>
@@ -24,6 +24,7 @@
 					<td class="num">${esc(o.totalCostEok)}</td>
 					<td><span class="badge badge-${esc(o.status)}">${esc(o.statusLabel)}</span></td>
 					<td>${esc(o.createdBy)}</td>
+					<td>${esc(o.customerName != null ? o.customerName : '-')}</td>
 				</tr>`).join('');
 	}
 

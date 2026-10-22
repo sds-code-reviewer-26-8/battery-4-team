@@ -159,7 +159,8 @@
 				orders: values,
 				routeType: selected,
 				masterVersion: result.master.version,
-				memo: document.getElementById('memo').value
+				memo: document.getElementById('memo').value,
+				customerName: document.getElementById('customerName').value
 			});
 			location.href = '/orders/' + res.id;
 		} catch (e) {
