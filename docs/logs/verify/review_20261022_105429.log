@@ -1,0 +1,22 @@
+검증 로그 (refactor) - REF-003-review-cleanup
+점검 시각: 2026-10-22 10:54  회차: 1  판정: PASS
+
+[체크리스트]
+1. 세션 값 없으면 null(required=false), 로그인 사용자 동작 동일: 충족
+   - OrderController.java 55행, ApiController.java 55행 diff: @SessionAttribute(name = LoginInterceptor.SESSION_USER, required = false)
+   - E2E 027~030, 031~041, confirm, login-access 001~005 모두 기대한 결과
+2. toForm static, MasterFormTests 가 @SpringBootTest 없이 같은 값 검증: 충족
+   - MasterService.toForm public static, MasterController 정적 호출. MasterFormTests diff 는 어노테이션·필드·import 제거와 호출 1줄뿐, assert 변경 없음. 1건 통과
+3. Regression 전체 + 증적 정정: 충족
+   - REF-002 precheck.html, report.html 커밋 칸 각 1줄만 변경, '미커밋' grep 0건
+
+[변경 범위] src 5개 + 증적 2개. 동작 변경·버그수정·기능 추가 없음. 테스트 어서션·test.fail 변경 없음(src/test/e2e 변경 없음).
+[이번 호출의 추가 조치] report.html 의 data-loop 를 refactor 로 고치고 칩 CSS 규칙(.lt-develop)을 템플릿 원본과 같게 되돌림.
+
+[Regression Test]
+- ./gradlew compileJava compileTestJava, ./gradlew test --rerun: BUILD SUCCESSFUL, JUnit 23 중 실패 0
+- npx playwright test (프로젝트 밖 임시 설정, baseURL 포트 18095, 메모리 DB, bootRun): 45 passed. 예상 실패(test.fail) E2E-033, E2E-035, E2E-013b 는 기대한 결과. 예상 밖 통과 없음.
+- 앱(18095) 종료 확인. 8080 과 ./data/battery 미사용.
+
+[남은 이슈] 세션 값이 없는 경로를 직접 검증하는 테스트 없음(LoginInterceptor 가 먼저 막음).
+[판정] PASS

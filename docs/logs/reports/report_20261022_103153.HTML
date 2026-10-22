@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="report@2">
+<title>구현 결과 보고 · 컨트롤러 정리 (REF-002)</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.two,.three{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.step{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--card);border-top:4px solid var(--accent)}
+.step.prep{border-top-color:var(--prep)}.step.impl{border-top-color:var(--impl)}.step.ver{border-top-color:var(--ver)}
+.step h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:800}
+.step.prep .no{background:var(--prep)}.step.impl .no{background:var(--impl)}.step.ver .no{background:var(--ver)}
+.step ul{margin:0;padding-left:18px;font-size:14px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 진행 막대, 큰 숫자 */
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:999px}
+.bar.bad>i{background:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.big small{font-size:14px;font-weight:600;color:var(--muted)}
+/* 타임라인 */
+.tl{list-style:none;margin:6px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 12px;padding-left:14px}
+.tl li::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="refactor" data-status="PASS">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge">✔ PASS</div>
+  <h1>구현 결과 보고</h1>
+  <p class="target"><span data-slot="task">컨트롤러·서비스의 중복과 어긋난 이름을 정리한다: 세션 사용자 꺼내기를 한 방식으로 모으고, 폼 변환은 서비스로 옮기고, 낡은 이름과 주석을 바로잡는다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 10:31</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/refactoring</span> · 커밋 <span data-slot="commit">3ab240a (작업 트리 변경, 미커밋)</span></span><span>작성 <span data-slot="author">yeri</span></span></p>
+</header>
+
+<section class="sec" id="steps">
+  <h2><span class="no">1</span>한눈에 보기 <span class="hint">— 세 단계에서 한 일</span></h2>
+  <div class="three">
+    <div class="step prep"><h3><span class="no">1</span>Prepare</h3>
+      <ul><li><span data-slot="prepare-1">직전 서비스 분리 뒤 코드 리뷰에서 나온 잔여 정리 7건. 동작은 그대로 두는 구조·이름·주석·문서 정리.</span></li><li><span data-slot="prepare-2">없음. 요청 6번은 일부 부정확(읽기 전용 트랜잭션은 SimulationService 가 아니라 MasterService.currentMaster 에 있음)해 실제 구조대로 주석에 적기로 함.</span></li><li><span data-slot="prepare-3">9단계 계획. 체크리스트: 불변 동작 / 안전망 테스트(toForm 신규 1건) / Regression 전체.</span></li></ul></div>
+    <div class="step impl"><h3><span class="no">2</span>Implement</h3>
+      <ul><li><span data-slot="implement-1">세션 사용자는 @SessionAttribute, ApiController 는 @RestController, toForm 은 MasterService 로 이동, 모델 설정은 메서드로 묶음.</span></li><li><span data-slot="implement-2">변경 7개 파일(컨트롤러 3, 서비스 2, 설정 1, 문서 1) + 신규 테스트 1개.</span></li><li><span data-slot="implement-3">JUnit 23건 통과, E2E 45건 기대한 결과(자가검증).</span></li></ul></div>
+    <div class="step ver"><h3><span class="no">3</span>Verify</h3>
+      <ul><li><span data-slot="verify-1">3개 모두 충족.</span></li><li><span data-slot="verify-2">JUnit 23/23, E2E 45/45 기대한 결과(test.fail 3건 포함).</span></li><li><span data-slot="verify-3">없음(확인하지 못한 것 1건은 남은 이슈 참고).</span></li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">2</span>체크리스트 3개 결과</h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">불변 동작이 그대로다: 로그인·접근 통제(화면 302, API 401), 확정 작성자와 이력 사용자(admin), 상태 변경 안내 문구, 마스터 폼 값·오류 표시, API 응답과 상태 코드.</span></b>
+    <span class="chip" data-state="none" data-slot="check-1-result">충족</span>
+    <div class="how">근거: <span data-slot="check-1-evidence">git diff 로 로직 이동·이름 변경뿐임을 확인. OrderFlowTests 9건과 E2E confirm·e2e-027~030·e2e031-041·login-access 모두 기대한 결과. LoginInterceptor 가 /** 에 적용되어 @SessionAttribute 경로에서도 미로그인은 먼저 막힘.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">안전망 테스트가 변경 전후 통과하고, 새 toForm 테스트가 값을 실제로 검사한다.</span></b>
+    <span class="chip" data-state="none" data-slot="check-2-result">충족</span>
+    <div class="how">근거: <span data-slot="check-2-evidence">./gradlew test 23건 통과. MasterFormTests 가 직접 만든 Master 로 maxDaily_CHINA=400, days_KOREA_CHINA=1, shipCount=3, shipDailyCost=3 등을 assert (DB 무관). 일부러 틀린 값으로 실패하는지는 implement 단계 자가검증 기록을 인용(검증자는 소스를 고치지 않음).</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 Regression Test 전체(JUnit + E2E)가 모두 기대한 결과다. test.fail() 3건은 예상한 실패.</span></b>
+    <span class="chip" data-state="none" data-slot="check-3-result">충족</span>
+    <div class="how">근거: <span data-slot="check-3-evidence">./gradlew compileJava compileTestJava test --rerun-tasks: 23/23. 포트 8091·별도 파일 DB 로 npx playwright test: 45 passed (예상 실패 3건 포함). 실행 뒤 앱 종료.</span></div></div></div>
+</section>
+
+<section class="sec" id="regression">
+  <h2><span class="no">3</span>Regression Test <span class="hint">— 있는 테스트를 모두 실행</span></h2>
+  <div class="two">
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">23</span><small> / <span data-slot="junit-total">23</span> 통과</small></div>
+      <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
+    <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">45</span><small> / <span data-slot="e2e-total">45</span> 기대한 결과</small></div>
+      <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
+  </div>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 이번 실행에서 예상 실패로 집계된 테스트: <span data-slot="expected-fail">3건 (E2E-033, E2E-035, E2E-013b)</span></p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td class="num"><span data-slot="junit-OrderFlowTests-total">9</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">9</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-state">통과</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td class="num"><span data-slot="junit-PlannerTest-total">12</span></td><td class="num"><span data-slot="junit-PlannerTest-pass">12</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-PlannerTest-state">통과</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td class="num"><span data-slot="junit-DemoApplicationTests-total">1</span></td><td class="num"><span data-slot="junit-DemoApplicationTests-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-DemoApplicationTests-state">통과</span></td></tr>
+      <tr data-repeat="junit-extra"><td><b>MasterFormTests</b><div class="hint">이번에 추가: MasterService.toForm 이 입력칸 이름·값(운항비 억 원 단위)으로 바꾸는지</div></td><td class="num">1</td><td class="num">1</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th class="num">전체</th><th class="num">기대한 결과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b><div class="hint">E2E-001~005 · <code>login-access.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-1-total">5</span></td><td class="num"><span data-slot="e2e-1-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-1-state">통과</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b><div class="hint">E2E-006~010 · <code>order-quantity.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-2-total">5</span></td><td class="num"><span data-slot="e2e-2-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-2-state">통과</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b><div class="hint">E2E-011~014 · <code>simulation.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-3-total">5</span></td><td class="num"><span data-slot="e2e-3-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-3-state">통과</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b><div class="hint">E2E-015~021 · <code>confirm.spec.ts · e2e-021.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-4-total">7</span></td><td class="num"><span data-slot="e2e-4-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-4-state">통과</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b><div class="hint">E2E-022~026 · <code>e2e-022~026.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-5-total">5</span></td><td class="num"><span data-slot="e2e-5-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-5-state">통과</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b><div class="hint">E2E-027~035 · <code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-6-total">10</span></td><td class="num"><span data-slot="e2e-6-pass">10</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-6-state">통과</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b><div class="hint">E2E-036~040 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-7-total">7</span></td><td class="num"><span data-slot="e2e-7-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-7-state">통과</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b><div class="hint">E2E-041 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-8-total">1</span></td><td class="num"><span data-slot="e2e-8-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-8-state">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">실행한 명령: <span data-slot="commands">./gradlew compileJava compileTestJava test --rerun-tasks · npx playwright test (포트 8091, 별도 파일 DB, 프로젝트 밖 임시 설정으로 baseURL 만 덮어씀)</span></p>
+</section>
+
+<section class="sec" id="changes">
+  <h2><span class="no">4</span>변경 요약</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody><tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">컨트롤러</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/controller/OrderController.java</code></td><td><span data-slot="change-what">changeStatus 가 HttpSession 대신 @SessionAttribute String user 를 받음</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">컨트롤러</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/controller/ApiController.java</code></td><td><span data-slot="change-what">@RestController 로 바꾸고 @ResponseBody 제거, confirm 이 @SessionAttribute String user 를 받음</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">컨트롤러</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/controller/MasterController.java</code></td><td><span data-slot="change-what">toForm 호출을 서비스로 위임, factories/countries 설정을 addMasterModel 로 묶음, 안 쓰는 import 제거</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">서비스</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/service/MasterService.java</code></td><td><span data-slot="change-what">public toForm(Master) 추가(routeKey·WON_PER_EOK 를 서비스 안에서 사용)</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">서비스</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/service/OrderService.java</code></td><td><span data-slot="change-what">confirm Javadoc 에 읽기 전용 currentMaster 가 쓰기 트랜잭션에 참여한다는 주의 문장 추가(코드 변경 없음)</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">설정</span></td>
+      <td><code data-slot="change-file">src/main/java/com/example/demo/config/DataInitializer.java</code></td><td><span data-slot="change-what">필드·생성자 파라미터 service 를 masterService 로 이름 변경</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">설정</span></td>
+      <td><code data-slot="change-file">INTENT.md</code></td><td><span data-slot="change-what">38행 BatteryService.confirm 을 OrderService.confirm 으로 정정</span></td></tr>
+      <tr data-repeat="change"><td><span class="chip" data-state="ok" data-slot="change-layer">테스트</span></td>
+      <td><code data-slot="change-file">src/test/java/com/example/demo/MasterFormTests.java</code></td><td><span data-slot="change-what">신규. toForm 결과 값을 직접 검증</span></td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 결과</h2>
+  <ul class="list"><li>동작이 그대로임을 확인한 방법: <span data-slot="refactor-proof">JUnit 23건과 E2E 45건이 모두 기대한 결과. 바뀌면 안 되는 목록(URL·응답·flash 문구·확정 사용자 admin·폼 초기값·오류 표시·상태 코드·302/401)을 위 테스트로 대조. 기존 테스트와 test.fail() 은 수정 없음.</span></li><li>정리한 것: <span data-slot="refactor-done">세션 사용자 꺼내기 중복 제거(@SessionAttribute) · ApiController @RestController 화 · toForm 을 MasterService 로 이동 · MasterController 모델 설정 중복을 addMasterModel 로 묶음 · DataInitializer 필드명 masterService · OrderService.confirm 트랜잭션 주의 주석 · 문서의 낡은 이름을 OrderService.confirm 으로 정정 · toForm 직접 검증 테스트 1건 추가.</span></li><li>손대지 않은 것: <span data-slot="refactor-out">MasterController 필드명 변경, 허주 이해 문서 정정, 트랜잭션 구조 변경, 포맷·Lint 일괄 정리.</span></li></ul>
+</section>
+
+<section class="sec" id="history">
+  <h2><span class="no">5</span>회차 이력 <span class="hint">— 1회차에 통과했다면 "없음"이라고 적어 주세요</span></h2>
+  <ul class="tl"><li data-repeat="round"><b><span data-slot="round-no">1</span>회차 — <span data-slot="round-result">PASS</span></b><div class="hint"><span data-slot="round-note">1회차에 통과. 이전 회차 기록 없음.</span></div></li></ul>
+</section>
+
+<section class="sec" id="remaining">
+  <h2><span class="no">6</span>남은 이슈 · 확인하지 못한 것</h2>
+  <ul class="list"><li data-repeat="remaining"><span data-slot="remaining">toForm 테스트를 일부러 틀리게 해 실패하는지는 검증자가 직접 확인하지 않았다(implement 기록 인용).</span></li></ul>
+</section>
+
+<section class="sec" id="logs">
+  <h2><span class="no">7</span>기록 위치</h2>
+  <ul class="list">
+    <li>구현 전 점검: <code data-slot="precheck-path">docs/evidence/yeri/REF-002-controller-cleanup/precheck.html</code></li>
+    <li>점검 로그: <code data-slot="prepare-log">docs/logs/prepare/inspection_20261022_102429.log</code></li>
+    <li>검증 로그: <code data-slot="verify-log">docs/logs/verify/review_20261022_103153.log</code></li>
+    <li>실행 환경: <span data-slot="env">Java 17 · Node 24 · 앱 포트 8091 · 별도 파일 DB(프로젝트 밖 임시 폴더)</span></li>
+    <li>이 Report: <code data-slot="report-path">docs/evidence/yeri/REF-002-controller-cleanup/report.html</code></li>
+  </ul>
+</section>
+
+<p class="footer">report@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용)</p>
+</div>
+</body>
+</html>

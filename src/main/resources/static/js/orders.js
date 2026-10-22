@@ -2,6 +2,7 @@
 	const filtersEl = document.getElementById('filters');
 	const rowsEl = document.getElementById('orderRows');
 	const loadError = document.getElementById('loadError');
+	const messagesEl = document.getElementById('messages');
 	const status = new URLSearchParams(location.search).get('status');
 
 	function render(data) {
@@ -30,6 +31,15 @@
 		const row = e.target.closest('tr.clickable');
 		if (row) location.href = '/orders/' + row.dataset.id;
 	});
+
+	// 취소 직후 넘어온 안내를 한 번만 보여 준다. 읽자마자 지우므로 새로고침하면 사라진다.
+	try {
+		const flash = sessionStorage.getItem('flashMessage');
+		if (flash) {
+			sessionStorage.removeItem('flashMessage');
+			messagesEl.innerHTML = `<p class="alert ok">${esc(flash)}</p>`;
+		}
+	} catch (ignore) { /* 안내만 생략 */ }
 
 	getJson('/api/orders' + (status ? '?status=' + encodeURIComponent(status) : ''))
 		.then(render)

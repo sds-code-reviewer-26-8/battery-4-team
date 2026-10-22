@@ -109,8 +109,7 @@ test('E2E-031 허용되지 않은 상태 변경은 직접 요청해도 거부된
  *
  * 한계: 시나리오의 "DB(order_status_history)에 이력이 남아 있다" 확인은 화면에서 볼 수 없고
  *       Playwright 에서 DB 에 붙을 수 없어 이 테스트에 넣지 않았다. (JUnit/수동 확인 필요)
- * 참고: 취소 직후 이동하는 화면은 현재 HTTP 500 이다(E2E-033). 이 테스트는 그 화면을 보지 않고
- *       목록을 직접 연다.
+ * 참고: 취소 직후 이동은 E2E-033 이 확인한다. 이 테스트는 목록을 직접 연다.
  */
 async function expectCancelRemovesOrder(page: Page, orderId: number) {
   // 취소 전 상태 기록
@@ -162,16 +161,9 @@ test.describe('E2E-032 취소하면 주문은 삭제된다', () => {
  * E2E-033 취소 직후에는 이전 페이지로 이동한다
  *
  * 정한 동작(PRD 7장): 취소 직후 이전 페이지(주문 목록)로 이동하고 오류 화면이 열리지 않는다.
- * 현재 구현: 삭제된 주문의 상세(/orders/{번호})로 이동해 HTTP 500 기본 오류 화면(Whitelabel Error Page)이 열린다.
- *           (알려진 결함: INTENT 9장 1번)
- *
- * 고치기 전까지 test.fail() 로 표시한다. 이 테스트는 "실패하는 것이 정상"이다.
- * 고치고 나면 test.fail() 줄을 지워 일반 테스트로 전환한다. (고친 뒤에도 test.fail() 이 남아 있으면
- * 테스트가 통과하면서 "예상한 실패가 일어나지 않았다"며 오히려 실패로 보고되어 알 수 있다.)
+ * 이전에는 삭제된 주문의 상세(/orders/{번호})로 이동해 HTTP 500 기본 오류 화면이 열렸다. (BUG-001 로 수정)
  */
 test('E2E-033 취소 직후에는 이전 페이지(주문 목록)로 이동한다', async ({ page }) => {
-  test.fail(true, '알려진 결함: 취소 후 삭제된 주문 상세로 이동해 HTTP 500 (INTENT 9장 1번)');
-
   await login(page);
   const id = await createOrder(page, { memo: 'E2E-033' });
 
@@ -185,6 +177,63 @@ test('E2E-033 취소 직후에는 이전 페이지(주문 목록)로 이동한�
   // 정한 동작: 주문 목록으로 이동하고 오류 화면이 아니다
   await expect(page).toHaveURL(/\/orders$/);
   await expect(page.getByRole('heading', { name: '주문 목록' })).toBeVisible();
+  await expect(page.getByText('Whitelabel Error Page')).toHaveCount(0);
+
+  // 성공 안내가 목록에 보인다
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
+});
+
+/**
+ * 취소 후 목록의 성공 안내는 한 번만 보이고, 새로고침하면 사라진다 (DEV-001)
+ */
+test('취소 후 목록의 성공 안내는 새로고침하면 사라진다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'DEV-001' });
+  await page.goto(`/orders/${id}`);
+  await changeStatusByButton(page, '취소');
+
+  await expect(page).toHaveURL(/\/orders$/);
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '주문 목록' })).toBeVisible();
+  await expect(page.locator('.alert.ok')).toHaveCount(0);
+});
+
+/**
+ * 필터로 보던 목록에서 들어와 취소하면 같은 필터의 목록으로 돌아온다 (BUG-002)
+ */
+test('필터(확정)로 보던 목록에서 주문을 취소하면 같은 필터 목록으로 돌아온다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'BUG-002' });
+
+  await page.goto('/orders?status=CONFIRMED');
+  await page.locator(`a[href="/orders/${id}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${id}$`));
+
+  await changeStatusByButton(page, '취소');
+
+  await expect(page).toHaveURL(/\/orders\?status=CONFIRMED$/);
+  await expect(page.locator('.filters .chip', { hasText: '확정' })).toHaveClass(/active/);
+  await expect(page.locator('.alert.ok')).toContainText("상태를 '취소'(으)로 바꿨습니다");
+});
+
+/**
+ * 취소 후 뒤로 가기를 해도 삭제된 주문 상세(오류 화면)가 다시 열리지 않는다 (BUG-003)
+ */
+test('취소 후 뒤로 가기를 해도 삭제된 주문 상세가 다시 열리지 않는다', async ({ page }) => {
+  await login(page);
+  const id = await createOrder(page, { memo: 'BUG-003' });
+
+  await page.goto('/orders');
+  await page.locator(`a[href="/orders/${id}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${id}$`));
+
+  await changeStatusByButton(page, '취소');
+  await expect(page).toHaveURL(/\/orders$/);
+
+  await page.goBack();
+  await expect(page).not.toHaveURL(new RegExp(`/orders/${id}$`));
   await expect(page.getByText('Whitelabel Error Page')).toHaveCount(0);
 });
 

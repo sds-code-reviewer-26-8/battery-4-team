@@ -1,0 +1,49 @@
+점검 시각: 2026-10-22 13:38:22
+Loop 유형: bugfix (버그수정)
+브랜치/커밋: feature/bugfix / 046dd9b
+작업 폴더: docs/evidence/yeri/BUG-002-cancel-keep-filter
+
+[요청 원문]
+취소시 항상 /orders(전체)로 이동해서, ?status=확정으로 보던 필터가 풀립니다. PRD의 "이전 페이지"가 필터까지 포함하도록 수정해줘
+
+[1. 버그 여부 - 문서 근거]
+- PRD 7장: "취소 직후에는 이전 페이지(주문 목록)로 이동하고 ... 안내가 목록에 한 번 표시된다." INTENT 9장 1번: BUG-001 해결(이전 페이지로 이동).
+- "이전 페이지"를 문자 그대로 읽으면 사용자가 보던 목록(필터 포함)이다. 현재는 항상 /orders(전체)라 어긋난다. 문서에 필터 포함 여부가 명시돼 있지 않아 모호했고, 사용자가 "필터까지 포함"으로 정했다(요청에 PRD 문구 보강 지시 포함).
+- 확정된 동작을 뒤집는 요구 변경이 아니라 모호한 문구의 확정이다. PRD 10장 범위 밖 아님. 판단: 버그수정으로 진행(GO).
+
+[2. 배경 이해] 이해함
+- 사용자가 /orders?status=CONFIRMED 로 목록을 보다가 주문 상세로 들어가 취소하면, 취소 후 필터가 풀린 전체 목록이 열린다.
+- 근거: static/js/order-detail.js 취소 분기 location.href = '/orders' 고정.
+
+[3. 목적 이해] 이해함
+- 취소 직후 보던 목록(필터 유지)으로 돌아가 이어서 작업한다. 상세를 거치지 않고 직접 열었다면 전체 목록.
+
+[4. 재현과 원인]
+- 재현(실제 실행, 포트 8099 + 메모리 DB, 개발 서버·DB 미사용): 로그인 -> 주문 생성 -> /orders?status=CONFIRMED -> 주문 링크 클릭 -> [취소(으)로 변경] 확인 수락.
+  기대: /orders?status=CONFIRMED. 실제: http://localhost:8099/orders (필터 풀림). 재현 성공.
+- 원인: order-detail.js 의 상태 변경 submit 핸들러, CANCELED 분기 `location.href = '/orders'` (목록 주소를 알지 못함). 목록 주소(필터)는 orders.js 가 location.search 로만 가진다.
+- 유사 증상(이번 범위 아님, 기록만): order-detail.html 의 [목록으로] 링크 href="/orders" 도 필터를 잃는다. PRD 에 이 링크의 동작 규정 없음.
+
+[5. 규모·위험] 작음, 경고 없음
+- 변경 파일 4~5개(order-detail.js, PRD.md, INTENT.md 한 줄, e2e031-041.spec.ts, 필요 시 orders.js). 서버·엔티티·상태 전이·낙관적 락·스냅샷 변경 없음.
+- 주의: 이동 주소를 사용자 입력(referrer, 저장값)에서 가져오므로 반드시 /orders 또는 /orders?... 형태만 허용(같은 출처, 그 외는 /orders). 오픈 리다이렉트 방지.
+
+[6. 영향 범위와 기존 테스트]
+- 파일: static/js/order-detail.js (취소 분기), PRD.md 7장 문구, INTENT.md 88행 문구, src/test/e2e/e2e031-041.spec.ts (새 테스트). 방식에 따라 static/js/orders.js (목록 주소를 sessionStorage 에 저장하는 방식 선택 시).
+- 기존: E2E-033(목록 무필터에서 진입, URL /\/orders$/) 계속 통과해야 함. DEV-001 테스트(page.goto 로 상세 직접 진입, 이동 URL /\/orders$/) 는 대체 경로(전체)로 통과. e2e-024 필터 칩 테스트 영향 없음. test.fail() 중 영향받는 것 없음. JUnit 영향 없음(서버 변경 없음).
+- 공백: 필터를 유지한 채 취소하는 테스트 없음 -> 추가.
+
+[7. 판단] status: GO
+질문: 없음
+
+[8. 최소 수정 계획]
+1. order-detail.js: 취소 후 이동 주소 = 이전 페이지가 주문 목록(/orders 또는 /orders?status=...)이면 그 주소, 아니면 /orders. 이전 주소는 document.referrer 에서 읽고(같은 출처, 경로 정확히 /orders 일 때만 path+search 사용), 쓰지 못하면 /orders. 성공 안내(flashMessage) 로직은 그대로.
+   (대안: orders.js 가 로드 때 현재 주소를 sessionStorage 에 저장. 구현이 더 적합한 쪽을 택하되 검증은 같다.)
+2. PRD.md 7장: "이전 페이지(주문 목록)" 를 "보던 목록 화면. 필터를 걸어 보던 중이면 그 필터가 유지된 목록(상세를 바로 연 경우는 전체 목록)" 으로 명시. INTENT.md 88행도 같은 뜻으로 맞춘다.
+3. 재발 방지 E2E 1개: /orders?status=CONFIRMED 에서 진입해 취소 -> URL 이 /orders?status=CONFIRMED, '확정' 칩 활성, 성공 안내 표시. 수정 전에는 URL 이 /orders 라 실패.
+4. 이번에 하지 않는 것: [목록으로] 링크, 서버·API 변경, 포맷·리팩토링, 다른 이동 경로.
+
+[9. 체크리스트 3개]
+1. 필터 유지: /orders?status=CONFIRMED 에서 들어가 취소하면 같은 주소로 돌아가고 '확정' 칩 활성 + 안내 1회. 직접 연 상세에서 취소하면 전체 목록. (새 E2E + E2E-033 + DEV-001 테스트)
+2. 재발 방지 테스트가 있고 통과, 수정 전 실패(URL 비교로 확인).
+3. 기존 Regression(JUnit ./gradlew test + E2E 전체) 기대대로. 다른 test.fail() 은 그대로 실패.

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="report@2">
+<title>구현 결과 보고 · Thymeleaf를 정적 HTML과 JS로 전환</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.two,.three{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.step{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--card);border-top:4px solid var(--accent)}
+.step.prep{border-top-color:var(--prep)}.step.impl{border-top-color:var(--impl)}.step.ver{border-top-color:var(--ver)}
+.step h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:800}
+.step.prep .no{background:var(--prep)}.step.impl .no{background:var(--impl)}.step.ver .no{background:var(--ver)}
+.step ul{margin:0;padding-left:18px;font-size:14px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 진행 막대, 큰 숫자 */
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:999px}
+.bar.bad>i{background:var(--bad)}
+.big{font-size:30px;font-weight:800;line-height:1.1}
+.big small{font-size:14px;font-weight:600;color:var(--muted)}
+/* 타임라인 */
+.tl{list-style:none;margin:6px 0 0;padding:0 0 0 18px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 12px;padding-left:14px}
+.tl li::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="refactor" data-status="PASS">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-refactor">리팩토링</li>
+  </ul>
+  <div class="status-badge">✔ PASS</div>
+  <h1>구현 결과 보고</h1>
+  <p class="target"><span data-slot="task">Thymeleaf 서버 렌더링 화면을 정적 HTML과 JavaScript(데이터는 JSON API 호출)로 바꾸고, 사용자에게 보이는 동작과 화면 주소는 그대로 유지한다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 11:30:00</span></span><span><span data-slot="rounds">1</span>회차 만에 통과</span><span>점검 기록 <a href="precheck.html" data-slot="precheck-link" style="color:inherit">precheck.html</a></span><span>브랜치 <span data-slot="branch">feature/refactoring</span> · 커밋 <span data-slot="commit">e972056 (작업 트리 미커밋)</span></span><span>작성 <span data-slot="author">yeri</span></span></p>
+</header>
+
+<section class="sec" id="steps">
+  <h2><span class="no">1</span>한눈에 보기 <span class="hint">— 세 단계에서 한 일</span></h2>
+  <div class="three">
+    <div class="step prep"><h3><span class="no">1</span>Prepare</h3>
+      <ul><li><span data-slot="prepare-1">서버가 템플릿 6개로 그리던 화면을 정적 HTML+JS로, 폼 POST를 JSON API로 옮기되 보이는 동작은 같게 한다. 기준선은 JUnit 23건, E2E 45건(42 통과 + 예상 실패 3건).</span></li><li><span data-slot="prepare-2">큰 변경(약 25~30개 파일), 인증 경로(정적 HTML도 비로그인이면 /login), 동시 변경 보호(version을 JS가 보관), 비동기 렌더링 간헐 실패 위험.</span></li><li><span data-slot="prepare-3">단계 8개 계획. 체크리스트: 불변 동작, 안전망 기준선 동일(2회 연속), 알려진 결함 보존과 Thymeleaf 제거.</span></li></ul></div>
+    <div class="step impl"><h3><span class="no">2</span>Implement</h3>
+      <ul><li><span data-slot="implement-1">정적 HTML 5개와 JS 5개, JSON API(로그인·목록·상세·상태 변경·마스터), PageController(화면 주소를 HTML로 forward)를 추가하고 Thymeleaf를 제거했다.</span></li><li><span data-slot="implement-2">템플릿 6개 삭제, 컨트롤러 4개 수정·1개 삭제·1개 신규, 설정·빌드·테스트·문서 포함. DB·엔티티·업무 규칙 코드는 불변.</span></li><li><span data-slot="implement-3">JUnit 24건 통과, 전체 E2E 45건 2회 연속 통과, 기존 설정 021~030도 10건 통과.</span></li></ul></div>
+    <div class="step ver"><h3><span class="no">3</span>Verify</h3>
+      <ul><li><span data-slot="verify-1">체크리스트 3개 모두 충족.</span></li><li><span data-slot="verify-2">JUnit 24/24, E2E 45/45 기대한 결과(2회 연속, 예상 실패 3건 유지).</span></li><li><span data-slot="verify-3">알려진 결함 3건은 별도 버그수정 Loop로 이월. 수정 전 코드에서의 신규 단언 실패 확인은 못 함.</span></li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">2</span>체크리스트 3개 결과</h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">불변 동작: 로그인 통제(비로그인 화면 302, API 401, 정적 html 직접 접근 차단), 로그인·로그아웃, 목록·상세·마스터 문구·주소, 상태 변경, 마스터 전부 아니면 전무 저장</span></b>
+    <span class="chip" data-state="ok" data-slot="check-1-result">충족</span>
+    <div class="how">근거: <span data-slot="check-1-evidence">전체 E2E 001~041 45건 통과(E2E-001~005, 022~030, 034, 036~041 포함). JUnit anonymousUserCannotReadStaticPagesOrScreenApis: /orders.html·/master.html은 /login으로 이동, /api/orders·/api/master/form·POST /api/master는 401, /login.html은 200. 화면 주소 5개는 PageController forward로 유지.</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">안전망이 기준선과 같게 통과: JUnit 전부 통과, E2E 42건 통과 + 예상 실패 3건, 연속 2회 동일</span></b>
+    <span class="chip" data-state="ok" data-slot="check-2-result">충족</span>
+    <div class="how">근거: <span data-slot="check-2-evidence">JUnit 24건 통과(기준선 23 + 신규 1). E2E 2회 모두 45 passed(44.5초, 44.2초). 테스트 diff 확인: 폼 POST를 JSON API로, 렌더 대기 추가, 저장 응답 코드 302를 200으로만 바꿨고 시나리오와 기대값 단언은 그대로.</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">알려진 결함 3건 예상 실패 유지, Thymeleaf 완전 제거</span></b>
+    <span class="chip" data-state="ok" data-slot="check-3-result">충족</span>
+    <div class="how">근거: <span data-slot="check-3-evidence">E2E-033, E2E-035, E2E-013b가 x(예상 실패)로 유지, test.fail() 3곳 변경 없음. grep -ri thymeleaf build.gradle.kts src/main 결과 없음, templates 폴더 없음, DemoApplicationTests(기동) 통과. /orders/{없는 번호}는 getOrder 예외를 그대로 던져 500 보존.</span></div></div></div>
+</section>
+
+<section class="sec" id="regression">
+  <h2><span class="no">3</span>Regression Test <span class="hint">— 있는 테스트를 모두 실행</span></h2>
+  <div class="two">
+    <div class="mini"><h3>JUnit</h3><div class="big"><span data-slot="junit-pass">24</span><small> / <span data-slot="junit-total">24</span> 통과</small></div>
+      <div class="bar" style="--p:100%" data-slot="junit-bar"><i></i></div></div>
+    <div class="mini"><h3>E2E (Playwright)</h3><div class="big"><span data-slot="e2e-pass">45</span><small> / <span data-slot="e2e-total">45</span> 기대한 결과</small></div>
+      <div class="bar" style="--p:100%" data-slot="e2e-bar"><i></i></div></div>
+  </div>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 이번 실행에서 예상 실패로 집계된 테스트: <span data-slot="expected-fail">3건 (E2E-033, E2E-035, E2E-013b)</span></p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th class="num">전체</th><th class="num">통과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td class="num"><span data-slot="junit-OrderFlowTests-total">10</span></td><td class="num"><span data-slot="junit-OrderFlowTests-pass">10</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-OrderFlowTests-state">통과</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td class="num"><span data-slot="junit-PlannerTest-total">12</span></td><td class="num"><span data-slot="junit-PlannerTest-pass">12</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-PlannerTest-state">통과</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td class="num"><span data-slot="junit-DemoApplicationTests-total">1</span></td><td class="num"><span data-slot="junit-DemoApplicationTests-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="junit-DemoApplicationTests-state">통과</span></td></tr>
+      <tr><td><b>MasterFormTests</b><div class="hint">마스터 입력칸 값 변환(toForm)</div></td><td class="num">1</td><td class="num">1</td><td><span class="chip" data-state="ok">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th class="num">전체</th><th class="num">기대한 결과</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b><div class="hint">E2E-001~005 · <code>login-access.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-1-total">5</span></td><td class="num"><span data-slot="e2e-1-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-1-state">통과</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b><div class="hint">E2E-006~010 · <code>order-quantity.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-2-total">5</span></td><td class="num"><span data-slot="e2e-2-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-2-state">통과</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b><div class="hint">E2E-011~014 · <code>simulation.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-3-total">5</span></td><td class="num"><span data-slot="e2e-3-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-3-state">통과 (예상 실패 1건 포함)</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b><div class="hint">E2E-015~021 · <code>confirm.spec.ts · e2e-021.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-4-total">7</span></td><td class="num"><span data-slot="e2e-4-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-4-state">통과</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b><div class="hint">E2E-022~026 · <code>e2e-022~026.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-5-total">5</span></td><td class="num"><span data-slot="e2e-5-pass">5</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-5-state">통과</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b><div class="hint">E2E-027~035 · <code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-6-total">10</span></td><td class="num"><span data-slot="e2e-6-pass">10</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-6-state">통과 (예상 실패 2건 포함)</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b><div class="hint">E2E-036~040 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-7-total">7</span></td><td class="num"><span data-slot="e2e-7-pass">7</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-7-state">통과</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b><div class="hint">E2E-041 · <code>e2e031-041.spec.ts</code></div></td>
+        <td class="num"><span data-slot="e2e-8-total">1</span></td><td class="num"><span data-slot="e2e-8-pass">1</span></td>
+        <td><span class="chip" data-state="ok" data-slot="e2e-8-state">통과</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">실행한 명령: <span data-slot="commands">./gradlew compileJava compileTestJava · ./gradlew cleanTest test · npx playwright test -c src/test/e2e/playwright.all.config.ts (포트 8092, 메모리 DB, 2회 연속)</span></p>
+</section>
+
+<section class="sec" id="changes">
+  <h2><span class="no">4</span>변경 요약</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>계층</th><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody><tr><td><span class="chip" data-state="ok">설정</span></td><td><code>build.gradle.kts, src/main/resources/application.properties</code></td><td>Thymeleaf 의존성 2개와 spring.thymeleaf.cache 설정 제거</td></tr>
+      <tr><td><span class="chip" data-state="ok">화면</span></td><td><code>src/main/resources/templates/*.html (6개 삭제)</code></td><td>서버 렌더링 템플릿 삭제</td></tr>
+      <tr><td><span class="chip" data-state="ok">화면</span></td><td><code>src/main/resources/static/{login,orders,order-new,order-detail,master}.html</code></td><td>정적 HTML 5개 신규. 클래스·id·name·문구는 템플릿과 동일</td></tr>
+      <tr><td><span class="chip" data-state="ok">스크립트</span></td><td><code>src/main/resources/static/js/{common,login,orders,order-detail,master}.js</code></td><td>헤더 주입, API 호출, 401이면 /login 이동, 화면 그리기·상태 변경·마스터 저장 (common.js는 수정, 나머지 신규)</td></tr>
+      <tr><td><span class="chip" data-state="ok">컨트롤러</span></td><td><code>controller/{AuthController,OrderController,MasterController}.java</code></td><td>폼 POST·모델 렌더링을 JSON API(/api/login·logout·me, /api/orders, /api/orders/{id}, /status, /api/master, /api/master/form)로 교체</td></tr>
+      <tr><td><span class="chip" data-state="ok">컨트롤러</span></td><td><code>controller/PageController.java (신규), GlobalModelAttributes.java (삭제), ApiController.java</code></td><td>화면 주소를 정적 HTML로 forward(no-store), 없는 주문 500 보존. ApiController.apiError는 접근 제한자만 변경</td></tr>
+      <tr><td><span class="chip" data-state="ok">설정</span></td><td><code>config/WebConfig.java</code></td><td>인터셉터 제외 경로에 /login.html, /api/login 추가</td></tr>
+      <tr><td><span class="chip" data-state="ok">테스트</span></td><td><code>src/test/e2e/{helpers,common-helpers,e2e031-041,confirm}.ts, playwright.all.config.ts (신규)</code></td><td>API 호출 방식과 렌더 대기로 변경(단언 의도 유지), 전체 E2E 격리 실행 설정 추가</td></tr>
+      <tr><td><span class="chip" data-state="ok">테스트</span></td><td><code>src/test/java/.../OrderFlowTests.java</code></td><td>로그인·마스터 저장을 API로 변경, 비로그인 정적 경로·API 401 단언 1건 추가</td></tr>
+      <tr><td><span class="chip" data-state="ok">설정</span></td><td><code>INTENT.md</code></td><td>5.7, 6장 표, 8.3을 새 구조에 맞게 수정</td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-refactor" id="loop-refactor">
+  <h2><span class="no">★</span>리팩토링 결과</h2>
+  <ul class="list"><li>동작이 그대로임을 확인한 방법: <span data-slot="refactor-proof">JUnit 24건과 E2E 45건(001~041)을 격리 포트·메모리 DB에서 2회 연속 실행해 모두 기대한 결과. 바뀌면 안 되는 목록(비로그인 302/401, 로그인 문구, 목록·상세·마스터 문구, 상태 변경 안내, 마스터 전부 아니면 전무)은 E2E와 JUnit 단언으로 확인.</span></li><li>정리한 것: <span data-slot="refactor-done">서버 렌더링을 정적 HTML+JS와 JSON API로 분리하고 폼 POST·모델 렌더링·Thymeleaf 의존성을 제거했다. 화면 주소·문구·클래스는 그대로.</span></li><li>손대지 않은 것: <span data-slot="refactor-out">알려진 결함 수정(취소 직후 500, 없는 주문 번호 500, E2E-013b), 업무 규칙·DB 변경, CSS·애니메이션 로직 변경, HELP.md의 Thymeleaf 언급.</span></li></ul>
+</section>
+
+<section class="sec" id="history">
+  <h2><span class="no">5</span>회차 이력 <span class="hint">— 1회차에 통과했다면 "없음"이라고 적어 주세요</span></h2>
+  <ul class="tl"><li><b>없음</b><div class="hint">1회차에 통과했습니다.</div></li></ul>
+</section>
+
+<section class="sec" id="remaining">
+  <h2><span class="no">6</span>남은 이슈 · 확인하지 못한 것</h2>
+  <ul class="list"><li>알려진 결함 3건(취소 직후 HTTP 500, 없는 주문 번호 HTTP 500, E2E-013b)은 의도대로 그대로 두었다. 별도 버그수정 Loop 대상.</li>
+    <li>수정 전 코드(worktree)에서 신규 JUnit 단언이 실패하는지는 확인하지 못했다. 신규 경로·API가 수정 전에는 없어 구조상 실패한다.</li>
+    <li>화면이 데이터를 받아 그리기 전까지 잠시 비어 보인다(INTENT 6장에 반영). E2E 헬퍼에 렌더 대기를 추가했다.</li>
+    <li>HELP.md에 Thymeleaf 언급이 남아 있다(Spring 기본 안내, 범위 밖).</li></ul>
+</section>
+
+<section class="sec" id="logs">
+  <h2><span class="no">7</span>기록 위치</h2>
+  <ul class="list">
+    <li>구현 전 점검: <code data-slot="precheck-path">docs/evidence/yeri/REF-004-thymeleaf-to-static-html-js/precheck.html</code></li>
+    <li>점검 로그: <code data-slot="prepare-log">docs/logs/prepare/inspection_20261022_110842.log</code></li>
+    <li>검증 로그: <code data-slot="verify-log">docs/logs/verify/review_20261022_112024.log</code></li>
+    <li>실행 환경: <span data-slot="env">Java 17 · Node 24 · E2E 앱 포트 8092 · 별도(메모리) DB e2e-all</span></li>
+    <li>이 Report: <code data-slot="report-path">docs/evidence/yeri/REF-004-thymeleaf-to-static-html-js/report.html</code></li>
+  </ul>
+</section>
+
+<p class="footer">report@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용)</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+검증 로그 (verify) - 점검 시각 2026-10-22 13:30:35 / 1회차 / Loop 유형 develop
+작업: DEV-001 취소 직후 목록에 성공 안내 1회 표시
+
+[체크리스트 1] 취소하면 주문 목록으로 이동하고 성공 안내가 한 번 보인다 : 충족
+ - E2E-033 통과(별도 포트 8091, 임시 H2 DB). 취소 후 URL /orders, .alert.ok 에 "상태를 '취소'(으)로 바꿨습니다" 확인.
+ - 코드: order-detail.js 취소 분기 sessionStorage.setItem('flashMessage', res.message) (try/catch) 후 /orders 이동,
+   orders.js 로드 시 getItem -> removeItem -> #messages 에 .alert.ok 표시(esc), orders.html 에 div#messages.
+ - 화면 직접 취소는 E2E가 같은 경로(버튼 클릭)로 수행.
+[체크리스트 2] 안내는 1회, 새로고침하면 사라짐 + 재발 방지 테스트 : 충족
+ - 신규 E2E '취소 후 목록의 성공 안내는 새로고침하면 사라진다' 통과. 안내 표시 확인 후 reload -> .alert.ok 개수 0 을 직접 검증(약한 검증 아님).
+ - 테스트 1개 추가, 중복·무가치 테스트 없음.
+ - 수정 전 코드에서 실패하는지는 이 단계에서 따로 돌리지 않음(안내 코드가 없으면 첫 단언이 실패하는 구조임을 코드로 확인).
+   implement 가 removeItem 줄을 지웠을 때 실패, 복원 후 통과했다고 보고(검증 단계에서 재실행 안 함).
+[체크리스트 3] 기존 Regression Test 전체가 기대한 결과 : 충족
+ - ./gradlew compileJava compileTestJava test --rerun-tasks : BUILD SUCCESSFUL. JUnit 24건(Demo 1, MasterForm 1, OrderFlow 10, Planner 12) 실패 0 오류 0.
+ - Playwright 전체(프로젝트 밖 임시 설정으로 baseURL http://localhost:8091, 앱은 별도 DB로 기동): 46 passed (x 표시 2건은 test.fail() 예상 실패: E2E-035, E2E-013b).
+   그 2건 외 예상 밖 통과/실패 없음. test.fail() 의 E2E-033 은 이전 작업에서 이미 일반 테스트.
+
+[변경 범위] git diff: orders.html, order-detail.js, orders.js, PRD.md(7장 한 줄), e2e031-041.spec.ts 5개 파일만. 계획과 일치.
+ 서버·API·스키마 변경 없음. 계획에 없는 변경 없음. (.gitignore, docs/loops/yeri/README.md 등은 작업 전부터 변경된 것.)
+ 개발 서버 8080·개발 DB 미사용. 앱 8091 종료 확인. 임시 설정·DB 는 scratchpad(프로젝트 밖).
+
+[판정] PASS
+기타: 인수 기준 (c) 취소 실패 시 안내 없음, (d) sessionStorage 사용 불가 시 이동 정상 은 코드 읽기만 확인, 자동 테스트 없음.
+ implement 가 남긴 별도 java 프로세스(PID 29012, 포트 18093)는 이 검증이 띄운 것이 아니라 건드리지 않음.
