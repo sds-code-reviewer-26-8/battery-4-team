@@ -14,12 +14,19 @@ import org.junit.jupiter.api.Test;
 
 class PlannerTest {
 
+	private static final long EOK = 100_000_000L;
+
 	private static Master master(int ships) {
+		return master(ships, 10 * EOK, 10 * EOK, 10 * EOK, 10 * EOK);
+	}
+
+	/** 공장별 하루 운영비(원)를 지정한 마스터 */
+	private static Master master(int ships, long chinaOp, long japanOp, long vietnamOp, long indonesiaOp) {
 		return new Master(1, ships, 100_000_000L,
-				List.of(new FactoryParam(Country.CHINA, 400, 4000, 700),
-						new FactoryParam(Country.JAPAN, 800, 2000, 900),
-						new FactoryParam(Country.VIETNAM, 200, 10000, 550),
-						new FactoryParam(Country.INDONESIA, 300, 7000, 450)),
+				List.of(new FactoryParam(Country.CHINA, 400, 4000, 700, chinaOp),
+						new FactoryParam(Country.JAPAN, 800, 2000, 900, japanOp),
+						new FactoryParam(Country.VIETNAM, 200, 10000, 550, vietnamOp),
+						new FactoryParam(Country.INDONESIA, 300, 7000, 450, indonesiaOp)),
 				List.of(new RouteParam(Country.KOREA, Country.CHINA, 1),
 						new RouteParam(Country.KOREA, Country.JAPAN, 2),
 						new RouteParam(Country.KOREA, Country.VIETNAM, 5),
@@ -58,7 +65,8 @@ class PlannerTest {
 			plan.ships().forEach(s -> s.trips().forEach(t -> t.stops()
 					.forEach(st -> loaded.merge(st.country(), st.loadK(), Integer::sum))));
 			assertThat(loaded).as(plan.label()).isEqualTo(orders);
-			assertThat(plan.totalCost()).isEqualTo(plan.productionCost() + plan.shippingCost());
+			assertThat(plan.totalCost())
+					.isEqualTo(plan.productionCost() + plan.shippingCost() + plan.operatingCost());
 		}
 	}
 
@@ -88,6 +96,8 @@ class PlannerTest {
 		assertThat(stop.arriveDay()).isEqualTo(1);
 		assertThat(plan.totalDays()).isEqualTo(2);
 		assertThat(plan.shippingCost()).isEqualTo(2 * 100_000_000L);
+		// 운영비: 중국은 1일차(수거일)까지만 운영한다. 귀환일(2일차)까지가 아니다.
+		assertThat(plan.operatingCost()).isEqualTo(1 * 10 * EOK);
 	}
 
 	@Test
@@ -120,12 +130,13 @@ class PlannerTest {
 	}
 
 	@Test
-	void costOptionIsNotMoreExpensiveAndFastOptionIsNotSlower() {
+	void costOptionHasLowestShippingPlusOperatingAndFastOptionIsNotSlower() {
 		List<Plan> plans = Planner.plan(master(3), orders(3000, 3000, 3000, 3000));
 		Plan cost = plans.get(0);
 		Plan fast = plans.get(1);
 		Plan near = plans.get(2);
-		assertThat(cost.shippingCost()).isLessThanOrEqualTo(fast.shippingCost()).isLessThanOrEqualTo(near.shippingCost());
+		assertThat(cost.shippingCost() + cost.operatingCost()).isLessThanOrEqualTo(fast.shippingCost() + fast.operatingCost());
+		assertThat(cost.shippingCost() + cost.operatingCost()).isLessThanOrEqualTo(near.shippingCost() + near.operatingCost());
 		assertThat(fast.totalDays()).isLessThanOrEqualTo(cost.totalDays()).isLessThanOrEqualTo(near.totalDays());
 	}
 
@@ -136,7 +147,7 @@ class PlannerTest {
 		assertThat(plans.get(1).totalDays()).isLessThanOrEqualTo(plans.get(2).totalDays());
 	}
 
-	/** 배 1~4척, 나라별 주문 조합 전체에서 가장 빠르게는 어느 안보다 느리지 않고 운항비 최소는 어느 안보다 비싸지 않다. */
+	/** 배 1~4척, 나라별 주문 조합 전체에서 가장 빠르게는 어느 안보다 느리지 않고 총비용 최소(운항비+운영비)는 어느 안보다 비싸지 않다. */
 	@Test
 	void fastAndCostOptionsAreBestForEveryShipAndOrderCombination() {
 		int[] amounts = {0, 2000, 5000, 8000};
@@ -155,13 +166,71 @@ class PlannerTest {
 							String input = "배 %d척 %d/%d/%d/%d".formatted(ships, c, j, v, i);
 							assertThat(fast.totalDays()).as(input + " FAST ≤ COST 일수").isLessThanOrEqualTo(cost.totalDays());
 							assertThat(fast.totalDays()).as(input + " FAST ≤ NEAR 일수").isLessThanOrEqualTo(near.totalDays());
-							assertThat(cost.shippingCost()).as(input + " COST ≤ FAST 운항비").isLessThanOrEqualTo(fast.shippingCost());
-							assertThat(cost.shippingCost()).as(input + " COST ≤ NEAR 운항비").isLessThanOrEqualTo(near.shippingCost());
+							assertThat(cost.shippingCost() + cost.operatingCost()).as(input + " COST ≤ FAST 운항비+운영비")
+									.isLessThanOrEqualTo(fast.shippingCost() + fast.operatingCost());
+							assertThat(cost.shippingCost() + cost.operatingCost()).as(input + " COST ≤ NEAR 운항비+운영비")
+									.isLessThanOrEqualTo(near.shippingCost() + near.operatingCost());
 						}
 					}
 				}
 			}
 		}
+	}
+
+	@Test
+	void costOptionIsLabeledTotalCostMinimum() {
+		Plan cost = Planner.plan(master(3), orders(3000, 3000, 3000, 3000)).get(0);
+		assertThat(cost.type()).isEqualTo(Planner.COST);
+		assertThat(cost.label()).isEqualTo("총비용 최소");
+	}
+
+	/** 운영 일수는 주문일(0일차)부터 그 공장의 마지막 수거일(배가 도착한 날)까지다. 한국 귀환일이 아니다. */
+	@Test
+	void operatingDaysRunUntilEachFactorysLastPickup() {
+		// 일본 4500K = 3번 방문(2000, 2000, 500). 마지막 방문 도착일이 운영 일수다.
+		Plan plan = Planner.plan(master(1, 10 * EOK, 30 * EOK, 10 * EOK, 10 * EOK), orders(0, 4500, 0, 0)).get(0);
+		int lastArrive = plan.ships().get(0).trips().stream().mapToInt(t -> t.stops().get(0).arriveDay()).max().orElseThrow();
+		assertThat(lastArrive).isLessThan(plan.totalDays());
+		var japan = plan.factoryOperations().stream().filter(o -> o.country() == Country.JAPAN).findFirst().orElseThrow();
+		assertThat(japan.days()).isEqualTo(lastArrive);
+		assertThat(japan.cost()).isEqualTo(lastArrive * 30 * EOK);
+		assertThat(plan.operatingCost()).isEqualTo(japan.cost());
+	}
+
+	/** 주문이 없는 공장은 운영 일수와 운영비가 0이고, 공장 운영비의 합이 안의 운영비다. 공장마다 하루 운영비가 다르다. */
+	@Test
+	void factoriesWithoutOrderCostNothingAndEachFactoryUsesItsOwnDailyCost() {
+		Plan plan = Planner.plan(master(2, 20 * EOK, 5 * EOK, 7 * EOK, 3 * EOK), orders(400, 0, 2000, 0)).get(1);
+		assertThat(plan.factoryOperations()).hasSize(4);
+		long sum = 0;
+		for (Plan.FactoryOperation o : plan.factoryOperations()) {
+			long daily = switch (o.country()) {
+				case CHINA -> 20 * EOK;
+				case VIETNAM -> 7 * EOK;
+				default -> 0L;
+			};
+			if (daily == 0) {
+				assertThat(o.days()).as(o.country().name()).isZero();
+				assertThat(o.cost()).isZero();
+			} else {
+				assertThat(o.days()).as(o.country().name()).isPositive();
+				assertThat(o.cost()).isEqualTo(o.days() * daily);
+			}
+			sum += o.cost();
+		}
+		assertThat(plan.operatingCost()).isEqualTo(sum);
+	}
+
+	/** 운영비가 아주 크면 총비용 최소 안은 운항비가 더 들어도 운영 기간이 짧은 쪽을 고른다(운항비만 보지 않는다). */
+	@Test
+	void costOptionWeighsOperatingCostNotShippingAlone() {
+		long huge = 1_000 * EOK;
+		List<Plan> plans = Planner.plan(master(4, huge, huge, huge, huge), orders(3000, 3000, 3000, 3000));
+		Plan cost = plans.get(0);
+		Plan fast = plans.get(1);
+		assertThat(cost.operatingCost()).isLessThanOrEqualTo(fast.operatingCost());
+		assertThat(cost.shippingCost() + cost.operatingCost())
+				.isLessThanOrEqualTo(fast.shippingCost() + fast.operatingCost());
 	}
 
 	@Test
@@ -180,8 +249,9 @@ class PlannerTest {
 	@Test
 	void defaultOrderSummary() {
 		for (Plan plan : Planner.plan(master(3), orders(3000, 3000, 3000, 3000))) {
-			System.out.printf("%s: %d일, 생산 %.2f억, 운항 %.2f억, 합계 %.2f억, 배 %d척%n", plan.label(), plan.totalDays(),
-					plan.productionCost() / 1e8, plan.shippingCost() / 1e8, plan.totalCost() / 1e8,
+			System.out.printf("%s: %d일, 생산 %.2f억, 운항 %.2f억, 운영 %.2f억, 합계 %.2f억, 배 %d척%n", plan.label(),
+					plan.totalDays(), plan.productionCost() / 1e8, plan.shippingCost() / 1e8,
+					plan.operatingCost() / 1e8, plan.totalCost() / 1e8,
 					plan.ships().size());
 			plan.ships().forEach(s -> s.trips().forEach(t -> System.out.println("  " + s.no() + "호 출항 "
 					+ t.departDay() + " → " + t.stops().stream()

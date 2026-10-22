@@ -23,11 +23,11 @@ test('E2E-025 주문 상세에 확정 당시 내용, 이력, 애니메이션이 
 
   // 요약
   const summary = normalize(await page.locator('#summary').innerText());
-  for (const word of ['요약', '총 수량', '소요 일수', '생산 원가', '운항비', '총 비용']) expect(summary).toContain(word);
+  for (const word of ['요약', '총 수량', '소요 일수', '생산 원가', '운항비', '운영비', '총 비용']) expect(summary).toContain(word);
 
   // 나라별 주문 수량·방문 횟수, 배 경로, 일별 생산·비용(펼치기), 계획에 쓴 마스터 값(펼치기)
   const headings = (await page.locator('#details h2').allInnerTexts()).map(normalize);
-  expect(headings).toEqual(['나라별 주문 수량', '배 경로 (왕복별 일정)', '일별 생산·비용', '계획에 쓴 마스터 값']);
+  expect(headings).toEqual(['나라별 주문 수량', '배 경로 (왕복별 일정)', '일별 생산·비용', '계획에 쓴 마스터 값', '공장별 운영 일수·운영비']);
   const countryTable = normalize(await page.locator('#details > table.grid').first().innerText());
   expect(countryTable).toContain('필요 방문 횟수');
   const summaries = (await page.locator('#details details summary').allInnerTexts()).map(normalize);

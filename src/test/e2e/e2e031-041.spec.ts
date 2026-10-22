@@ -119,6 +119,9 @@ async function expectCancelRemovesOrder(page: Page, orderId: number) {
   // 상세에서 취소
   await page.goto(`/orders/${orderId}`);
   await changeStatusByButton(page, '취소');
+  // 취소하면 앱이 스스로 주문 목록으로 이동한다. 그 이동이 끝난 뒤에 목록을 열어야
+  // 두 이동이 겹쳐 "interrupted by another navigation" 으로 끊기지 않는다.
+  await expect(page).toHaveURL(/\/orders$/);
 
   // 목록을 직접 연다: 주문이 사라졌고, 전체 건수는 표의 행 수와 맞는다
   await page.goto('/orders');
@@ -390,12 +393,12 @@ test.describe('E2E-036~040 마스터 데이터', () => {
     // 4. 정리(원복)는 afterEach 에서 한다
   });
 
-  /** 기본 수량으로 시뮬레이션을 실행하고 '운항비 최소' 안의 소요 일수와 화면의 계획용 마스터 표를 돌려준다. */
+  /** 기본 수량으로 시뮬레이션을 실행하고 '총비용 최소' 안의 소요 일수와 화면의 계획용 마스터 표를 돌려준다. */
   async function simulateDefault(page: import('@playwright/test').Page) {
     await page.goto('/orders/new');
     await page.getByRole('button', { name: '시뮬레이션 실행' }).click();
     await expect(page.locator('#options .option')).toHaveCount(3);
-    await expect(page.locator('#options .option').first()).toHaveClass(/selected/); // 운항비 최소
+    await expect(page.locator('#options .option').first()).toHaveClass(/selected/); // 총비용 최소
     const daysText = await page
       .locator('#summary .stats div', { hasText: '소요 일수' })
       .locator('b')
@@ -407,7 +410,7 @@ test.describe('E2E-036~040 마스터 데이터', () => {
   test('E2E-038 바뀐 마스터 값이 새 시뮬레이션에 반영된다', async ({ page }) => {
     const china = original.factories.find((f: any) => f.country === 'CHINA');
 
-    // 1. 기본 수량으로 시뮬레이션해 '운항비 최소'의 소요 일수를 기록한다
+    // 1. 기본 수량으로 시뮬레이션해 '총비용 최소'의 소요 일수를 기록한다
     const daysBefore = await simulateDefault(page);
 
     // 2. 마스터에서 중국 하루 최대 생산량을 크게 줄여(예: 400 → 100) 저장한다
@@ -500,7 +503,7 @@ test.describe('E2E-036~040 마스터 데이터', () => {
 /**
  * E2E-041 로그인부터 완료·로그아웃까지 한 번에 진행한다 (대표 스모크 테스트)
  *
- * 로그인 → 주문 추가 → 시뮬레이션 → '운항비 최소' 선택·메모·확정 → 진행 → 완료
+ * 로그인 → 주문 추가 → 시뮬레이션 → '총비용 최소' 선택·메모·확정 → 진행 → 완료
  * → 목록의 '완료' 필터 → 로그아웃. 화면만 사용해 끝까지 이어지는지 본다.
  *
  * 주문이 1건 생기고 '완료' 상태라 취소할 수 없다. (테스트 DB 에 남는다)
@@ -518,11 +521,11 @@ test('E2E-041 로그인부터 완료·로그아웃까지 한 번에 진행한다
   await page.getByRole('button', { name: '시뮬레이션 실행' }).click();
   await expect(page.locator('#options .option')).toHaveCount(3);
 
-  // 3. '운항비 최소'를 선택하고 메모를 적어 [주문 확정] → 상세 화면, 상태 '확정'
+  // 3. '총비용 최소'를 선택하고 메모를 적어 [주문 확정] → 상세 화면, 상태 '확정'
   // (다른 테스트가 그 사이 마스터를 바꿔 확정이 거부되면 다시 시뮬레이션해서 확정한다. 최대 3번)
   for (let attempt = 1; attempt <= 3; attempt++) {
-    await page.locator('#options .option', { hasText: '운항비 최소' }).click();
-    await expect(page.locator('#summary')).toContainText('운항비 최소');
+    await page.locator('#options .option', { hasText: '총비용 최소' }).click();
+    await expect(page.locator('#summary')).toContainText('총비용 최소');
     await page.locator('#memo').fill('E2E-041 종단 흐름');
     await page.getByRole('button', { name: '주문 확정' }).click();
     const moved = await page

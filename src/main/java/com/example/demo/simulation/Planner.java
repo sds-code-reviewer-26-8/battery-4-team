@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 /**
- * 주문 수량으로부터 경로 3가지(운항비 최소 / 가장 빠르게 / 가까운 곳부터)를 계산한다.
+ * 주문 수량으로부터 경로 3가지(총비용 최소 / 가장 빠르게 / 가까운 곳부터)를 계산한다.
  *
  * <p>규칙 요약
  * <ul>
@@ -22,6 +22,7 @@ import java.util.TreeSet;
  * <li>한 나라의 방문 횟수는 올림(주문 / 재고 상한). 마지막 방문 전까지는 재고 상한만큼, 마지막은 나머지를 싣는다.</li>
  * <li>여러 번 수거할 때는 한국에 들러 내려놓고 다시 출항한다(왕복을 나눈다).</li>
  * <li>배는 재고가 채워지는 날에 맞춰 늦게 출항한다. 한국에서 대기는 무료.</li>
+ * <li>공장 운영비 = 하루 운영비 × 운영 일수(주문일부터 그 공장의 마지막 수거일까지). 주문 없는 공장은 0.</li>
  * </ul>
  */
 public final class Planner {
@@ -60,8 +61,9 @@ public final class Planner {
 			List<List<Country>> groups = sortGroups(master, partition);
 			for (List<List<List<Country>>> shipTrips : tripStructures(master, groups, amounts)) {
 				Candidate cand = schedule(master, orders, amounts, shipTrips);
-				if (cost == null || cand.shipping < cost.shipping
-						|| (cand.shipping == cost.shipping && cand.totalDays < cost.totalDays)) {
+				if (cost == null || cand.shipping + cand.operating < cost.shipping + cost.operating
+						|| (cand.shipping + cand.operating == cost.shipping + cost.operating
+								&& cand.totalDays < cost.totalDays)) {
 					cost = cand;
 				}
 				if (fast == null || cand.totalDays < fast.totalDays
@@ -73,7 +75,7 @@ public final class Planner {
 		Candidate near = nearest(master, orders, amounts, active, maxShips);
 
 		return List.of(
-				toPlan(master, orders, COST, "운항비 최소", cost),
+				toPlan(master, orders, COST, "총비용 최소", cost),
 				toPlan(master, orders, FAST, "가장 빠르게", fast),
 				toPlan(master, orders, NEAR, "가까운 곳부터", near));
 	}
@@ -299,7 +301,8 @@ public final class Planner {
 
 	// ---------------------------------------------------------------- 일정 계산
 
-	private record Candidate(List<ShipPlan> ships, int totalDays, long shipping) {
+	private record Candidate(List<ShipPlan> ships, int totalDays, long shipping, long operating,
+			Map<Country, Integer> operatingDays) {
 	}
 
 	/**
@@ -311,6 +314,7 @@ public final class Planner {
 		List<ShipPlan> ships = new ArrayList<>();
 		int totalDays = 0;
 		long shipping = 0;
+		Map<Country, Integer> operatingDays = new EnumMap<>(Country.class);
 		int no = 1;
 		for (List<List<Country>> trips : shipTrips) {
 			Map<Country, Integer> lastPickup = new EnumMap<>(Country.class);
@@ -343,6 +347,7 @@ public final class Planner {
 					int arrive = depart + offset[i];
 					planStops.add(new Stop(c, arrive, arrive, amounts.get(c)[v]));
 					lastPickup.put(c, arrive);
+					operatingDays.merge(c, arrive, Math::max);
 					visited.put(c, v + 1);
 				}
 				int back = depart + loop;
@@ -354,7 +359,11 @@ public final class Planner {
 			totalDays = Math.max(totalDays, free);
 			shipping += (long) sail * master.shipDailyCostWon();
 		}
-		return new Candidate(ships, totalDays, shipping);
+		long operating = 0;
+		for (Map.Entry<Country, Integer> e : operatingDays.entrySet()) {
+			operating += e.getValue() * master.factory(e.getKey()).dailyOperatingCostWon();
+		}
+		return new Candidate(ships, totalDays, shipping, operating, operatingDays);
 	}
 
 	private static int ceilDiv(int a, int b) {
@@ -367,6 +376,7 @@ public final class Planner {
 		Map<Country, int[]> stock = new EnumMap<>(Country.class);
 		Map<Country, int[]> production = new EnumMap<>(Country.class);
 		long productionCost = 0;
+		List<Plan.FactoryOperation> operations = new ArrayList<>();
 		for (Country c : Country.factories()) {
 			int q = orders.getOrDefault(c, 0);
 			int[] st = new int[cand.totalDays + 1];
@@ -377,9 +387,11 @@ public final class Planner {
 			}
 			stock.put(c, st);
 			production.put(c, pr);
+			int opDays = cand.operatingDays.getOrDefault(c, 0);
+			operations.add(new Plan.FactoryOperation(c, opDays, opDays * master.factory(c).dailyOperatingCostWon()));
 		}
-		return new Plan(type, label, cand.totalDays, productionCost, cand.shipping, productionCost + cand.shipping,
-				cand.ships, stock, production);
+		return new Plan(type, label, cand.totalDays, productionCost, cand.shipping, cand.operating,
+				productionCost + cand.shipping + cand.operating, cand.ships, stock, production, operations);
 	}
 
 	private static Map<Integer, Integer> pickups(Candidate cand, Country c) {
