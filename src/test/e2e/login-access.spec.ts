@@ -74,4 +74,28 @@ test.describe('1. 로그인·접근 통제', () => {
     await expect(page.getByRole('heading', { name: '주문 목록' })).toHaveCount(0);
     await expect(page.locator('table.grid')).toHaveCount(0);
   });
+  test('E2E-042 가입 화면에서 가입한 뒤 로그인하고, 로그인 전에는 여전히 막힌다', async ({ page }) => {
+    const username = `user${Date.now() % 1e9}`;
+    await page.goto('/login');
+    await page.getByRole('link', { name: '회원 가입' }).click();
+    await expect(page).toHaveURL(/\/signup$/);
+
+    // 규칙 위반은 이유와 함께 거부된다
+    await page.locator('input[name=username]').fill('admin');
+    await page.locator('input[name=password]').fill('abc');
+    await page.getByRole('button', { name: '가입' }).click();
+    await expect(page.locator('.alert.error')).toContainText('사용할 수 없는 아이디입니다');
+
+    await page.locator('input[name=username]').fill(username);
+    await page.locator('input[name=password]').fill('pass1234');
+    await page.getByRole('button', { name: '가입' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    await page.goto('/orders');
+    await expect(page).toHaveURL(/\/login$/);
+
+    await loginUi(page, username, 'pass1234');
+    await expect(page).toHaveURL(/\/orders$/);
+    await expect(page.locator('.topbar .user span')).toHaveText(username);
+  });
 });

@@ -36,6 +36,9 @@ class OrderFlowTests {
 
 	@Autowired
 	MockMvc mvc;
+
+	@Autowired
+	com.example.demo.repository.MemberRepository memberRepository;
 	@Autowired
 	OrderService orderService;
 
@@ -65,6 +68,77 @@ class OrderFlowTests {
 		mvc.perform(post("/api/master").contentType(MediaType.APPLICATION_JSON).content("{}"))
 				.andExpect(status().isUnauthorized());
 		mvc.perform(get("/login.html")).andExpect(status().isOk());
+	}
+
+	private MockHttpSession loginAs(String username, String password) throws Exception {
+		MockHttpSession session = new MockHttpSession();
+		mvc.perform(post("/api/login").session(session).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}"))
+				.andExpect(status().isOk());
+		return session;
+	}
+
+	private org.springframework.test.web.servlet.ResultActions signup(String username, String password) throws Exception {
+		return mvc.perform(post("/api/signup").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}"));
+	}
+
+	@Test
+	void signupThenLoginWorksAndAdminStillWorks() throws Exception {
+		mvc.perform(get("/signup")).andExpect(status().isOk()).andExpect(forwardedUrl("/signup.html"));
+		signup("tester01", "pass1234").andExpect(status().isOk());
+		loginAs("tester01", "pass1234");
+		login();
+		mvc.perform(post("/api/login").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"username\":\"tester01\",\"password\":\"wrong\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("아이디 또는 비밀번호가 올바르지 않습니다"));
+	}
+
+	@Test
+	void signupRejectsInvalidInputWithReasons() throws Exception {
+		signup("tester02", "pass1234").andExpect(status().isOk());
+		signup("tester02", "pass1234").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("이미 사용 중인 아이디입니다"));
+		signup("admin", "pass1234").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("사용할 수 없는 아이디입니다"));
+		signup("ADMIN", "pass1234").andExpect(status().isBadRequest());
+		// 아이디와 비밀번호 오류는 한 번에 알린다
+		signup("a!", "abc").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.allOf(
+						org.hamcrest.Matchers.containsString("아이디는"),
+						org.hamcrest.Matchers.containsString("비밀번호는"))));
+	}
+
+	@Test
+	void passwordIsStoredAsSaltedHash() throws Exception {
+		signup("tester03", "pass1234").andExpect(status().isOk());
+		var member = memberRepository.findByUsername("tester03").orElseThrow();
+		assertThat(member.getPasswordHash()).isNotEqualTo("pass1234").doesNotContain("pass1234");
+		assertThat(member.getSalt()).isNotBlank();
+	}
+
+	@Test
+	void signupDoesNotOpenOtherPages() throws Exception {
+		mvc.perform(get("/signup.html")).andExpect(status().isOk());
+		mvc.perform(get("/orders")).andExpect(redirectedUrl("/login"));
+		mvc.perform(get("/api/master")).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void memberHasSameAccessAsAdminAndIsRecordedInHistory() throws Exception {
+		signup("tester04", "pass1234").andExpect(status().isOk());
+		MockHttpSession s = loginAs("tester04", "pass1234");
+		mvc.perform(get("/orders").session(s)).andExpect(status().isOk());
+		mvc.perform(get("/api/orders").session(s)).andExpect(status().isOk());
+		mvc.perform(get("/api/master").session(s)).andExpect(status().isOk());
+		long id = confirm(s);
+		var order = orderService.getOrder(id);
+		mvc.perform(post("/api/orders/" + id + "/status").session(s).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"IN_PROGRESS\",\"version\":" + order.getVersion() + "}"))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/orders/" + id).session(s)).andExpect(status().isOk())
+				.andExpect(jsonPath("$.history[1].changedBy").value("tester04"));
 	}
 
 	@Test

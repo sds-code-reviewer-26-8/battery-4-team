@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 사용자 추가기능 / 회원 가입 후 로그인, 가입 회원은 admin과 동일한 권한</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="develop" data-status="GO">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">GO</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">사용자 추가기능 / 회원 가입 후 로그인, 가입 회원은 admin과 동일한 권한</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22 00:00:00</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 prepare 에이전트</span><span>브랜치 <span data-slot="branch">feature/signup</span> · 커밋 <span data-slot="commit">f38632f</span></span><span>요청자 <span data-slot="requester">youngeun</span></span><span>로그 <span data-slot="log-path">없음</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">GO: 회원 가입 + 가입 회원 로그인 추가. 가입 회원은 역할 구분 없이 로그인한 사용자와 같은 권한(= admin과 동일). PRD 10장·INTENT 원칙 14와 충돌하므로 문서를 먼저 고친다.</span></b></p>
+  <h3>주의</h3>
+  <ul class="list"><li>구현 후 결과 확인: 필요 — 회원 테이블 추가(DB 스키마 변경)와 핵심 불변식(원칙 14 로그인 통제) 관련 코드 변경</li></ul>
+  <h3>이유</h3>
+  <ul class="list"><li><span data-slot="reason">요청이 명시적: 회원 가입 후 로그인, 가입 회원 = admin 권한. 현재 로그인은 하드코딩 admin/admin 1개뿐이다 (AuthController.ACCOUNT). 배경·목적 이해함.</span></li>
+      <li><span data-slot="reason">문서 충돌(사용자가 문서 변경을 의도한 요청으로 판단): PRD 3장 "현재는 로그인 계정이 하나뿐", PRD 10장 "계정 관리와 역할별 권한, 보안 요건 제외", INTENT 원칙 14·7장 "고정 계정 1개", INTENT 4장 "권한 체계 등 범위 확장을 섞지 않는다. 필요하면 먼저 PRD에 반영". 계정 추가 기능을 명시 요청했으므로 의도적 범위 변경으로 보고 PRD·INTENT를 함께 고친다.</span></li>
+      <li><span data-slot="reason">"admin과 동일한 권한"은 PRD 3장 "역할별 권한 없음, 로그인한 누구나 모든 기능"과 이미 같다. 역할·권한 체계는 새로 만들지 않는다(최소 범위). 인터셉터는 세션 로그인 여부만 보므로 권한 코드 변경은 없다.</span></li>
+      <li><span data-slot="reason">INTENT 8.3 "로그인을 실제 인증으로 바꿀 때": 이력의 "누가"는 문자열로 유지하고 로그인 구현에 직접 묶지 않는다. 가입 아이디를 세션 loginUser 문자열로 그대로 쓰면 만족한다.</span></li>
+      <li><span data-slot="reason">DB에 회원 테이블이 추가되므로(ddl-auto=update) 구현 후 사람의 결과 확인이 필요하다.</span></li></ul>
+  <div class="only-hitl">
+    <h3>⚠ 경고</h3>
+    <ul class="list"><li><span data-slot="warning">(GO이므로 표시되지 않음)</span></li></ul>
+    <h3>사용자에게 확인할 질문</h3>
+    <ul class="list"><li><span data-slot="question">(없음)</span></li></ul>
+  </div>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">현재 로그인은 admin/admin 고정 계정 1개뿐이다. 담당자가 직접 가입해 로그인할 수 있게 하고, 가입자도 지금의 admin과 같이 모든 기능을 쓰게 한다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">요청문; AuthController.java ACCOUNT="admin"; LoginInterceptor.java; PRD 3장·10장; INTENT 원칙 14</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">끝나면 가입 화면에서 아이디·비밀번호로 가입하고, 그 계정으로 로그인해 주문·마스터 기능을 admin과 똑같이 쓸 수 있다. 기존 admin/admin 로그인은 계속 동작한다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">요청문 "회원 가입 후 로그인, 가입 회원은 admin과 동일한 권한"; PRD 3장 역할별 권한 없음</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="medium"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">예</span></b> <span class="hint">— <span data-slot="user-aware-why">"사용자 추가기능 / 회원 가입 후 로그인"은 PRD가 범위 밖으로 둔 계정 관리를 직접 요청한 것</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td><span data-slot="risk">회원 테이블 신규 추가(DB 스키마 변경, 개발 DB ./data/battery 영향)</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">새 엔티티만 추가하고 기존 테이블은 건드리지 않음. ddl-auto=update가 처리. 되돌리기는 테이블 삭제로 가능.</span></td></tr>
+      <tr><td><span data-slot="risk">비밀번호 평문 저장·보안 (PRD 10장: CSRF 등 보안 요건은 범위 밖)</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">비밀번호는 솔트+해시(JDK 표준 PBKDF2, 새 의존성 없음)로 저장. CSRF·잠금 등은 범위 밖 유지.</span></td></tr>
+      <tr><td><span data-slot="risk">누구나 가입하면 admin급 권한을 얻음(공개 가입 = 전 기능 개방)</span></td><td><span class="chip" data-state="bad" data-slot="risk-level">높음</span></td><td><span data-slot="risk-fix">요청이 명시한 동작이라 구현하되 PRD/INTENT에 명기하고 report에서 사람이 확인.</span></td></tr>
+      <tr><td><span data-slot="risk">/api/signup, /signup 이 로그인 인터셉터를 거치지 않아야 함(R11·원칙 14 완화 위험)</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">제외 경로는 signup 관련으로만 한정. E2E-001~005 접근 통제 회귀 확인.</span></td></tr>
+      <tr><td><span data-slot="risk">아이디 중복, admin 아이디 선점(사칭)</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">아이디 unique + "admin" 가입 거부, 입력 검증은 한 번에 알림(원칙 7·8).</span></td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list"><li><span data-slot="assumption">가입 즉시 로그인하지 않고 로그인 화면으로 이동하는 방식으로 가정(가입 후 로그인).</span></li>
+      <li><span data-slot="assumption">아이디/비밀번호 규칙(예: 아이디 3~20자 영숫자, 비밀번호 4자 이상)은 요청에 없어 임의로 정한다.</span></li>
+      <li><span data-slot="assumption">승인·이메일 인증 없는 즉시 가입으로 가정.</span></li>
+      <li><span data-slot="assumption">기존 E2E의 admin/admin 로그인 사용은 유지된다고 가정.</span></li></ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">f38632f</span> · INTENT.md <span data-slot="intent-version">f38632f</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="no" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="no" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="no" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="yes" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="yes" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="yes" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="no" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="no" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="yes" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="yes" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="yes" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="no" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="yes" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody><tr><td><span data-slot="relation-id">R11 / 원칙 14</span></td><td><span data-slot="relation">로그인한 사용자만 사용. 회원 로그인도 같은 세션(loginUser)으로 처리하고 가입 경로만 비로그인 허용.</span></td></tr>
+      <tr><td><span data-slot="relation-id">PRD 3장 / 10장</span></td><td><span data-slot="relation">역할별 권한·계정 관리 제외 조항을 "가입 회원 허용, 권한은 전원 동일"로 수정해야 함.</span></td></tr>
+      <tr><td><span data-slot="relation-id">원칙 7·8</span></td><td><span data-slot="relation">가입 입력도 한 번에 검증하고 이유를 한국어로 알림(BusinessException/400).</span></td></tr>
+      <tr><td><span data-slot="relation-id">원칙 9</span></td><td><span data-slot="relation">이력의 "누가"는 로그인 아이디 문자열이므로 가입 아이디가 그대로 기록됨.</span></td></tr>
+      <tr><td><span data-slot="relation-id">원칙 10</span></td><td><span data-slot="relation">OrderFlowTests에 가입·로그인 테스트 추가(규칙은 테스트로 고정).</span></td></tr></tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉함: "계정 관리와 역할별 권한, 보안 요건" 제외 항목(PRD 10장). 사용자가 해당 기능을 직접 요청했으므로 PRD 3·10장, INTENT 원칙 14·7장·8.3을 함께 수정한다. 역할별 권한과 CSRF는 계속 범위 밖.</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li><span data-slot="conflict">PRD 3장·10장, INTENT 원칙 14·4장·7장 vs 요청: 위 사유로 문서 갱신을 계획에 포함.</span></li>
+      <li><span data-slot="conflict">PRD 3장 사용자 표(주문 담당자/관리자)와 가입 회원의 위치: 가입 회원은 두 역할을 모두 수행(권한 구분 없음).</span></li></ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr data-layer="화면 템플릿"><td><b>화면 템플릿</b><div class="hint"><code>src/main/resources/templates/*.html</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-1-state">없음</span></td>
+        <td><span data-slot="layer-1-files">없음 (이 프로젝트는 templates 폴더 없이 static/*.html 사용, 아래 추가 행 참조)</span><div class="hint">login · orders · order-new · order-detail · master · fragments</div></td>
+        <td><span data-slot="layer-1-why">해당 없음</span></td></tr>
+      <tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-2-state">변경</span></td>
+        <td><span data-slot="layer-2-files">static/js/signup.js 신규. login.js·common.js는 확인만</span><div class="hint">order-new.js · planview.js · anim.js · common.js</div></td>
+        <td><span data-slot="layer-2-why">가입 폼 제출(/api/signup) 후 로그인 화면 이동</span></td></tr>
+      <tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/AppController.java</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-3-state">변경</span></td>
+        <td><span data-slot="layer-3-files">controller/AuthController.java (signup 추가, login이 회원도 검증, admin/admin 유지), controller/PageController.java (/signup)</span><div class="hint">화면 요청·JSON API·로그인 처리</div></td>
+        <td><span data-slot="layer-3-why">가입·로그인 API와 화면 주소</span></td></tr>
+      <tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>service/BatteryService.java</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-4-state">변경</span></td>
+        <td><span data-slot="layer-4-files">service/MemberService.java 신규 (가입 검증·해시·중복 검사, 로그인 검증)</span><div class="hint">확정·상태 변경·기준 정보 검증·버전 검사 (BusinessException)</div></td>
+        <td><span data-slot="layer-4-why">검증·해시를 컨트롤러에서 분리, BusinessException 사용</span></td></tr>
+      <tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/Planner.java · Master · Plan · StoredPlan</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-5-state">없음</span></td>
+        <td><span data-slot="layer-5-files">없음</span><div class="hint">DB·화면을 모르는 순수 계산 (원칙 11)</div></td>
+        <td><span data-slot="layer-5-why">Planner는 건드리지 않음(원칙 11)</span></td></tr>
+      <tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/* · H2 ./data/battery</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-6-state">변경</span></td>
+        <td><span data-slot="layer-6-files">entity/Member.java, repository/MemberRepository.java 신규</span><div class="hint">Order · OrderStatusHistory · Factory · Route · Setting</div></td>
+        <td><span data-slot="layer-6-why">회원 테이블 추가(username unique, passwordHash, salt, createdAt)</span></td></tr>
+      <tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/*</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-7-state">변경</span></td>
+        <td><span data-slot="layer-7-files">config/WebConfig.java: /signup, /signup.html, /api/signup 제외 경로 추가</span><div class="hint">LoginInterceptor · WebConfig · DataInitializer</div></td>
+        <td><span data-slot="layer-7-why">비로그인 가입 허용</span></td></tr>
+      <tr><td><span data-slot="layer-extra">정적 화면 (static/*.html)</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files">static/signup.html 신규, static/login.html("회원 가입" 링크), css/app.css 확인만</span></td><td><span data-slot="layer-extra-why">가입 화면</span></td></tr>
+      <tr><td><span data-slot="layer-extra">문서</span></td><td><span class="chip" data-state="warn">변경</span></td><td><span data-slot="layer-extra-files">PRD.md(3장·10장), INTENT.md(원칙 14, 7장, 8.3)</span></td><td><span data-slot="layer-extra-why">범위 변경 반영(INTENT 4장: 먼저 PRD 반영)</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 목록은 <code>grep -rn "test.fail" src/test/e2e</code> 로 확인해 주세요.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-OrderFlowTests-rel">관련</span></td>
+        <td><span data-slot="junit-OrderFlowTests-note">로그인 흐름 테스트 포함. 가입·가입 회원 로그인·중복·admin 사칭 거부 케이스 추가 필요.</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-PlannerTest-rel">영향 없음</span></td>
+        <td><span data-slot="junit-PlannerTest-note">계산 무관.</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-DemoApplicationTests-rel">관련</span></td>
+        <td><span data-slot="junit-DemoApplicationTests-note">새 엔티티로 컨텍스트가 뜨는지 확인.</span></td></tr>
+      <tr><td><span data-slot="junit-extra">MasterFormTests</span></td><td><span class="chip" data-state="none" data-slot="junit-extra-rel">영향 없음</span></td><td><span data-slot="junit-extra-note">마스터 폼 검증, 무관.</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-1-rel">관련</span></td>
+        <td><span data-slot="e2e-1-note">E2E-001~005 접근 통제: signup 예외 경로가 다른 화면의 401/리다이렉트를 풀지 않는지 회귀 확인. 가입 시나리오는 없음(추가).</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-2-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-2-note">없음</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b></td><td>E2E-011~014</td><td><code>simulation.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-3-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-3-note">없음</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts · e2e-021.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-4-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-4-note">없음</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b></td><td>E2E-022~026</td><td><code>e2e-022~026.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-5-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-5-note">없음</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b></td><td>E2E-027~035</td><td><code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-6-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-6-note">없음</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b></td><td>E2E-036~040</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-7-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-7-note">없음</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b></td><td>E2E-041</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-8-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-8-note">없음 (admin/admin 로그인 헬퍼를 쓰는 흐름은 샘플만 회귀)</span></td></tr>
+      <tr><td><span data-slot="e2e-extra">없음</span></td><td><span data-slot="e2e-extra-ids">없음</span></td><td><code data-slot="e2e-extra-file">없음</code></td><td><span class="chip" data-state="none" data-slot="e2e-extra-rel">영향 없음</span></td><td><span data-slot="e2e-extra-note">없음</span></td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">test.fail() 테스트에 영향 없음(로그인/가입 무관). 구현 후 grep -rn "test.fail" src/test/e2e 로 재확인.</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list"><li><span data-slot="gap">가입(신규) 흐름 자동 테스트 없음: 이번에 추가.</span></li>
+      <li><span data-slot="gap">로그인 흐름 자동 테스트가 얇음(INTENT 9장 5번).</span></li></ul>
+  <h3>추가·수정할 테스트 <span class="hint">(중복되거나 필요 없는 테스트는 만들지 말아 주세요)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody><tr><td><span data-slot="new-test">OrderFlowTests: 가입 후 로그인, 중복 아이디·admin 아이디·짧은 비밀번호 거부, 가입 회원이 주문/마스터 API 접근 가능</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">신규 규칙을 테스트로 고정(원칙 10)</span></td></tr>
+      <tr><td><span data-slot="new-test">login-access.spec.ts: 가입 화면에서 가입, 로그인, /orders 진입, 비로그인 /orders 리다이렉트 유지</span></td><td><span data-slot="new-test-kind">E2E</span></td><td><span data-slot="new-test-why">실제 화면 흐름과 접근 통제 회귀</span></td></tr></tbody></table></div>
+</section>
+
+<section class="sec for for-develop" id="loop-develop">
+  <h2><span class="no">★</span>개발 Loop 점검</h2>
+  <ul class="list">
+    <li>이번에 만드는 것(범위): <span data-slot="develop-scope">가입 화면(/signup)·API(/api/signup), 회원 테이블, 가입 회원 로그인(기존 admin 유지), 문서 갱신.</span></li>
+    <li>이번에 만들지 않는 것: <span data-slot="develop-out">역할별 권한, 비밀번호 변경·찾기, 회원 관리 화면, 이메일 인증, CSRF·잠금 등 보안 요건.</span></li>
+    <li>화면·API 변화 요약: <span data-slot="develop-change">로그인 화면에 "회원 가입" 링크, 새 가입 화면. 가입 후 로그인 화면으로 이동해 새 계정으로 로그인.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody><tr><td class="num"><span data-slot="plan-step">1</span></td><td><span data-slot="plan-detail">PRD.md·INTENT.md를 먼저 수정(가입 허용, 권한 전원 동일, 보안 요건 제외 유지).</span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">2</span></td><td><span data-slot="plan-detail">Member 엔티티·MemberRepository 추가(username unique, 솔트+PBKDF2 해시).</span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">3</span></td><td><span data-slot="plan-detail">MemberService: 가입 검증(전부 모아 400), 로그인 검증. AuthController signup 추가, login은 admin 고정 계정 또는 회원 인정.</span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">4</span></td><td><span data-slot="plan-detail">WebConfig 제외 경로, PageController /signup 추가. signup.html/js, login.html 링크.</span></td></tr>
+      <tr><td class="num"><span data-slot="plan-step">5</span></td><td><span data-slot="plan-detail">JUnit·E2E 추가 후 영향 테스트만 실행(OrderFlowTests, DemoApplicationTests, login-access).</span></td></tr></tbody></table></div>
+  <p class="hint only-hitl">HITL이면 계획은 비워 두셔도 됩니다. 사용자의 답을 받은 뒤 다시 점검하겠습니다.</p>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">가입 후 로그인 성공, 중복/예약 아이디/짧은 비밀번호는 이유와 함께 거부, 기존 admin/admin 로그인 유지</span></b><div class="how">확인 방법: <span data-slot="check-1-how">./gradlew test --tests "*OrderFlowTests" 와 login-access.spec.ts(가입 시나리오) 실행</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">가입 회원이 주문 목록·마스터 화면과 API를 admin과 똑같이 사용하고 이력 "누가"에 가입 아이디가 기록됨</span></b><div class="how">확인 방법: <span data-slot="check-2-how">JUnit에서 가입 회원 세션으로 /api/orders·/api/master 호출, 상태 변경 후 이력 작성자 확인</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">비로그인 접근 통제 유지(signup 외 화면은 /login 리다이렉트, API 401)이고 비밀번호가 평문이 아닌 해시로 저장됨</span></b><div class="how">확인 방법: <span data-slot="check-3-how">E2E-001~005 실행, JUnit에서 passwordHash != 원문 단언</span></div></div></div>
+  <p class="hint">정확히 3개로 부탁드립니다. 가장 중요한 것만 골라 주세요.</p>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용) · 점검 로그 <span data-slot="footer-log">없음</span></p>
+</div>
+</body>
+</html>
