@@ -31,6 +31,8 @@ async function confirmWithCustomer(page: Page, customerName: string): Promise<nu
 /** 목록의 맨 끝(9번째) 열 값 */
 async function listCustomerCell(page: Page, id: number): Promise<string> {
   await page.goto('/orders');
+  // 행은 목록 API 응답 뒤에 그려진다. allInnerTexts() 는 기다리지 않으므로 먼저 행이 보일 때까지 기다린다.
+  await expect(listRow(page, id)).toBeVisible();
   const cells = await listRow(page, id).locator('td').allInnerTexts();
   expect(cells).toHaveLength(9);
   return normalize(cells[8]);
