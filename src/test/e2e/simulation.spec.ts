@@ -73,8 +73,7 @@ test.describe('3. 경로안 계산·비교', () => {
 
   test.describe('E2E-013 (일부 불일치)', () => {
     test('E2E-013b 배 1척일 때도 가장 빠르게의 소요 일수가 가장 짧다', async ({ page, restoreMaster }) => {
-      // 알려진 불일치: 배 1척, 5000/2000/0/8000 에서 '가까운 곳부터'(45일)가 '가장 빠르게'(47일)보다 빠르다 (HJ-S14-08)
-      test.fail(true, '알려진 불일치: 가장 빠르게가 항상 가장 짧지는 않다. 고치면 이 표시를 지운다.');
+      // 배 1척, 5000/2000/0/8000 에서 '가까운 곳부터'(45일)가 '가장 빠르게'(47일)보다 빨랐던 불일치를 고쳤다 (HJ-S14-08)
       const form = await readMasterForm(page);
       await saveMaster(page, { ...form, shipCount: '1' });
       const sim = await apiSimulate(page, { CHINA: 5000, JAPAN: 2000, VIETNAM: 0, INDONESIA: 8000 });

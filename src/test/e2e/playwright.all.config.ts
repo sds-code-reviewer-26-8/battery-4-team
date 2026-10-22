@@ -8,7 +8,7 @@ import path from 'node:path';
  * - 시나리오가 주문을 만들고 마스터를 바꾸므로 한 번에 하나씩, 파일 이름 순서로 실행한다.
  * - 브라우저는 PC에 설치된 Chrome을 쓴다. 기본은 headless 이고 화면을 보려면 --headed.
  * - 실행: npx playwright test -c src/test/e2e/playwright.all.config.ts
- * - test.fail() 로 표시한 알려진 결함(E2E-033, E2E-035, E2E-013b)은 "예상 실패"로 집계된다.
+ * - test.fail() 로 표시한 알려진 결함(E2E-033, E2E-035)은 "예상 실패"로 집계된다.
  */
 const PORT = 8092;
 const isWindows = process.platform === 'win32';

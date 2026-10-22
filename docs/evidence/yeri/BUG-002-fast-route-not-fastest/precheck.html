@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 가장 빠르게 안이 가장 짧지 않음</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="bugfix" data-status="GO">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">GO</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">가장 빠르게 안 수정: 배 1척 · 주문 5000/2000/0/8000에서 "가장 빠르게"(47일)가 "가까운 곳부터"(45일)보다 느린 문제를 없애, 가장 빠르게 안이 어느 안보다 느리지 않게 한다. (E2E-013b, HJ-S14-08)</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-22</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 Claude Code (사후 정리)</span><span>브랜치 <span data-slot="branch">fix/fast-route-not-fastest</span> · 커밋 <span data-slot="commit">dbd74db 위에 6e68c70 · f4b0f2f · 7161d93 (PR #27)</span></span><span>요청자 <span data-slot="requester">사용자(버그 리포트 HJ-S14-08)</span></span><span>로그 <span data-slot="log-path">남기지 않음(Loop 실행이 아님)</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">버그 확인(재현함, 원인 확인함). 문서가 정한 동작("가장 빠르게 = 총 소요 일수가 가장 짧은 안")과 달라 최소 수정으로 고친다. GO.</span></b></p>
+  <h3>이유</h3>
+  <ul class="list"><li data-repeat="reason"><span data-slot="reason">PRD 8장은 가장 빠르게를 "총 소요 일수가 가장 짧은 안"으로 정한다. 현재는 같은 입력에서 가까운 곳부터(45일)가 더 짧아 정한 동작과 다르다.</span></li>
+<li data-repeat="reason"><span data-slot="reason">재현: E2E-013b가 test.fail() 예상 실패로 돌아 결함이 지금 있음을 확인했다. 입력 배 1척 · 5000/2000/0/8000에서 COST 47 / FAST 47 / NEAR 45일 (버그 리포트 HJ-S14-08).</span></li>
+<li data-repeat="reason"><span data-slot="reason">규모 작음(Planner 14줄, DB·상태 전이·락 변경 없음). 다만 경로 계산의 후보 범위가 바뀌므로 규모는 "중간"으로 본다.</span></li>
+<li data-repeat="reason"><span data-slot="reason">주의: 이 문서는 /ih Loop를 실행해 나온 것이 아니라, 수정과 검증을 마친 뒤 Loop 설계(docs/loops/yeri/README.md) 형식에 맞춰 사후 정리한 것이다.</span></li>
+</ul>
+  <div class="only-hitl">
+    <h3>⚠ 경고</h3>
+    <ul class="list"></ul>
+    <h3>사용자에게 확인할 질문</h3>
+    <ul class="list"></ul>
+  </div>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">세 가지 안을 비교하는 화면에서 "가장 빠르게"를 골랐는데, 어떤 입력에서는 "가까운 곳부터"가 이틀 더 빨리 끝난다. 이름과 실제 결과가 어긋나 비교를 믿기 어렵다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">버그 리포트 HJ-S14-08(docs/bug_report_bc51583_20261022_E2E-013b.html), E2E-013b 예상 실패, Planner.plan 코드</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">"가장 빠르게"의 소요 일수가 어느 안보다 길지 않게 한다. 나머지 계산 규칙(일정·비용·재고)은 그대로 둔다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">PRD 8장 "가장 빠르게: 총 소요 일수가 가장 짧은 안", R2, INTENT 5.1·원칙 1</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="medium"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">해당 없음</span></b> <span class="hint">— <span data-slot="user-aware-why">큰 변경·높은 위험은 없다. 핵심 계산의 후보 범위만 넓어진다.</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr data-repeat="risk"><td><span data-slot="risk">후보가 늘어 COST·FAST 계산량이 커진다. 후보는 묶음(배)별로 곱해 조합되므로 이론상 최대 2^(묶음 수)배.</span></td><td><span class="chip" data-state="warn" data-slot="risk-level">중간</span></td><td><span data-slot="risk-fix">공장 4개·배 4척이 상한이다. 최악 입력(배 4척, 4개국 각 20,000)에서 계획 1회 약 8ms(리뷰어 측정). 전체 JUnit·E2E 시간 변화 없음.</span></td></tr>
+      <tr data-repeat="risk"><td><span data-slot="risk">COST·FAST 결과가 바뀌는 다른 입력이 있을 수 있다.</span></td><td><span class="chip" data-state="ok" data-slot="risk-level">낮음</span></td><td><span data-slot="risk-fix">후보를 더하기만 하므로 최소값은 같거나 더 좋아진다. 기존 확정 주문은 스냅샷이라 영향 없음. 배 1~4척 × 주문 조합 전체에서 FAST·COST가 어느 안보다 나쁘지 않음을 PlannerTest로 확인.</span></td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list"><li data-repeat="assumption"><span data-slot="assumption">NEAR와 같은 방문 순서를 후보에 넣으면 FAST ≤ NEAR가 보장된다. NEAR의 묶음 나누기와 왕복 구성은 이미 후보에 있고 방문 순서만 달랐다는 코드 읽기에 근거한다.</span></li>
+<li data-repeat="assumption"><span data-slot="assumption">보장 범위는 "후보 안의 최소"다. 후보 밖의 다른 방문 순서까지 포함한 전체 최단은 보장하지 않는다. (INTENT 5.1에 명시)</span></li>
+</ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">dbd74db 기준</span> · INTENT.md <span data-slot="intent-version">dbd74db 기준</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="yes" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="no" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="no" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="no" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="no" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="yes" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="no" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="no" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="no" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="yes" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="no" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="no" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody><tr data-repeat="relation"><td><span data-slot="relation-id">R2</span></td><td><span data-slot="relation">경로안 계산·비교. 가장 빠르게 안이 총 소요 일수가 가장 짧은 안이어야 한다(PRD 8장). 이번에 고치는 대상.</span></td></tr>
+<tr data-repeat="relation"><td><span data-slot="relation-id">원칙 1</span></td><td><span data-slot="relation">비교가 먼저다. 세 안의 이름과 결과가 맞아야 비교를 믿을 수 있다. 안 3개를 항상 반환하는 구조는 그대로.</span></td></tr>
+<tr data-repeat="relation"><td><span data-slot="relation-id">원칙 10</span></td><td><span data-slot="relation">규칙은 테스트로 고정한다. E2E-013b와 PlannerTest로 가장 빠르게 ≤ 가까운 곳부터를 지킨다.</span></td></tr>
+</tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉하지 않음 (나라·공장·선박 수 확대나 탐색 방식 변경이 아니다)</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li data-repeat="conflict"><span data-slot="conflict">INTENT 5.1이 "정해 둔 후보 구성을 모두 만들어 비교"라고만 적고 방문 순서 후보가 두 가지라는 점은 없다. 수정과 함께 5.1을 정리한다(후보 두 가지, 보장 범위).</span></li>
+</ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr data-layer="화면 템플릿"><td><b>화면 템플릿</b><div class="hint"><code>src/main/resources/templates/*.html</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-1-state">없음</span></td>
+        <td><span data-slot="layer-1-files">없음</span><div class="hint">login · orders · order-new · order-detail · master · fragments</div></td>
+        <td><span data-slot="layer-1-why">관련 없음</span></td></tr>
+      <tr data-layer="화면 스크립트"><td><b>화면 스크립트</b><div class="hint"><code>src/main/resources/static/js/*.js</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-2-state">없음</span></td>
+        <td><span data-slot="layer-2-files">없음</span><div class="hint">order-new.js · planview.js · anim.js · common.js</div></td>
+        <td><span data-slot="layer-2-why">관련 없음</span></td></tr>
+      <tr data-layer="컨트롤러"><td><b>컨트롤러</b><div class="hint"><code>controller/AppController.java</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-3-state">없음</span></td>
+        <td><span data-slot="layer-3-files">없음</span><div class="hint">화면 요청·JSON API·로그인 처리</div></td>
+        <td><span data-slot="layer-3-why">관련 없음</span></td></tr>
+      <tr data-layer="서비스"><td><b>서비스</b><div class="hint"><code>service/BatteryService.java</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-4-state">없음</span></td>
+        <td><span data-slot="layer-4-files">없음</span><div class="hint">확정·상태 변경·기준 정보 검증·버전 검사 (BusinessException)</div></td>
+        <td><span data-slot="layer-4-why">관련 없음</span></td></tr>
+      <tr data-layer="경로 계산"><td><b>경로 계산</b><div class="hint"><code>simulation/Planner.java · Master · Plan · StoredPlan</code></div></td>
+        <td><span class="chip" data-state="warn" data-slot="layer-5-state">변경</span></td>
+        <td><span data-slot="layer-5-files">Planner.groupStructures: 왕복 방문 순서 후보에 가까운 나라부터 도는 순서 추가. nearFirstOrder 메서드 신설(+14줄)</span><div class="hint">DB·화면을 모르는 순수 계산 (원칙 11)</div></td>
+        <td><span data-slot="layer-5-why">원인: 항해 일수가 가장 짧은 순서만 후보라 NEAR 일정이 후보 밖이었다</span></td></tr>
+      <tr data-layer="엔티티·DB"><td><b>엔티티·DB</b><div class="hint"><code>entity/* · repository/* · H2 ./data/battery</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-6-state">없음</span></td>
+        <td><span data-slot="layer-6-files">없음</span><div class="hint">Order · OrderStatusHistory · Factory · Route · Setting</div></td>
+        <td><span data-slot="layer-6-why">스키마·엔티티 변경 없음</span></td></tr>
+      <tr data-layer="설정·로그인"><td><b>설정·로그인</b><div class="hint"><code>config/*</code></div></td>
+        <td><span class="chip" data-state="none" data-slot="layer-7-state">없음</span></td>
+        <td><span data-slot="layer-7-files">없음</span><div class="hint">LoginInterceptor · WebConfig · DataInitializer</div></td>
+        <td><span data-slot="layer-7-why">관련 없음</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB(<code>./data/battery</code>)가 아니라, 따로 띄운 앱(별도 포트·별도 DB)에서 실행합니다. <code>test.fail()</code>로 표시한 알려진 결함 테스트는 실패하는 것이 정상입니다. 목록은 <code>grep -rn "test.fail" src/test/e2e</code> 로 확인해 주세요.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-junit="OrderFlowTests"><td><b>OrderFlowTests</b><div class="hint">주문 확정·상태 변경·기준 정보 검증·로그인 흐름 (MockMvc)</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-OrderFlowTests-rel">영향 없음</span></td>
+        <td><span data-slot="junit-OrderFlowTests-note">주문·상태 규칙. 변경 없음</span></td></tr>
+      <tr data-junit="PlannerTest"><td><b>PlannerTest</b><div class="hint">방문 횟수·적재량·재고 상한·출항 시점·비용 대소 등 계산 규칙</div></td>
+        <td><span class="chip" data-state="warn" data-slot="junit-PlannerTest-rel">관련</span></td>
+        <td><span data-slot="junit-PlannerTest-note">계산 규칙. 비용·일수 대소 테스트가 있음. 재발 방지 테스트 2건 추가</span></td></tr>
+      <tr data-junit="DemoApplicationTests"><td><b>DemoApplicationTests</b><div class="hint">스프링 컨텍스트가 뜨는지</div></td>
+        <td><span class="chip" data-state="none" data-slot="junit-DemoApplicationTests-rel">영향 없음</span></td>
+        <td><span data-slot="junit-DemoApplicationTests-note">컨텍스트 기동, 무관</span></td></tr>
+    </tbody></table></div>
+  <p class="hint">아래 표는 작성할 때의 목록입니다. 테스트가 늘었다면 <code>ls src/test/java src/test/e2e</code> 로 확인하고 행을 추가해 주세요.</p>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr data-e2e="1 로그인·접근 통제"><td><b>1 로그인·접근 통제</b></td><td>E2E-001~005</td><td><code>login-access.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-1-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-1-note">관련 없음</span></td></tr>
+      <tr data-e2e="2 주문 수량 입력"><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-2-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-2-note">관련 없음</span></td></tr>
+      <tr data-e2e="3 경로안 계산·비교"><td><b>3 경로안 계산·비교</b></td><td>E2E-011~014</td><td><code>simulation.spec.ts</code></td>
+        <td><span class="chip" data-state="warn" data-slot="e2e-3-rel">관련</span></td>
+        <td><span data-slot="e2e-3-note">E2E-013(기본 수량 대소 관계), E2E-013b(재현 테스트, test.fail), E2E-011·012·014(결과가 바뀔 수 있어 전체 실행으로 확인)</span></td></tr>
+      <tr data-e2e="4 주문 확정"><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts · e2e-021.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-4-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-4-note">관련 없음</span></td></tr>
+      <tr data-e2e="5 주문 목록·상세"><td><b>5 주문 목록·상세</b></td><td>E2E-022~026</td><td><code>e2e-022~026.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-5-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-5-note">관련 없음</span></td></tr>
+      <tr data-e2e="6 주문 상태 관리"><td><b>6 주문 상태 관리</b></td><td>E2E-027~035</td><td><code>e2e-027~030.spec.ts · e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-6-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-6-note">관련 없음</span></td></tr>
+      <tr data-e2e="7 기준 정보(마스터)"><td><b>7 기준 정보(마스터)</b></td><td>E2E-036~040</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-7-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-7-note">관련 없음</span></td></tr>
+      <tr data-e2e="8 대표 종단 흐름"><td><b>8 대표 종단 흐름</b></td><td>E2E-041</td><td><code>e2e031-041.spec.ts</code></td>
+        <td><span class="chip" data-state="none" data-slot="e2e-8-rel">영향 없음</span></td>
+        <td><span data-slot="e2e-8-note">관련 없음</span></td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">E2E-013b는 결함이 고쳐지므로 test.fail()을 지워야 한다. E2E-033, E2E-035는 영향 없고 그대로 실패해야 한다(033은 PR #26이 고친다).</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list"><li data-repeat="gap"><span data-slot="gap">E2E-013b는 입력 하나만 확인한다. 배 수·주문 조합 전반에서 FAST ≤ NEAR를 지키는 JUnit 테스트가 없다.</span></li>
+</ul>
+  <h3>추가·수정할 테스트 <span class="hint">(중복되거나 필요 없는 테스트는 만들지 말아 주세요)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody><tr data-repeat="new-test"><td><span data-slot="new-test">E2E-013b 일반 테스트 전환(test.fail 제거)</span></td><td><span data-slot="new-test-kind">E2E</span></td><td><span data-slot="new-test-why">고친 동작을 회귀 테스트로 지킨다</span></td></tr>
+<tr data-repeat="new-test"><td><span data-slot="new-test">PlannerTest.fastOptionIsNotSlowerThanNearForReportedCase</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">보고 사례를 계산 단위에서 지킨다</span></td></tr>
+<tr data-repeat="new-test"><td><span data-slot="new-test">PlannerTest.fastAndCostOptionsAreBestForEveryShipAndOrderCombination</span></td><td><span data-slot="new-test-kind">JUnit</span></td><td><span data-slot="new-test-why">배 1~4척 × 주문 조합 전체에서 FAST·COST가 어느 안보다 나쁘지 않음</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section class="sec for for-bugfix" id="loop-bugfix">
+  <h2><span class="no">★</span>버그수정 Loop 점검</h2>
+  <ul class="list">
+    <li>재현 방법: <span data-slot="bugfix-repro">마스터에서 배 1척으로 저장, 시뮬레이션 입력 중국 5000 / 일본 2000 / 베트남 0 / 인도네시아 8000. 기대: 가장 빠르게의 소요 일수가 세 안 중 가장 짧다. 실제: COST 47 / FAST 47 / NEAR 45일. 확인: npx playwright test -c src/test/e2e/playwright.all.config.ts -g "E2E-013b" 가 예상 실패(x)로 나옴(포트 8092, 메모리 DB).</span></li>
+    <li>원인(확인한 코드 위치): <span data-slot="bugfix-cause">Planner.java groupStructures가 왕복마다 방문 순서를 shortestOrder(항해 일수 최소) 하나로만 만든다. 방문 순서가 재고가 차는 시점을 바꾸므로 항해가 짧은 순서가 전체 소요 일수까지 가장 짧다는 보장이 없다. NEAR는 가까운 나라부터 도는 순서라 후보에 없는 일정이 되어 FAST보다 짧아질 수 있다.</span></li>
+    <li>같은 문제가 생기지 않게 막는 테스트: <span data-slot="bugfix-guard">E2E-013b 일반 테스트 전환, PlannerTest 2건 추가(보고 사례, 배 1~4척 × 주문 조합 전체). 수정 전 Planner로는 PlannerTest 2건이 실패함을 확인했다.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody><tr data-repeat="plan"><td class="num"><span data-slot="plan-step">1</span></td><td><span data-slot="plan-detail">Planner.groupStructures: 방문 순서 후보에 "가까운 나라부터" 순서를 더한다(shortestOrder와 같으면 중복 추가하지 않음). nearFirstOrder 메서드를 만든다.</span></td></tr>
+<tr data-repeat="plan"><td class="num"><span data-slot="plan-step">2</span></td><td><span data-slot="plan-detail">simulation.spec.ts: E2E-013b의 test.fail(...) 제거, playwright.all.config.ts 주석에서 013b 제거.</span></td></tr>
+<tr data-repeat="plan"><td class="num"><span data-slot="plan-step">3</span></td><td><span data-slot="plan-detail">PlannerTest: 보고 사례와 배 1~4척 × 주문 조합 전체 테스트 추가. INTENT 5.1에 후보 두 가지와 보장 범위를 적는다.</span></td></tr>
+<tr data-repeat="plan"><td class="num"><span data-slot="plan-step">4</span></td><td><span data-slot="plan-detail">이번에 하지 않는 것: 후보 밖 배치까지 포함한 전체 최단 탐색, 일정 계산(schedule)·NEAR 생성 변경, 다른 결함(E2E-033, 035).</span></td></tr>
+</tbody></table></div>
+  <p class="hint only-hitl">HITL이면 계획은 비워 두셔도 됩니다. 사용자의 답을 받은 뒤 다시 점검하겠습니다.</p>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b><span data-slot="check-1">재현 입력(배 1척, 5000/2000/0/8000)에서 가장 빠르게의 소요 일수가 세 안 중 가장 짧다</span></b><div class="how">확인 방법: <span data-slot="check-1-how">E2E-013b가 test.fail() 없이 통과</span></div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b><span data-slot="check-2">재발 방지 테스트가 있고, 고치기 전 실패 / 고친 뒤 통과한다</span></b><div class="how">확인 방법: <span data-slot="check-2-how">PlannerTest 2건이 수정 전 Planner에서 실패하고 수정 후 통과</span></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b><span data-slot="check-3">기존 Regression Test(JUnit + E2E 전체)가 모두 기대한 결과다</span></b><div class="how">확인 방법: <span data-slot="check-3-how">./gradlew test, 전체 E2E(playwright.all.config.ts). E2E-033, E2E-035의 test.fail은 그대로 실패해야 한다</span></div></div></div>
+  <p class="hint">정확히 3개로 부탁드립니다. 가장 중요한 것만 골라 주세요.</p>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 (통합 · 개발 · 리팩토링 · 버그수정 Loop 공용) · 점검 로그 <span data-slot="footer-log">없음(Loop 실행이 아님)</span></p>
+</div>
+</body>
+</html>
