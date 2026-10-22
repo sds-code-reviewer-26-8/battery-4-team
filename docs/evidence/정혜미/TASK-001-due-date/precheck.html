@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 필요 납기일 선택과 납기 초과 경로안 빨간 표시</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="develop" data-status="GO">
+<div class="wrap">
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류"><li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li></ul>
+  <div class="status-badge">GO</div>
+  <h1>구현 전 점검</h1>
+  <p class="target">필요 납기일을 요청할 수 있다. 체크박스에 체크하면 '가능한 빨리', 원하는 납기일이 있으면 5~50일 내에서 선택. 주문 시 납기일이 지나는 방법(경로안)은 빨간색으로 표시.</p>
+  <p class="meta"><span>날짜 2026-10-22 15:10:42</span><span>회차 1</span><span>작성 prepare 에이전트</span><span>브랜치 feature/battery-hyemiJung-due-date · 커밋 f38632f</span><span>요청자 정혜미</span><span>로그 docs/logs/prepare/inspection_20261022_151042.log</span></p>
+</header>
+<section class="sec" id="verdict"><h2><span class="no">1</span>판단</h2>
+  <p><b>GO: 주문 추가 화면 한정 변경(파일 4개)으로 진행한다. 납기 저장은 이번 범위에서 제외한다.</b></p>
+  <h3>이유</h3><ul class="list">
+<li>배경·목적을 요청 문구와 PRD R1~R3, order-new 화면 코드로 설명할 수 있다(확인한 사실).</li><li>서버·Planner·DB 를 건드리지 않아 High 이상 위험이 없다. Plan.totalDays 가 이미 있어 화면에서 비교할 수 있다(확인한 사실).</li><li>요청이 문장 단편이라 "방법"을 "경로안"으로 해석했다(추정, PRD 4장 용어 근거).</li></ul>
+</section>
+<section class="sec" id="understand"><h2><span class="no">2</span>이해 점검</h2><div class="two">
+ <div class="mini"><h3>배경 <span class="chip" data-state="ok">이해함</span></h3><p>주문 담당자가 주문 추가 화면에서 3가지 경로안을 비교하는데, 고객이 원하는 납기를 넣어 볼 수 없어 어느 안이 납기를 못 맞추는지 알 수 없다.</p><div class="k">근거</div><p class="hint">요청 문구, PRD R1~R3, static/js/order-new.js</p></div>
+ <div class="mini"><h3>목적 <span class="chip" data-state="ok">이해함</span></h3><p>필요 납기일(가능한 빨리 또는 5~50일)을 지정하고, 납기를 넘는 경로안을 한눈에 구별해 안을 고르게 한다.</p><div class="k">근거</div><p class="hint">요청 문구. 납기 개념은 PRD·코드에 아직 없음(확인)</p></div></div>
+</section>
+<section class="sec" id="scale"><h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모</p><div class="meter" data-scale="small"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b>해당 없음</b> <span class="hint">— 높은 위험이 없는 범위</span></p>
+  <div class="tbl"><table><thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead><tbody>
+  <tr><td>납기 변경 때 시뮬레이션 결과를 지우면 불필요한 재실행 유발</td><td><span class="chip" data-state="ok">낮음</span></td><td>납기는 시뮬레이션 입력이 아니므로 invalidate 하지 않고 표시만 갱신</td></tr>
+  <tr><td>색만으로 뜻 전달</td><td><span class="chip" data-state="ok">낮음</span></td><td>'납기 초과 N일' 글자를 함께 표시</td></tr>
+  <tr><td>납기 저장 시 Order 컬럼 추가(ddl-auto=update), API·서버 검증·목록/상세까지 번짐</td><td><span class="chip" data-state="warn">중간</span></td><td>이번 범위 밖. 필요하면 별도 작업으로 승인받는다</td></tr></tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3><ul class="list">
+<li>기본값은 "가능한 빨리" 체크, 체크 상태에서는 빨간 표시 없음.</li><li>납기 입력은 정수 일, 5~50 닫힌 구간. 소요 일수 &gt; 납기일이면 초과.</li><li>납기는 주문에 저장하지 않는다(요청이 저장을 언급하지 않음).</li><li>INTENT.md 원문은 열지 않고 CLAUDE.md 요약으로 대조했다.</li></ul>
+</section>
+<section class="sec" id="requirements"><h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md · INTENT.md 커밋 f38632f 시점</p>
+  <h3>PRD 요구사항</h3><ul class="reqs">
+    <li class="rq" data-rel="yes" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="yes" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="yes" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="no" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="no" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="no" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  </ul><h3>INTENT 원칙</h3><ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="yes" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="yes" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="no" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="no" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="yes" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="no" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  </ul>
+  <div class="tbl"><table><thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead><tbody>
+  <tr><td>R2·R3</td><td>경로안 비교 화면에 납기 판단 정보를 더한다. 확정 요청 본문은 그대로.</td></tr>
+  <tr><td>R1</td><td>납기 입력도 범위 검증(5~50)과 이유 안내를 한다.</td></tr>
+  <tr><td>원칙 2·4·7·11</td><td>서버·스냅샷·Planner 를 건드리지 않아 유지. 입력 검증은 화면에서만 수행.</td></tr></tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3><p>저촉하지 않음 (경로안 직접 편집이 아니라 표시만 추가)</p>
+  <h3>충돌·불일치</h3><ul class="list"><li>없음. 단 PRD 에 납기 요구사항이 없어 문서 반영이 필요할 수 있으나 팀 확정 문서라 이번에는 고치지 않는다.</li></ul>
+</section>
+<section class="sec" id="impact"><h2><span class="no">5</span>영향 범위</h2><div class="tbl"><table>
+  <thead><tr><th>계층</th><th>변경</th><th>바꿀 파일·메서드</th><th>이유</th></tr></thead><tbody><tr><td><b>화면(정적 HTML)</b></td><td><span class="chip" data-state="warn">변경</span></td><td><code>static/order-new.html</code></td><td>납기 영역(체크박스·일수 입력) 추가</td></tr><tr><td><b>화면 스크립트</b></td><td><span class="chip" data-state="warn">변경</span></td><td><code>static/js/order-new.js</code> (renderResult, 납기 상태·검증)</td><td>납기 초과 경로안 판정·표시. 서버로는 보내지 않음</td></tr><tr><td><b>스타일</b></td><td><span class="chip" data-state="warn">변경</span></td><td><code>static/css/app.css</code></td><td>.option.late 빨강과 오류 문구</td></tr><tr><td><b>컨트롤러·서비스·경로 계산·엔티티·설정</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>납기를 저장·검증하지 않는 화면 한정 범위(원칙 2·4·11 유지)</td></tr>
+  <tr><td>E2E</td><td><span class="chip" data-state="warn">변경</span></td><td><code>src/test/e2e/e2e-due-date.spec.ts</code> (신규)</td><td>납기 표시 동작 고정(원칙 10)</td></tr></tbody></table></div></section>
+<section class="sec" id="tests"><h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <h3>JUnit</h3><p>OrderFlowTests·PlannerTest·DemoApplicationTests 모두 영향 없음(서버 변경 없음). 회귀로 실행한다.</p>
+  <h3>E2E</h3><p>주문 추가 화면을 쓰는 order-quantity, simulation, confirm, e2e-022~, e2e031-041 의 헬퍼가 관련(화면 요소 추가가 기존 선택자를 깨지 않는지 확인). 빠진 부분: 납기 시나리오가 없음.</p>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3><p>영향 없음 (E2E-033, 035, 013b)</p>
+  <h3>테스트 공백</h3><ul class="list"><li>납기 선택·초과 표시·범위 오류 동작을 검증하는 테스트가 없다(확인).</li></ul>
+  <h3>추가할 테스트</h3><div class="tbl"><table><thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead><tbody>
+  <tr><td>e2e-due-date.spec.ts: 체크 시 표시 없음 / 납기 입력 시 초과 안만 빨강 / 범위 밖 입력 오류</td><td>E2E</td><td>핵심 동작 고정</td></tr></tbody></table></div>
+</section>
+<section class="sec for for-develop" id="loop-develop"><h2><span class="no">★</span>개발 Loop 점검</h2><ul class="list">
+<li>이번에 만드는 것: 주문 추가 화면의 필요 납기일 선택과 초과 경로안 빨간 표시</li><li>이번에 만들지 않는 것: 납기 저장, 주문 목록·상세 표시, 서버 검증, 문서 수정</li><li>화면 변화: 1번 영역 아래에 납기 체크박스·일수 입력, 결과 카드에 빨간 "납기 초과 N일"</li></ul></section>
+<section class="sec" id="plan"><h2><span class="no">7</span>구현 계획</h2><div class="tbl"><table><thead><tr><th class="num">단계</th><th>내용</th></tr></thead><tbody>
+  <tr><td class="num">1</td><td>order-new.html 에 납기 영역 추가(체크박스 기본 체크, 해제 시 5~50 입력)</td></tr>
+  <tr><td class="num">2</td><td>order-new.js 에 납기 상태·범위 검증, renderResult 에서 totalDays 와 비교해 초과 표시, 납기 변경 시 결과 유지·재렌더</td></tr>
+  <tr><td class="num">3</td><td>app.css 에 .option.late 빨강 스타일</td></tr>
+  <tr><td class="num">4</td><td>E2E 스펙 추가 후 JUnit·E2E 회귀(별도 포트·메모리 DB)</td></tr></tbody></table></div></section>
+<section class="sec" id="checklist"><h2><span class="no">8</span>구현 후 확인할 체크리스트 3개</h2>
+ <div class="check"><div class="n">1</div><div class="body"><b>납기 5~50일을 입력하면 소요 일수가 넘는 경로안만 빨간색과 "납기 초과" 글자로 표시되고, "가능한 빨리" 체크 시 표시가 없다</b><div class="how">확인 방법: 별도 포트 앱에서 시뮬레이션 후 화면·새 E2E</div></div></div>
+ <div class="check"><div class="n">2</div><div class="body"><b>5 미만·50 초과·비정수 납기는 오류 문구를 보이고 빨간 표시가 없으며, 확정 요청 본문은 기존과 같다</b><div class="how">확인 방법: 새 E2E, /api/orders 요청 본문 점검</div></div></div>
+ <div class="check"><div class="n">3</div><div class="body"><b>기존 JUnit 전체와 E2E(알려진 결함 3건 제외)가 변경 전과 같다</b><div class="how">확인 방법: .\gradlew.bat test, 별도 포트 E2E</div></div></div>
+</section>
+<p class="footer">precheck@2 · 점검 로그 docs/logs/prepare/inspection_20261022_151042.log</p>
+</div></body></html>
