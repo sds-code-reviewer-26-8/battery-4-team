@@ -124,11 +124,44 @@
 		return {master: result.master, orders: result.orders, visits: result.visits, plan};
 	}
 
+	// ---- 필요 납기일 (화면 표시용, 주문에 저장하지 않는다)
+
+	const dueAsap = document.getElementById('dueAsap');
+	const dueDays = document.getElementById('dueDays');
+	const dueError = document.getElementById('dueError');
+
+	/** 유효한 납기(일)를 돌려준다. 가능한 빨리이거나 입력이 잘못이면 null */
+	function currentDue() {
+		if (dueAsap.checked) return null;
+		const t = dueDays.value.trim();
+		if (!/^\d+$/.test(t)) return null;
+		const n = parseInt(t, 10);
+		return n >= 5 && n <= 50 ? n : null;
+	}
+
+	function refreshDue() {
+		dueDays.disabled = dueAsap.checked;
+		if (dueAsap.checked) {
+			dueError.hidden = true;
+		} else if (currentDue() === null) {
+			dueError.textContent = '필요 납기일은 5~50 사이의 정수로 입력하세요.';
+			dueError.hidden = false;
+		} else {
+			dueError.hidden = true;
+		}
+		if (result) renderResult(false);   // 결과는 유지하고 표시만 다시 그린다
+	}
+
+	dueAsap.addEventListener('change', refreshDue);
+	dueDays.addEventListener('input', refreshDue);
+
 	function renderResult(first) {
+		const due = currentDue();
 		optionsEl.innerHTML = result.options.map(o => `
-			<button type="button" class="option ${o.type === selected ? 'selected' : ''}" data-type="${o.type}">
+			<button type="button" class="option ${o.type === selected ? 'selected' : ''} ${due !== null && o.totalDays > due ? 'late' : ''}" data-type="${o.type}">
 				<strong>${o.label}</strong>
 				<span>소요 ${o.totalDays}일</span>
+				${due !== null && o.totalDays > due ? `<span class="late-note">납기 초과 ${o.totalDays - due}일</span>` : ''}
 				<span>총 비용 ${eok(o.totalCost)}억원</span>
 				<span class="muted">운항비 ${eok(o.shippingCost)}억원 · 배 ${o.ships.length}척</span>
 			</button>`).join('');
