@@ -54,6 +54,19 @@ test.describe('필요 납기일 표시', () => {
     await expect(page.locator('#dueDays')).toBeDisabled();
   });
 
+  test('가능한 빨리를 체크하면 적어 둔 납기일이 비워지고, 해제해도 빈 칸이다', async ({ page }) => {
+    await page.locator('#dueAsap').uncheck();
+    await page.locator('#dueDays').fill('30');
+    await expect(page.locator('#dueDays')).toHaveValue('30');
+
+    await page.locator('#dueAsap').check();
+    await expect(page.locator('#dueDays')).toHaveValue('');
+    await expect(page.locator('#dueDays')).toBeDisabled();
+
+    await page.locator('#dueAsap').uncheck();
+    await expect(page.locator('#dueDays')).toHaveValue('');
+  });
+
   for (const bad of ['4', '51', '0', '-5', '10.5', 'abc']) {
     test(`잘못된 납기 "${bad}" 는 오류 문구를 보이고 빨간 표시를 하지 않는다`, async ({ page }) => {
       await runSimulation(page);
