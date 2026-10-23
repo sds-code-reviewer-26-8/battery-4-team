@@ -1,0 +1,28 @@
+점검 시각: 2026-10-23 10:09:04 (/ih prepare, 회차 1/3)
+요청 원문: 이미 구현·커밋된 변경(커밋 b2ac0df, PR #32)의 증거 문서만 만든다. 주문 추가 화면에서 '가능한 빨리'를 체크하면 적어 둔 납기일 입력값을 비운다(order-new.js 한 줄), E2E 1건·JUnit 6건 추가. 새로 구현하거나 코드를 수정하지 않는다. 작업명 TASK-004-due-asap-clear.
+
+[배경] 이해함 — 납기일(5~50일)을 적은 뒤 '가능한 빨리'를 체크하면 입력칸이 비활성화만 되고 값이 남아, 해제하면 예전 값이 되살아나는 상태였다. 이를 고친 커밋 b2ac0df 가 이미 있고 PR #32 가 열려 있다. 근거: 커밋 메시지·diff, gh pr view 32(OPEN), 직전 TASK-001~003 증거 폴더.
+[목적] 이해함 — 이미 끝난 변경이 무엇이고 어떻게 확인할 수 있는지 PR 리뷰 때 볼 수 있게 precheck.html 증거 문서를 남긴다. 근거: 요청 원문 '증거 문서만', CLAUDE.md 문서와 작업 규칙.
+
+[점검한 곳]
+ - git show b2ac0df --stat / diff (확인한 사실): 4개 파일, +67줄. order-new.js 1줄(dueAsap.checked 이면 dueDays.value=''), e2e-due-date.spec.ts 에 E2E 1건, OrderFlowTests 에 dueDaysOfOtherJsonShapesAreRejected 1건, entity/OrderDueOverDaysTest 신규(5건). JUnit 합계 6건.
+ - docs/evidence/정혜미/ 기존 폴더 TASK-001, 002, 003 (확인한 사실) -> 다음 번호 TASK-004.
+ - docs/templates/precheck.template.html 구조·안내 주석 1~12번 확인.
+ - 테스트를 새로 실행하지는 않았다(확인하지 못함). 코드는 이미 커밋돼 있어 이 문서는 사후 기록이다.
+
+[규모·위험]
+ 규모: 파일 4개(JS 1, E2E 1, JUnit 2), 화면 스크립트와 테스트만. 서버·계산·DB 변경 없음. 작음.
+ 위험: (Low) 증거 문서 작성만 하므로 코드 위험 없음 — 코드·설정 수정 금지로 완화
+ 위험: (Low) 사후 작성이라 precheck 가 구현 전 점검이 아니라는 점 — 문서에 사후 기록임을 명시
+ 사용자가 알고 있는가: 예 — 요청 원문이 이미 구현·커밋됐고 증거 문서만 만든다고 밝힘.
+
+[영향 범위] 변경 대상: order-new.js 한 줄(이미 커밋). 영향: 주문 추가 화면 납기 입력 동작. 관련 기존 테스트: e2e-due-date.spec.ts, e2e-due-date-save.spec.ts, OrderFlowTests 납기 관련. test.fail() 영향 없음.
+[INTENT 원칙 대조] #7(입력은 전부 검증)·#10(규칙은 테스트로 고정)에 관련. 서버 검증(5~50 범위, 낯선 JSON 400)은 그대로이고 깨지지 않는다. 팀 확정 문서 변경 없음.
+
+[판단] status READY. 이유: 배경·목적이 분명하고 작은 변경이며 사용자가 사후 문서임을 알고 있음.
+
+[계획] 범위: TASK-004-due-asap-clear/precheck.html 작성. 범위 밖: 코드·테스트·문서 수정, 커밋, 푸시. 바꿀 파일: docs/evidence/정혜미/TASK-004-due-asap-clear/precheck.html (report.html 은 verify 이후). 순서: 폴더 생성, 템플릿 채움, grep 확인. 가정: PRD/INTENT 기준 버전은 마지막 변경 커밋 1d127ac.
+[체크리스트]
+ 1. 납기 30 입력 후 '가능한 빨리' 체크 시 입력칸이 비워지고 비활성화, 해제 후에도 빈 칸. 확인: e2e-due-date.spec.ts 의 해당 E2E 1건(별도 포트·메모리 DB).
+ 2. 서버 규칙 불변: 낯선 dueDays JSON 은 400 이고 메시지에 5~50 포함. 확인: ./gradlew test --tests com.example.demo.OrderFlowTests.dueDaysOfOtherJsonShapesAreRejected
+ 3. 납기 초과 일수 경계(같은 날 null, 하루 늦으면 1, 47-5=42)와 기존 JUnit 회귀 없음. 확인: ./gradlew test (OrderDueOverDaysTest 5건 포함).

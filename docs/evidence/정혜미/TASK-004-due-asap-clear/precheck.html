@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="template" content="precheck@2">
+<title>구현 전 점검 · 가능한 빨리 체크 시 납기일 비우기</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --fg:#1b2333; --muted:#5d6a82; --line:#d5dcea; --soft:#eef2fa;
+  --accent:#2f6fed; --accent-bg:#e8f0ff;
+  --ok:#14946b; --ok-bg:#e3f6ee; --warn:#d9731a; --warn-bg:#ffefdd; --bad:#d23c4b; --bad-bg:#fde8ea;
+  --prep:#2f6fed; --prep-bg:#e8f0ff; --impl:#14946b; --impl-bg:#e3f6ee; --ver:#7a49d6; --ver-bg:#f0e9fd;
+  --hero-a:#2f6fed; --hero-b:#7a49d6; --on-hero:#ffffff;
+  --ok-ink:#0b6b4d; --warn-ink:#9a4a07; --bad-ink:#a8202f; /* 밝은 바탕 위 글자용(대비 4.5:1 이상) */
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 22px rgba(20,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f131c; --card:#171c28; --fg:#e8ecf5; --muted:#9aa6bd; --line:#2d3649; --soft:#1d2433;
+    --accent:#7aa5ff; --accent-bg:#1b2742;
+    --ok:#4cd3a2; --ok-bg:#14302a; --warn:#ffa45c; --warn-bg:#3b2615; --bad:#ff8590; --bad-bg:#3d1c22;
+    --prep:#7aa5ff; --prep-bg:#1b2742; --impl:#4cd3a2; --impl-bg:#14302a; --ver:#b69af0; --ver-bg:#291f45;
+    --hero-a:#27408f; --hero-b:#4b2f8a; --shadow:none;
+    --ok-ink:#4cd3a2; --warn-ink:#ffa45c; --bad-ink:#ff8590;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 56px}
+.tpl-banner{background:var(--warn-bg);color:var(--warn);border-bottom:2px dashed var(--warn);padding:10px 16px;text-align:center;font-size:13.5px;font-weight:700}
+/* 히어로 */
+.hero{margin:20px 0 8px;border-radius:20px;padding:26px 26px 22px;color:var(--on-hero);background:linear-gradient(135deg,var(--hero-a),var(--hero-b));box-shadow:var(--shadow)}
+.loops{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lt{font-size:12.5px;font-weight:700;padding:2px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+body[data-loop="integrate"] .lt-integrate,body[data-loop="develop"] .lt-develop,
+body[data-loop="refactor"] .lt-refactor,body[data-loop="bugfix"] .lt-bugfix{background:#fff;color:#1b2333;border-color:#fff}
+.hero h1{margin:0 0 4px;font-size:28px;letter-spacing:-.4px}
+.hero .target{margin:0 0 12px;font-size:16.5px;opacity:.96}
+.hero .meta{margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;opacity:.9}
+.status-badge{display:inline-block;margin-bottom:12px;font-size:15px;font-weight:800;letter-spacing:.5px;padding:3px 16px;border-radius:999px;background:var(--card);color:var(--ok-ink)}
+body[data-status="HITL"] .status-badge{color:var(--warn-ink)}
+body[data-status="FAIL"] .status-badge{color:var(--bad-ink)}
+/* 섹션 */
+.sec{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+.sec h2{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 .no{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:800}
+.sec h3{margin:16px 0 6px;font-size:14.5px;color:var(--muted)}
+.sec p{margin:6px 0}
+.hint{color:var(--muted);font-size:13px}
+ul.list{margin:6px 0;padding-left:20px}
+ul.list li{margin:2px 0}
+/* 표 */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* 칩: 글자와 함께 data-state(ok|warn|bad|none)를 바꿔 주세요. 색만으로 뜻을 전하지 않도록 글자는 항상 같이 써 주세요. */
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;color:var(--muted);background:var(--soft)}
+.chip[data-state="ok"]{color:var(--ok-ink);background:var(--ok-bg)}
+.chip[data-state="warn"]{color:var(--warn-ink);background:var(--warn-bg)}
+.chip[data-state="bad"]{color:var(--bad-ink);background:var(--bad-bg)}
+.chip[data-state="none"]{color:var(--muted);background:var(--soft)}
+/* 요구사항·원칙 칩 격자 */
+.reqs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.rq{display:flex;gap:8px;align-items:baseline;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);background:var(--soft);font-size:13.5px}
+.rq b{color:var(--muted);min-width:34px}
+.rq[data-rel="yes"]{color:var(--fg);background:var(--accent-bg);border-color:var(--accent)}
+.rq[data-rel="yes"] b{color:var(--accent)}
+.rq[data-rel="yes"]::after{content:"✔ 관련";margin-left:auto;white-space:nowrap;font-size:12px;font-weight:800;color:var(--fg)}
+/* 이해 점검 / 체크리스트 / 3단계 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.hero{padding:20px 16px}.hero h1{font-size:23px}.sec{padding:14px}}
+.mini{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+.mini h3{margin:0 0 4px;font-size:15px;color:var(--fg)}
+.mini .k{font-size:12px;color:var(--muted);margin-top:6px}
+.check{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;background:var(--card)}
+.check .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-weight:800;font-size:13px}
+.check .body{flex:1;min-width:0}
+.check .body b{display:block}
+.check .how{color:var(--muted);font-size:13.5px}
+/* 규모 미터 */
+.meter{display:flex;gap:6px;max-width:420px}
+.meter .seg{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:5px 0;border-radius:8px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.meter[data-scale="small"] .s{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-ink)}
+.meter[data-scale="medium"] .m{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-ink)}
+.meter[data-scale="large"] .l{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-ink)}
+.meter[data-scale="small"] .s::before,.meter[data-scale="medium"] .m::before,.meter[data-scale="large"] .l::before{content:"✔ "}
+/* Loop 종류별 섹션 */
+.for{display:none}
+body[data-loop="integrate"] .for-integrate,body[data-loop="develop"] .for-develop,
+body[data-loop="refactor"] .for-refactor,body[data-loop="bugfix"] .for-bugfix{display:block}
+.only-hitl{display:none}
+body[data-status="HITL"] .only-hitl{display:block}
+body[data-status="HITL"] .only-go{display:none}
+.footer{margin:26px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body data-loop="develop" data-status="GO">
+<div class="wrap">
+
+<header class="hero">
+  <ul class="loops" aria-label="Loop 종류">
+    <li class="lt lt-integrate">통합</li><li class="lt lt-develop">개발</li><li class="lt lt-refactor">리팩토링</li><li class="lt lt-bugfix">버그수정</li>
+  </ul>
+  <div class="status-badge"><span data-slot="status">GO</span></div>
+  <h1>구현 전 점검</h1>
+  <p class="target"><span data-slot="task">이미 구현·커밋된 변경(커밋 b2ac0df, PR #32)의 증거 문서만 만든다. 주문 추가 화면에서 '가능한 빨리'를 체크하면 적어 둔 납기일 입력값을 비운다(order-new.js 한 줄), E2E 1건·JUnit 6건 추가. 새로 구현하거나 코드를 수정하지 않는다.</span></p>
+  <p class="meta"><span>날짜 <span data-slot="date">2026-10-23 10:09:04</span></span><span>회차 <span data-slot="round">1</span></span><span>작성 prepare 에이전트</span><span>브랜치 <span data-slot="branch">feature/battery-hyemiJung-due-asap-clear</span> · 커밋 <span data-slot="commit">b2ac0df</span></span><span>요청자 <span data-slot="requester">정혜미</span></span><span>로그 <span data-slot="log-path">docs/logs/prepare/inspection_20261023_100904.log</span></span></p>
+</header>
+
+<section class="sec" id="verdict">
+  <h2><span class="no">1</span>판단</h2>
+  <p><b><span data-slot="summary">GO. 코드는 이미 커밋돼 있고(b2ac0df) 이 문서는 사후 기록이다. 작은 변경이라 그대로 증거 문서를 만든다.</span></b></p>
+  <h3>이유</h3>
+  <ul class="list">
+    <li>배경·목적이 요청 원문과 커밋 메시지·diff 에서 분명하다. (근거: <code>git show b2ac0df</code>)</li>
+    <li>변경은 JS 한 줄과 테스트 3개 파일뿐이다. 서버·계산·DB 는 바뀌지 않는다. (확인한 사실)</li>
+    <li>사용자가 이미 구현·커밋됐고 증거 문서만 만든다고 밝혔다.</li>
+    <li>구현 전 점검 형식이지만 사후 작성이므로 테스트를 새로 실행하지 않았다. 실행 결과는 verify 단계에서 확인한다.</li>
+  </ul>
+</section>
+
+<section class="sec" id="understand">
+  <h2><span class="no">2</span>이해 점검 <span class="hint">— 모르는 부분은 추측하지 않고 사람에게 확인을 요청해 주세요(HITL)</span></h2>
+  <div class="two">
+    <div class="mini">
+      <h3>배경 · 사용자가 어떤 상황인가 <span class="chip" data-state="ok" data-slot="background-state">이해함</span></h3>
+      <p><span data-slot="background">납기일을 적은 뒤 '가능한 빨리'를 체크하면 입력칸이 비활성화만 되고 값이 남아, 해제하면 예전 값이 되살아났다. 이를 고친 커밋이 이미 있고 PR #32 가 열려 있다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="background-evidence">커밋 b2ac0df 메시지·diff, <code>gh pr view 32</code>(OPEN), 기존 증거 폴더 TASK-001~003</span></p>
+    </div>
+    <div class="mini">
+      <h3>목적 · 왜 필요한가 <span class="chip" data-state="ok" data-slot="purpose-state">이해함</span></h3>
+      <p><span data-slot="purpose">끝난 변경이 무엇이고 어떻게 확인할 수 있는지 PR 리뷰 때 볼 수 있는 증거 문서를 남긴다.</span></p>
+      <div class="k">근거</div><p class="hint"><span data-slot="purpose-evidence">요청 원문 '증거 문서만', CLAUDE.md 문서와 작업 규칙(precheck.html·report.html)</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scale">
+  <h2><span class="no">3</span>규모와 위험</h2>
+  <p>변경 규모 <span class="hint">(여러 계층, 많은 파일, DB 변경, 핵심 규칙 변경, 되돌리기 어려움 → 큼)</span></p>
+  <div class="meter" data-scale="small"><span class="seg s">작음</span><span class="seg m">중간</span><span class="seg l">큼</span></div>
+  <p>사용자가 이 규모·위험을 알고 있는가: <b><span data-slot="user-aware">예</span></b> <span class="hint">— <span data-slot="user-aware-why">"이미 구현·커밋된 변경의 증거 문서만 만든다"</span></span></p>
+  <div class="tbl"><table>
+    <thead><tr><th>위험</th><th>심각도</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td>증거 문서 작성뿐이라 코드 위험이 없다</td><td><span class="chip" data-state="ok">낮음</span></td><td>코드·설정·문서 수정과 커밋·푸시를 하지 않는다</td></tr>
+      <tr><td>사후 작성이라 구현 전 점검이 아닌 기록이 된다</td><td><span class="chip" data-state="ok">낮음</span></td><td>이 문서에 사후 기록임을 밝힌다</td></tr>
+    </tbody></table></div>
+  <h3>가정 <span class="hint">(확인하지 못한 것)</span></h3>
+  <ul class="list">
+    <li>테스트를 이번에 다시 실행하지 않았다. 통과 여부는 확인하지 못했다.</li>
+    <li>PRD·INTENT 기준 버전은 마지막 변경 커밋 1d127ac 로 본다.</li>
+  </ul>
+</section>
+
+<section class="sec" id="requirements">
+  <h2><span class="no">4</span>요구사항 · 원칙과의 관계</h2>
+  <p class="hint">기준 문서: PRD.md <span data-slot="prd-version">1d127ac</span> · INTENT.md <span data-slot="intent-version">1d127ac</span> (아래 R1~R11, 원칙 1~14는 이 버전 기준입니다. 문서가 바뀌면 목록도 고쳐 주세요)</p>
+  <h3>PRD 요구사항 <span class="hint">(관련 있는 항목은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="yes" data-req="R1"><b>R1</b>주문 수량 입력</li>
+    <li class="rq" data-rel="no" data-req="R2"><b>R2</b>경로안 계산·비교</li>
+    <li class="rq" data-rel="no" data-req="R3"><b>R3</b>경로안 선택·메모·확정</li>
+    <li class="rq" data-rel="no" data-req="R4"><b>R4</b>확정 주문 불변(스냅샷)</li>
+    <li class="rq" data-rel="no" data-req="R5"><b>R5</b>낡은 기준으로 확정 거부</li>
+    <li class="rq" data-rel="no" data-req="R6"><b>R6</b>주문 목록·상세 조회</li>
+    <li class="rq" data-rel="no" data-req="R7"><b>R7</b>상태 변경·이력</li>
+    <li class="rq" data-rel="no" data-req="R8"><b>R8</b>기준 정보 관리</li>
+    <li class="rq" data-rel="yes" data-req="R9"><b>R9</b>입력 검증·이유 안내</li>
+    <li class="rq" data-rel="no" data-req="R10"><b>R10</b>동시 변경 보호</li>
+    <li class="rq" data-rel="no" data-req="R11"><b>R11</b>로그인한 사용자만</li>
+  </ul>
+  <h3>INTENT 원칙 <span class="hint">(깨질 수 있는 원칙은 <code>data-rel="yes"</code>)</span></h3>
+  <ul class="reqs">
+    <li class="rq" data-rel="no" data-principle="1"><b>#1</b>비교가 먼저다</li>
+    <li class="rq" data-rel="no" data-principle="2"><b>#2</b>서버가 다시 계산한다</li>
+    <li class="rq" data-rel="no" data-principle="3"><b>#3</b>기준이 바뀌면 확정 거부</li>
+    <li class="rq" data-rel="no" data-principle="4"><b>#4</b>확정 주문은 스냅샷</li>
+    <li class="rq" data-rel="no" data-principle="5"><b>#5</b>동시 변경을 덮어쓰지 않는다</li>
+    <li class="rq" data-rel="no" data-principle="6"><b>#6</b>틀린 계산을 숨기지 않는다</li>
+    <li class="rq" data-rel="yes" data-principle="7"><b>#7</b>입력은 전부 검증</li>
+    <li class="rq" data-rel="no" data-principle="8"><b>#8</b>오류는 이유와 함께</li>
+    <li class="rq" data-rel="no" data-principle="9"><b>#9</b>변경에는 흔적을 남긴다</li>
+    <li class="rq" data-rel="yes" data-principle="10"><b>#10</b>규칙은 테스트로 고정</li>
+    <li class="rq" data-rel="no" data-principle="11"><b>#11</b>Planner 는 DB·화면을 모른다</li>
+    <li class="rq" data-rel="no" data-principle="12"><b>#12</b>금액은 원 단위 정수</li>
+    <li class="rq" data-rel="no" data-principle="13"><b>#13</b>기준 정보는 데이터</li>
+    <li class="rq" data-rel="no" data-principle="14"><b>#14</b>로그인한 사용자만</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>번호</th><th>이번 작업과의 관계</th></tr></thead>
+    <tbody>
+      <tr><td>R1 · R9</td><td>주문 입력 화면의 납기 입력칸 동작을 바로잡는다. 서버 검증(5~50)은 그대로다.</td></tr>
+      <tr><td>원칙 7</td><td>서버가 낯선 dueDays JSON 을 400 으로 거부함을 JUnit 으로 고정한다.</td></tr>
+      <tr><td>원칙 10</td><td>납기 초과 일수 경계값과 화면 동작을 테스트로 고정한다.</td></tr>
+    </tbody></table></div>
+  <h3>범위 밖 확정 (PRD 10장) 저촉 여부</h3>
+  <p><span data-slot="out-of-scope">저촉하지 않음 (PRD 10장 전체를 다시 대조하지는 않았다. 화면 입력 동작 수정이라는 추정이며 확인하지 못함)</span></p>
+  <h3>충돌·불일치</h3>
+  <ul class="list"><li>없음</li></ul>
+</section>
+
+<section class="sec" id="impact">
+  <h2><span class="no">5</span>영향 범위 <span class="hint">— 이 프로젝트의 계층별</span></h2>
+  <div class="tbl"><table>
+    <thead><tr><th style="width:27%">계층</th><th style="width:12%">변경</th><th style="width:33%">바꿀 파일·메서드</th><th style="width:28%">이유</th></tr></thead>
+    <tbody>
+      <tr><td><b>화면 템플릿</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>HTML 은 그대로</td></tr>
+      <tr><td><b>화면 스크립트</b><div class="hint"><code>static/js/*.js</code></div></td><td><span class="chip" data-state="warn">변경</span></td><td><code>order-new.js</code> dueAsap change 핸들러 1줄 (커밋됨)</td><td>체크하면 <code>dueDays.value = ''</code></td></tr>
+      <tr><td><b>컨트롤러</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>서버 변경 없음</td></tr>
+      <tr><td><b>서비스</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>검증 규칙 그대로</td></tr>
+      <tr><td><b>경로 계산</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>Planner 무관</td></tr>
+      <tr><td><b>엔티티·DB</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음 (<code>Order.getDueOverDays</code> 는 테스트만 추가)</td><td>스키마 변경 없음</td></tr>
+      <tr><td><b>설정·로그인</b></td><td><span class="chip" data-state="none">없음</span></td><td>없음</td><td>해당 없음</td></tr>
+      <tr><td>테스트</td><td><span class="chip" data-state="warn">변경</span></td><td><code>e2e-due-date.spec.ts</code>, <code>OrderFlowTests.java</code>, <code>entity/OrderDueOverDaysTest.java</code>(신규)</td><td>동작과 경계값을 고정</td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="tests">
+  <h2><span class="no">6</span>기존 테스트 · 시나리오</h2>
+  <p class="hint">E2E는 개발 서버(8080)와 개발 DB 가 아니라 따로 띄운 앱에서 실행합니다. <code>test.fail()</code> 테스트는 실패하는 것이 정상입니다.</p>
+  <h3>JUnit (<code>src/test</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td><b>OrderFlowTests</b></td><td><span class="chip" data-state="ok">관련</span></td><td>납기 검증 테스트가 이미 있고 낯선 JSON 형태 거부 1건을 추가했다.</td></tr>
+      <tr><td><b>PlannerTest</b></td><td><span class="chip" data-state="none">영향 없음</span></td><td>계산 변경 없음</td></tr>
+      <tr><td><b>DemoApplicationTests</b></td><td><span class="chip" data-state="none">영향 없음</span></td><td>컨텍스트 로딩 무관</td></tr>
+      <tr><td>OrderDueOverDaysTest</td><td><span class="chip" data-state="ok">관련</span></td><td>신규 5건. DB·Spring 없이 getDueOverDays 경계값을 검사한다.</td></tr>
+    </tbody></table></div>
+  <h3>E2E (<code>src/test/e2e</code>) — 시나리오 흐름별</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>흐름</th><th>시나리오</th><th>파일</th><th>관련</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td><b>2 주문 수량 입력</b></td><td>E2E-006~010</td><td><code>order-quantity.spec.ts</code></td><td><span class="chip" data-state="none">영향 없음</span></td><td>같은 입력 화면이지만 수량 입력은 건드리지 않는다.</td></tr>
+      <tr><td>납기 입력</td><td>납기 표시·저장</td><td><code>e2e-due-date.spec.ts · e2e-due-date-save.spec.ts</code></td><td><span class="chip" data-state="ok">관련</span></td><td>이번 E2E 1건을 e2e-due-date.spec.ts 에 추가했다.</td></tr>
+      <tr><td><b>4 주문 확정</b></td><td>E2E-015~021</td><td><code>confirm.spec.ts</code></td><td><span class="chip" data-state="none">영향 없음</span></td><td>서버 확정 로직 변경 없음</td></tr>
+    </tbody></table></div>
+  <h3>알려진 결함 테스트 (<code>test.fail()</code>)에 미치는 영향</h3>
+  <p><span data-slot="known-defects">test.fail() 테스트(E2E-033, 035, 013b)에 영향 없음</span></p>
+  <h3>테스트 공백</h3>
+  <ul class="list"><li>없음 (이번 변경이 공백을 채우는 테스트다)</li></ul>
+  <h3>추가·수정할 테스트 <span class="hint">(이미 커밋됨)</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>테스트</th><th>종류</th><th>이유</th></tr></thead>
+    <tbody>
+      <tr><td>가능한 빨리를 체크하면 적어 둔 납기일이 비워지고, 해제해도 빈 칸이다</td><td>E2E</td><td>체크 시 값 비움, 비활성화, 해제 후 빈 칸 확인</td></tr>
+      <tr><td>dueDaysOfOtherJsonShapesAreRejected</td><td>JUnit</td><td>낯선 JSON 형태 6종이 400 이고 메시지에 5~50 포함</td></tr>
+      <tr><td>OrderDueOverDaysTest 5건</td><td>JUnit</td><td>납기 초과 일수 경계값 고정</td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec for for-develop" id="loop-develop">
+  <h2><span class="no">★</span>개발 Loop 점검</h2>
+  <ul class="list">
+    <li>이번에 만드는 것(범위): <span data-slot="develop-scope">'가능한 빨리' 체크 시 납기일 입력값 비우기(JS 1줄)와 관련 테스트(E2E 1, JUnit 6). 이번 작업은 증거 문서만 만든다.</span></li>
+    <li>이번에 만들지 않는 것: <span data-slot="develop-out">코드·테스트·문서 수정, 커밋, 푸시, 서버 검증 규칙 변경</span></li>
+    <li>화면·API 변화 요약: <span data-slot="develop-change">주문 추가 화면에서 체크하면 입력값이 지워지고, 해제해도 빈 칸에서 시작한다. API 변화 없음.</span></li>
+  </ul>
+</section>
+
+<section class="sec" id="plan">
+  <h2><span class="no">7</span>구현 계획</h2>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">단계</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>구현은 이미 끝났다(b2ac0df). 코드는 고치지 않는다.</td></tr>
+      <tr><td class="num">2</td><td>이 precheck.html 을 증거 폴더에 둔다. report.html 은 verify 단계 이후에 만든다.</td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="sec" id="checklist">
+  <h2><span class="no">8</span>구현 후 확인할 체크리스트 3개 <span class="hint">— verify 단계에서 확인합니다</span></h2>
+  <div class="check"><div class="n">1</div><div class="body"><b>납기 30 을 적고 '가능한 빨리'를 체크하면 입력칸이 비워지고 비활성화되며, 해제해도 빈 칸이다.</b><div class="how">확인 방법: 별도 포트·메모리 DB 로 띄운 앱에서 <code>e2e-due-date.spec.ts</code> 의 해당 E2E 1건 실행</div></div></div>
+  <div class="check"><div class="n">2</div><div class="body"><b>서버 규칙은 그대로다. 낯선 dueDays JSON(3000000000, 5.0, 1e1, [5], {}) 은 400 이고 메시지에 5~50 이 있다.</b><div class="how">확인 방법: <code>./gradlew test --tests com.example.demo.OrderFlowTests.dueDaysOfOtherJsonShapesAreRejected</code></div></div></div>
+  <div class="check"><div class="n">3</div><div class="body"><b>납기 초과 경계가 맞고(같은 날 null, 하루 늦으면 1, 47-5=42) 기존 JUnit 에 회귀가 없다.</b><div class="how">확인 방법: <code>./gradlew test</code> (OrderDueOverDaysTest 5건 포함)</div></div></div>
+</section>
+
+<p class="footer">precheck@2 · 프로젝트 공통 템플릿 · 점검 로그 <span data-slot="footer-log">docs/logs/prepare/inspection_20261023_100904.log</span></p>
+</div>
+</body>
+</html>
