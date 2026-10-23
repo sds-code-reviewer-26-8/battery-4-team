@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 import {
-  apiSimulate, createOrder, login, openNewOrder, readDetailsTable, readMasterForm, readStats, runSimulation, setGauge,
+  apiSimulate, createOrder, login, openNewOrder, readDetailsTable, readMasterForm, readStats, runSimulation, saveMaster, setGauge,
   setTotal,
 } from './helpers';
 
@@ -158,5 +158,77 @@ test.describe('공장 운영비', () => {
     expect(won('CHINA')).toBe(1000 * 1e8);
     expect(won('JAPAN')).toBe(2.5 * 1e8);
     expect(won('VIETNAM')).toBe(10 * 1e8);
+  });
+
+  test('마스터에서 운영비를 바꾸면 새 시뮬레이션이 공장별 새 운영비로 계산한다', async ({ page, restoreMaster }) => {
+    void restoreMaster;
+    const before = await apiSimulate(page, DIFFERENT);
+    const form = await readMasterForm(page);
+    form.operatingCost_CHINA = '20';
+    form.operatingCost_INDONESIA = '2.5';
+    expect((await saveMaster(page, form)).status()).toBe(200);
+
+    const after = await apiSimulate(page, DIFFERENT);
+    for (const o of after.options) {
+      const ops = o.factoryOperations as FactoryOp[];
+      const daily: Record<string, number> = { CHINA: 20e8, JAPAN: 10e8, VIETNAM: 10e8, INDONESIA: 2.5e8 };
+      ops.forEach((f) => expect(f.cost, `${o.type} ${f.country}`).toBe(f.days * daily[f.country]));
+      expect(o.operatingCost).toBe(ops.reduce((a, f) => a + f.cost, 0));
+      expect(o.totalCost).toBe(o.productionCost + o.shippingCost + o.operatingCost);
+    }
+    // 같은 경로의 가장 빠르게 안은 운영 일수가 그대로이므로 운영비만 달라진다
+    const fast = (r: { options: { type: string }[] }) => r.options.find((o) => o.type === 'FAST') as unknown as { totalDays: number };
+    expect(fast(after).totalDays).toBe(fast(before).totalDays);
+
+    // 화면의 선택 안 카드와 요약도 새 값을 쓴다
+    await openNewOrder(page);
+    await setTotal(page, 15000);
+    for (const [c, v] of Object.entries(DIFFERENT)) await setGauge(page, c as 'CHINA', v);
+    await runSimulation(page);
+    const cost = after.options.find((o: { type: string }) => o.type === 'COST');
+    expect((await readStats(page))['운영비']).toBe(`${eok(cost.operatingCost)}억원`);
+  });
+
+  test('확정한 뒤 마스터 운영비를 바꿔도 확정 주문의 운영비와 총 비용은 그대로다', async ({ page, restoreMaster }) => {
+    void restoreMaster;
+    const id = await createOrder(page, { orders: DIFFERENT });
+    await page.goto(`/orders/${id}`);
+    const statsBefore = await readStats(page);
+    const tableBefore = await readDetailsTable(page, 5);
+    const listTotalBefore = await (await page.request.get(`/api/orders/${id}`)).text();
+
+    const form = await readMasterForm(page);
+    for (const c of ['CHINA', 'JAPAN', 'VIETNAM', 'INDONESIA']) form[`operatingCost_${c}`] = '40';
+    expect((await saveMaster(page, form)).status()).toBe(200);
+
+    await page.goto(`/orders/${id}`);
+    expect(await readStats(page)).toEqual(statsBefore);
+    expect(await readDetailsTable(page, 5)).toEqual(tableBefore);
+    expect(await (await page.request.get(`/api/orders/${id}`)).text()).toBe(listTotalBefore);
+    // 새 시뮬레이션은 바뀐 운영비를 쓴다
+    const after = await apiSimulate(page, DIFFERENT);
+    const cost = after.options.find((o: { type: string }) => o.type === 'COST');
+    expect(statsBefore['운영비']).not.toBe(`${eok(cost.operatingCost)}억원`);
+  });
+
+  test('마스터 운영비 입력 경계값: 상한을 조금만 넘거나 비어 있으면 저장하지 않고, 앞뒤 공백·쉼표·상한 값은 저장한다', async ({ page, restoreMaster }) => {
+    void restoreMaster;
+    const base = await readMasterForm(page);
+    const version = () => page.request.get('/api/master').then((r) => r.json()).then((m) => m.version as number);
+    const v0 = await version();
+
+    for (const bad of ['1000.00000001', '', '   ', '0.000000009', '-1', 'abc']) {
+      const res = await saveMaster(page, { ...base, operatingCost_CHINA: bad });
+      expect(res.status(), `'${bad}' 거부`).toBe(400);
+      expect(await version(), `'${bad}' 버전 그대로`).toBe(v0);
+    }
+
+    const ok = await saveMaster(page, { ...base, operatingCost_CHINA: ' 1,000 ', operatingCost_JAPAN: '0.00000001' });
+    expect(ok.status()).toBe(200);
+    const m = await (await page.request.get('/api/master')).json();
+    expect(m.version).toBe(v0 + 1);
+    const won = (c: string) => m.factories.find((f: { country: string }) => f.country === c).dailyOperatingCostWon;
+    expect(won('CHINA')).toBe(1000 * 1e8);
+    expect(won('JAPAN')).toBe(1);
   });
 });

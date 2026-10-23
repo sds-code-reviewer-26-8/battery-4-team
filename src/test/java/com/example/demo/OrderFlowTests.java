@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.demo.entity.OrderStatus;
 import com.example.demo.service.BusinessException;
+import com.example.demo.service.MasterService;
 import com.example.demo.service.OrderService;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,6 +42,8 @@ class OrderFlowTests {
 	com.example.demo.repository.MemberRepository memberRepository;
 	@Autowired
 	OrderService orderService;
+	@Autowired
+	MasterService masterService;
 
 	private MockHttpSession login() throws Exception {
 		MockHttpSession session = new MockHttpSession();
@@ -290,6 +293,41 @@ class OrderFlowTests {
 		assertThat(orderService.getOrder(id).getPlanJson()).isEqualTo(before);
 		mvc.perform(get("/api/master").session(s))
 				.andExpect(jsonPath("$.shipDailyCostWon").value(150_000_000));
+	}
+
+	/** 확정 뒤 마스터 운영비를 바꿔도 확정 주문의 운영비·총 비용은 그대로이고, 새 시뮬레이션만 새 운영비를 쓴다(원칙 4). */
+	@Test
+	@DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+	void confirmedOperatingCostStaysWhenMasterOperatingCostChanges() throws Exception {
+		MockHttpSession s = login();
+		long id = confirm(s);
+		String detailBefore = mvc.perform(get("/api/orders/" + id).session(s)).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		String simBefore = mvc.perform(post("/api/simulate").session(s).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orders\":" + ORDERS + "}")).andReturn().getResponse().getContentAsString();
+		long fastOperating = fastOperatingCost(simBefore);
+
+		Map<String, String> form = new LinkedHashMap<>(MasterService.toForm(masterService.currentMaster()));
+		for (String c : new String[] {"CHINA", "JAPAN", "VIETNAM", "INDONESIA"}) {
+			form.put("operatingCost_" + c, "20");   // 기본 10억 -> 20억
+		}
+		mvc.perform(post("/api/master").session(s).contentType(MediaType.APPLICATION_JSON)
+						.content(new ObjectMapper().writeValueAsString(form)))
+				.andExpect(status().isOk());
+
+		mvc.perform(get("/api/orders/" + id).session(s)).andExpect(status().isOk())
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+						.string(detailBefore));
+		String simAfter = mvc.perform(post("/api/simulate").session(s).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orders\":" + ORDERS + "}")).andReturn().getResponse().getContentAsString();
+		long fastOperatingAfter = fastOperatingCost(simAfter);
+		assertThat(fastOperatingAfter).isEqualTo(fastOperating * 2);
+	}
+
+	private static long fastOperatingCost(String simulateJson) {
+		java.util.List<Number> v = com.jayway.jsonpath.JsonPath.read(simulateJson,
+				"$.options[?(@.type=='FAST')].operatingCost");
+		return v.get(0).longValue();
 	}
 
 	private int masterVersion(MockHttpSession s) throws Exception {
