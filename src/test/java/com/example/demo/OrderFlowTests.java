@@ -315,6 +315,16 @@ class OrderFlowTests {
 	}
 
 	@Test
+	void dueDaysOfOtherJsonShapesAreRejected() throws Exception {
+		MockHttpSession s = login();
+		// int 범위를 넘는 정수, 정수처럼 보이는 소수·지수 표기, 배열·객체는 조용히 고치지 않고 400 이다
+		for (String bad : new String[] {"3000000000", "-3000000000", "5.0", "1e1", "[5]", "{}"}) {
+			confirmWith(s, ",\"dueDays\":" + bad).andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("5~50")));
+		}
+	}
+
+	@Test
 	void dueDaysBoundariesAreAcceptedAndShownWithOverdueDays() throws Exception {
 		MockHttpSession s = login();
 		for (int due : new int[] {5, 50}) {

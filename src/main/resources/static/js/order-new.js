@@ -158,6 +158,7 @@
 	}
 
 	dueAsap.addEventListener('change', () => {
+		if (dueAsap.checked) dueDays.value = '';   // 가능한 빨리를 고르면 적어 둔 납기일은 비운다
 		refreshDue();
 		if (!dueAsap.checked) dueDays.focus();   // 해제하면 바로 입력할 수 있게 한다
 	});

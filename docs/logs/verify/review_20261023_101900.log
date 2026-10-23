@@ -1,0 +1,25 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 1/2
+점검 시각: 2026-10-23 10:19
+작업: TASK-004 가능한 빨리 체크 시 납기일 비움 (b2ac0df) 사후 증거 확인
+
+[체크리스트]
+1. 가능한 빨리 체크 시 납기 입력 비움: 충족
+   근거: E2E 전체(playwright.all.config.ts) 안에서 e2e-due-date.spec.ts:57 통과
+2. 낯선 dueDays JSON 400: 충족
+   근거: JUnit 전체 실행 결과 XML 에 OrderFlowTests.dueDaysOfOtherJsonShapesAreRejected 통과(실패 0)
+3. 납기 초과 경계, 회귀 없음: 충족
+   근거: OrderDueOverDaysTest 5건 통과, JUnit 77건 중 실패 0
+
+[변경 범위]
+git status: tracked 변경 없음, untracked 만 존재(작업 전부터). 계획과 일치.
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 77/77 통과, 실패 0
+E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts, 84 통과(리포터상 E2E-035 test.fail 예상 실패 포함), 예상 밖 실패 0
+간헐 실패: 없음
+앱 로그: 해당 없음
+
+[원칙 대조] #7 서버 규칙 불변(JUnit 으로 확인), #10 테스트로 고정됨(JUnit 6건, E2E 1건 추가)
+[미확인] E2E 의 test.fail 표시 개수 별도 집계는 하지 않음
+
+[판정] PASS  → next DONE

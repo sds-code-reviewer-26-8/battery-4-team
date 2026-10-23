@@ -1,0 +1,25 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 2/2
+작업: TASK-004-due-asap-clear 사후 증거 문서(커밋 b2ac0df)
+
+[체크리스트]
+1. 가능한 빨리 체크 시 납기 입력 비움: 충족
+   근거: E2E 전체 실행(포트 8092, 메모리 DB) 84건 통과에 e2e-due-date.spec.ts:57 포함
+2. 낯선 dueDays JSON 은 400: 충족
+   근거: .\gradlew.bat test --tests ...OrderFlowTests.dueDaysOfOtherJsonShapesAreRejected BUILD SUCCESSFUL
+3. 납기 초과 경계와 JUnit 회귀 없음: 충족
+   근거: JUnit 전체 77건, 실패 0, 건너뜀 0 (OrderDueOverDaysTest 포함)
+
+[변경 범위]
+git diff --stat 비어 있음(tracked 변경 없음). untracked 만 존재(증거 폴더 precheck.html, 로그 등, 작업 전부터). 계획과 일치.
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 77/77 통과
+E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts, 전체 84 = 통과 84(알려진 결함 test.fail 은 Playwright 가 기대한 결과로 집계) + 예상 밖 실패 0
+간헐 실패: 없음
+앱 로그: 해당 없음
+(8092 는 TIME_WAIT 만 있고 LISTEN 없음 확인)
+
+[원칙 대조] INTENT #7(서버 입력 검증 유지, 서버 코드 변경 없음), #10(규칙 테스트 고정: 테스트 통과) 위반 없음
+[미확인] 없음
+
+[판정] PASS  → next DONE
