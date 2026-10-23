@@ -2,19 +2,19 @@
 
 | 테스트 | 개수 | 테스트 도구 |
 |---|:-:|---|
-| Unit Test | 21개 | JUnit 5 (Gradle) |
+| Unit Test | 26개 | JUnit 5 (Gradle) |
 | Slice Test | 40개 | JUnit 5 + Spring Boot Test (`@WebMvcTest` 34개, `@DataJpaTest` 6개) |
-| 통합 테스트 | 43개 | JUnit 5 + Spring Boot Test (`@SpringBootTest`) |
-| E2E 테스트 | 83개 | Playwright (`@playwright/test`) |
+| 통합 테스트 | 44개 | JUnit 5 + Spring Boot Test (`@SpringBootTest`) |
+| E2E 테스트 | 84개 | Playwright (`@playwright/test`) |
 | Robustness 테스트 | 1개 | JUnit 5 (배 1~4척 × 주문 조합 전수 시험) |
 | Stress 테스트 | 0개 | - |
 | 성능 테스트 | 0개 | - |
 | Test Coverage | 측정 안 함 | - |
 
-- JUnit 전체 105건 = Unit 21 + Slice 40 + 통합 43 + Robustness 1 (main `9745262`에 슬라이스 테스트를 더한 상태에서 2026-10-23 직접 실행, 모두 통과)
-- Slice Test 40개는 신규 PR([#36](https://github.com/sds-code-reviewer-26-8/battery-4-team/pull/36))로 추가했습니다. 기능 4개가 만든 화면 요청·응답과 DB 컬럼을 한 겹씩만 떼어 확인합니다. (서비스는 가짜로 대체하고, 저장소는 메모리 DB 사용)
-- E2E 83건 실행, 모두 통과로 집계. 그중 1건(E2E-035)은 알려진 결함이라 "실패해야 통과"로 표시한 예상 실패
-- 시나리오 엑셀은 42개(기능 26, 견고성 16)이고, 이를 포함해 이후 추가된 기능의 시험까지 Playwright 83건으로 구현
+- JUnit 전체 111건 = Unit 26 + Slice 40 + 통합 44 + Robustness 1 (main `675e131` 기준, 2026-10-23 직접 실행, 모두 통과)
+- Slice Test 40개는 PR [#36](https://github.com/sds-code-reviewer-26-8/battery-4-team/pull/36)으로 추가해 머지했습니다. 기능 4개가 만든 화면 요청·응답과 DB 컬럼을 한 겹씩만 떼어 확인합니다. (서비스는 가짜로 대체하고, 저장소는 메모리 DB 사용)
+- E2E 84건 실행, 모두 통과로 집계. 그중 1건(E2E-035)은 알려진 결함이라 "실패해야 통과"로 표시한 예상 실패
+- 시나리오 엑셀은 42개(기능 26, 견고성 16)이고, 이를 포함해 이후 추가된 기능의 시험까지 Playwright 84건으로 구현
 
 <br>
 
