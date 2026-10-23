@@ -38,7 +38,8 @@ class RobustnessTests {
 
 	private MockHttpSession login() throws Exception {
 		MockHttpSession session = new MockHttpSession();
-		send(session, "/api/login", "{\"username\":\"admin\",\"password\":\"admin\"}");
+		assertThat(send(session, "/api/login", "{\"username\":\"admin\",\"password\":\"admin\"}"))
+				.as("테스트용 로그인").isEqualTo(200);
 		return session;
 	}
 
@@ -61,10 +62,15 @@ class RobustnessTests {
 
 	private final List<String> violations = new ArrayList<>();
 
-	/** 한 입력이 어긋나도 나머지를 계속 확인해, 끝에서 어긋난 입력을 한꺼번에 알린다. */
+	/** 한 입력이 어긋나도 나머지를 계속 확인해, 끝에서 어긋난 입력을 한꺼번에 알린다. 기본 기대는 400 이다. */
 	private void assertClientError(int status, String what) {
-		if (status < 400 || status > 499) {
-			violations.add(what + " -> " + status);
+		assertRejected(status, what, 400);
+	}
+
+	/** 401(로그인 실패)처럼 다른 거부가 정답인 곳은 허용 상태를 직접 적는다. 아무 4xx 나 통과시키지 않는다. */
+	private void assertRejected(int status, String what, int... allowed) {
+		if (java.util.Arrays.stream(allowed).noneMatch(a -> a == status)) {
+			violations.add(what + " -> " + status + " (기대 " + java.util.Arrays.toString(allowed) + ")");
 		}
 	}
 
@@ -131,7 +137,7 @@ class RobustnessTests {
 		for (String body : new String[] {"{", "{}", "{\"username\":null,\"password\":null}",
 				"{\"username\":123,\"password\":true}",
 				"{\"username\":\"" + "a".repeat(100000) + "\",\"password\":\"x\"}"}) {
-			assertClientError(send(null, "/api/login", body), "login " + abbreviate(body));
+			assertRejected(send(null, "/api/login", body), "login " + abbreviate(body), 400, 401);
 			assertClientError(send(null, "/api/signup", body), "signup " + abbreviate(body));
 		}
 		assertClientError(send(null, "/api/signup",
@@ -185,7 +191,9 @@ class RobustnessTests {
 				"{\"status\":\"IN_PROGRESS\",\"version\":\"a\"}", "{\"status\":\"IN_PROGRESS\",\"version\":-1}",
 				"{\"status\":\"IN_PROGRESS\",\"version\":99999999999999999999}", "[]", "x"};
 		for (String body : statusBodies) {
-			assertClientError(send(s, "/api/orders/" + id + "/status", body), "status " + body);
+			// 낡은 version 은 입력 오류가 아니라 충돌(409)이다.
+			assertRejected(send(s, "/api/orders/" + id + "/status", body), "status " + body,
+					body.contains("\"version\":-1") ? 409 : 400);
 		}
 		assertClientError(send(s, "/api/orders/999999/status", "{\"status\":\"IN_PROGRESS\",\"version\":0}"), "없는 주문");
 		assertClientError(send(s, "/api/orders/abc/status", "{\"status\":\"IN_PROGRESS\",\"version\":0}"), "주문 번호가 숫자가 아님");
