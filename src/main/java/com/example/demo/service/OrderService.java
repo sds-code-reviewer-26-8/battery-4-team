@@ -105,6 +105,9 @@ public class OrderService {
 	 */
 	@Transactional
 	public void changeStatus(Long id, OrderStatus target, long expectedVersion, String user) {
+		if (target == null) {
+			throw new BusinessException("바꿀 상태를 지정해 주세요");
+		}
 		Order order = getOrder(id);
 		if (order.getVersion() != expectedVersion) {
 			throw conflict();
