@@ -2,6 +2,8 @@
 
 기능 추가를 한 결과 시연 영상을 살펴봅니다.
 
+GIF는 화면에서 바로 재생되고, 고화질 mp4는 내려받아 재생합니다.
+
 <br>
 
 ## 기능 1. 고객사 이름 입력
@@ -9,6 +11,8 @@
 주문할 때 고객사 이름(선택, 최대 100자)을 입력하고, 주문 후에도 고칠 수 있습니다. 주문 작성자만 고칠 수 있고, 완료·삭제된 주문은 고칠 수 없습니다.
 
 ![고객사 이름 입력 기능](assets/feature1-customer.gif)
+
+▶ [고화질 영상(mp4)](assets/feature1-customer.mp4)
 
 - 담당: 허주 프로
 
@@ -20,6 +24,8 @@
 
 ![필요 납기일 기능](assets/feature2-due-date.gif)
 
+▶ [고화질 영상(mp4)](assets/feature2-due-date.mp4)
+
 - 담당: 정혜미 프로
 
 <br>
@@ -30,6 +36,8 @@
 
 ![회원 가입 기능](assets/feature3-signup.gif)
 
+▶ [고화질 영상(mp4)](assets/feature3-signup.mp4)
+
 - 담당: 장영은 프로
 
 <br>
@@ -39,6 +47,8 @@
 마스터 데이터에서 나라별 공장 운영비(억/일)를 정하면, 시뮬레이션이 공장 운영 일수에 곱해 비용에 반영합니다. 값을 바꾸면 총비용과 "총비용 최소" 안이 달라집니다.
 
 ![공장 운영비 기능](assets/feature4-operating-cost.gif)
+
+▶ [고화질 영상(mp4)](assets/feature4-operating-cost.mp4)
 
 - 담당: 전예리 프로
 
