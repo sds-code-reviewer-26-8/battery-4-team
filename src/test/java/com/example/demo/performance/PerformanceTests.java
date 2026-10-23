@@ -7,11 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.example.demo.config.LoginInterceptor;
 import com.example.demo.entity.Country;
 import com.example.demo.entity.Order;
+import com.example.demo.entity.OrderStatus;
 import com.example.demo.repository.OrderRepository;
 import com.example.demo.service.MasterService;
 import com.example.demo.simulation.Master;
 import com.example.demo.simulation.Plan;
 import com.example.demo.simulation.Planner;
+import com.jayway.jsonpath.JsonPath;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,7 +46,9 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS) // 주문 1,000건 등을 다른 테스트의 DB에 남기지 않는다
+// 주문 1,000건 등을 다른 테스트의 DB에 남기지 않는다. 테스트 DB(메모리, DB_CLOSE_DELAY=-1)는 컨텍스트가 닫혀도 남지만
+// ddl-auto=create-drop 이 닫을 때 스키마를 지워 데이터가 새지 않는다. 두 설정 중 하나가 바뀌면 이 전제를 다시 확인해야 한다.
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PerformanceTests {
 
 	// ---- 한도 (밀리초). 측정값은 각 테스트가 출력하는 요약 줄에서 볼 수 있다.
@@ -192,35 +197,38 @@ class PerformanceTests {
 		ExecutorService pool = Executors.newFixedThreadPool(users);
 		List<Future<Integer>> futures = new ArrayList<>();
 		long t0 = System.nanoTime();
-		for (int u = 0; u < users; u++) {
-			String user = "perf" + u;
-			futures.add(pool.submit(() -> {
-				int failures = 0;
-				MockHttpSession s = session(user);
-				for (int i = 0; i < simulatesEach; i++) {
-					int status = mvc.perform(post("/api/simulate").session(s).contentType(MediaType.APPLICATION_JSON)
-							.content("{\"orders\":" + ordersJson + "}")).andReturn().getResponse().getStatus();
-					if (status != 200) {
-						failures++;
-					}
-				}
-				for (int i = 0; i < confirmsEach; i++) {
-					int status = mvc.perform(post("/api/orders").session(s).contentType(MediaType.APPLICATION_JSON)
-							.content("{\"orders\":" + ordersJson + ",\"routeType\":\"COST\",\"masterVersion\":" + version
-									+ ",\"memo\":\"perf\"}"))
-							.andReturn().getResponse().getStatus();
-					if (status != 200) {
-						failures++;
-					}
-				}
-				return failures;
-			}));
-		}
 		int failures = 0;
-		for (Future<Integer> f : futures) {
-			failures += f.get(60, TimeUnit.SECONDS);
+		try {
+			for (int u = 0; u < users; u++) {
+				String user = "perf" + u;
+				futures.add(pool.submit(() -> {
+					int failed = 0;
+					MockHttpSession s = session(user);
+					for (int i = 0; i < simulatesEach; i++) {
+						int status = mvc.perform(post("/api/simulate").session(s).contentType(MediaType.APPLICATION_JSON)
+								.content("{\"orders\":" + ordersJson + "}")).andReturn().getResponse().getStatus();
+						if (status != 200) {
+							failed++;
+						}
+					}
+					for (int i = 0; i < confirmsEach; i++) {
+						int status = mvc.perform(post("/api/orders").session(s).contentType(MediaType.APPLICATION_JSON)
+								.content("{\"orders\":" + ordersJson + ",\"routeType\":\"COST\",\"masterVersion\":"
+										+ version + ",\"memo\":\"perf\"}"))
+								.andReturn().getResponse().getStatus();
+						if (status != 200) {
+							failed++;
+						}
+					}
+					return failed;
+				}));
+			}
+			for (Future<Integer> f : futures) {
+				failures += f.get(60, TimeUnit.SECONDS);
+			}
+		} finally {
+			pool.shutdownNow(); // 시간 초과 등으로 예외가 나도 스레드를 남기지 않는다
 		}
-		pool.shutdown();
 		long totalMs = (System.nanoTime() - t0) / 1_000_000;
 		System.out.printf("[성능] 동시 요청 사용자 %d명, 요청 %d건, 전체 %dms%n", users,
 				users * (simulatesEach + confirmsEach), totalMs);
@@ -232,35 +240,59 @@ class PerformanceTests {
 
 	// ------------------------------------------------------------ 4. 주문이 많을 때 조회
 
-	/** 주문이 1,000건 쌓여 있어도 목록·상태별 건수 조회가 한도 안에 끝나고 모두 돌려준다. */
+	/**
+	 * 주문이 1,000건(확정 700 + 진행 300) 쌓여 있어도 전체 목록과 상태 필터 조회가 한도 안에 끝나고, 응답은 200 이며 건수가 정확하다.
+	 * 필터가 실제로 일부 주문을 걸러 내도록 진행 상태 주문을 따로 만든다.
+	 */
 	@Test
 	void orderListStaysFastWithManyOrders() throws Exception {
-		long existing = orderRepository.count();
+		long existingAll = orderRepository.count();
+		long existingInProgress = orderRepository.countByStatus(OrderStatus.IN_PROGRESS);
 		int added = 1_000;
+		int addedInProgress = 300;
 		List<Order> rows = new ArrayList<>();
 		for (int i = 0; i < added; i++) {
-			rows.add(new Order(LocalDateTime.of(2026, 10, 23, 9, 0).plusMinutes(i), "perf", 12000, "COST", "총비용 최소",
+			Order o = new Order(LocalDateTime.of(2026, 10, 23, 9, 0).plusMinutes(i), "perf", 12000, "COST", "총비용 최소",
 					20, 1_000_000_000L, 200_000_000L, 1_200_000_000L, null, "고객사" + (i % 20), i % 3 == 0 ? 30 : null,
-					"{}"));
+					"{}");
+			if (i < addedInProgress) {
+				o.setStatus(OrderStatus.IN_PROGRESS);
+			}
+			rows.add(o);
 		}
 		orderRepository.saveAll(rows);
 
-		Stats list = measure("주문 목록 조회 " + (existing + added) + "건", 3, 20, () -> {
-			String json = mvc.perform(get("/api/orders").session(session("perf"))).andReturn().getResponse()
-					.getContentAsString();
-			assertThat(json).contains("\"orders\"");
-			return json;
+		Stats list = measure("주문 목록 조회 " + (existingAll + added) + "건", 3, 20, () -> {
+			MockHttpServletResponse res = mvc.perform(get("/api/orders").session(session("perf"))).andReturn()
+					.getResponse();
+			assertThat(res.getStatus()).isEqualTo(200);
+			assertThat(res.getContentAsString()).contains("\"orders\"");
+			return res;
 		});
-		Stats filtered = measure("주문 목록 상태 필터 조회", 3, 20, () -> {
-			mvc.perform(get("/api/orders").param("status", "IN_PROGRESS").session(session("perf"))).andReturn();
-			return null;
+		Stats filtered = measure("주문 목록 상태 필터 조회(진행)", 3, 20, () -> {
+			MockHttpServletResponse res = mvc.perform(get("/api/orders").param("status", "IN_PROGRESS")
+					.session(session("perf"))).andReturn().getResponse();
+			assertThat(res.getStatus()).isEqualTo(200);
+			return res;
 		});
 		assertThat(list.p95Ms()).as(list.toString()).isLessThanOrEqualTo(LIST_API_P95_LIMIT_MS);
 		assertThat(filtered.p95Ms()).as(filtered.toString()).isLessThanOrEqualTo(LIST_API_P95_LIMIT_MS);
 
-		String all = mvc.perform(get("/api/orders").session(session("perf"))).andReturn().getResponse()
-				.getContentAsString();
-		int idCount = all.split("\"id\":", -1).length - 1;
-		assertThat(idCount).as("목록이 돌려준 주문 수").isGreaterThanOrEqualTo(added);
+		// 응답 건수가 정확하다: 전체는 기존 + 추가분 전부, 필터는 진행 상태 주문만
+		assertThat(orderCount(null)).as("전체 목록의 주문 수").isEqualTo((int) (existingAll + added));
+		assertThat(orderCount("IN_PROGRESS")).as("진행 필터의 주문 수")
+				.isEqualTo((int) (existingInProgress + addedInProgress));
+	}
+
+	/** 목록 API 를 불러 돌려준 주문 수를 센다. 응답이 200 이 아니면 실패한다. */
+	private int orderCount(String status) throws Exception {
+		var request = get("/api/orders").session(session("perf"));
+		if (status != null) {
+			request = request.param("status", status);
+		}
+		MockHttpServletResponse res = mvc.perform(request).andReturn().getResponse();
+		assertThat(res.getStatus()).isEqualTo(200);
+		List<?> ids = JsonPath.read(res.getContentAsString(), "$.orders[*].id");
+		return ids.size();
 	}
 }
