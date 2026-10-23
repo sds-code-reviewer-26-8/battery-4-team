@@ -1,0 +1,23 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 1/2
+점검 시각: 2026-10-22 17:44:32
+작업: origin/main 병합(--no-commit --no-ff) 충돌 해결 검증
+
+[체크리스트]
+1. 충돌 0, 10열 목록·상세에 고객사·납기: 충족
+   근거: git diff --diff-filter=U 0건, 충돌 표지 0건. E2E 전체(고객사·납기 확정 e2e-customer, e2e-due-date 등) 통과.
+2. JUnit·E2E 병합 전과 같은 결과: 충족
+   근거: JUnit 71건 전부 통과, E2E 83건 통과(test.fail 알려진 결함은 예상 실패로 통과 처리).
+3. 문서 병합·병합 커밋 없음: 충족
+   근거: origin/main 대비 PRD 6줄, INTENT 10줄 추가만, R6 '(맨 끝 열)' 유지. MERGE_HEAD 존재, 병합 커밋 없음. Planner/Plan은 origin/main과 차이 없음.
+
+[변경 범위] 계획과 일치. e2e-due-date.spec.ts 는 승인된 수정(unstaged), MasterTest.java 는 untracked 로컬 파일(병합 대상 아님).
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 71/71 통과, 실패 0
+E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts, 83 통과, 예상 밖 실패 0
+간헐 실패: 없음
+앱 로그: 해당 없음
+
+[원칙 대조] 4,7,8,10,11 위반 없음(Planner 미변경).
+[미확인] planJson 내용은 이번에 직접 조회하지 않고 E2E 단언과 코드 확인에 의존.
+[판정] PASS -> next DONE

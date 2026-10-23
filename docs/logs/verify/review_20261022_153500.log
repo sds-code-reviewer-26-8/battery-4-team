@@ -1,0 +1,23 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 1/2
+점검 시각: 2026-10-22 15:35:00
+작업: 주문 추가 화면 필요 납기일(가능한 빨리/5~50일) 선택과 납기 초과 경로안 빨간 표시
+(참고: 직전 1/2 시도는 포트 8092 점유(환경 문제)로 중단됐고 이번에 처음부터 재검증)
+
+[체크리스트]
+1. 납기 입력별 빨간 표시: 충족. 근거: 새 E2E e2e-due-date.spec.ts 11건 전부 통과(8092, 메모리 DB)
+2. 범위 밖/비정수 오류 문구, 요청 본문 불변: 충족. 근거: 잘못된 납기 0,-5,10.5,abc,빈값 테스트와 확정 요청 본문 테스트 통과, 서버 파일 diff 없음
+3. 기존 JUnit/E2E 동일 결과: 충족. 근거: JUnit 32/32, E2E 58건 중 57 통과 + 예상 실패 1(E2E-035)
+
+[변경 범위]
+수정 3개(app.css, order-new.js, order-new.html) + 신규 e2e-due-date.spec.ts. 계획 files 와 일치. 그 외 untracked 는 작업 전부터 존재.
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 32건 통과 0 실패
+E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts, 전체 58 = 통과 57 + 예상 실패 1(E2E-035) + 예상 밖 0
+간헐 실패: 없음
+앱 로그: 해당 없음
+
+[원칙 대조] 서버·Planner·스냅샷 무변경, 납기는 화면 검증만. 위반 없음.
+[미확인] 없음
+
+[판정] PASS -> next DONE

@@ -48,6 +48,10 @@ public class Order {
 	@Column(length = 1000)
 	private String memo;
 
+	/** 확정 때 요청한 필요 납기일(일). null 이면 '가능한 빨리'. 계산에는 쓰지 않고 표시용으로만 쓴다. */
+	@Column(nullable = true)
+	private Integer dueDays;
+
 	/** 고객사 이름(선택, 확정·진행 상태에서만 수정 가능). 스냅샷(planJson) 보존 대상이 아니다. */
 	@Column(length = 100)
 	private String customerName;
@@ -65,7 +69,7 @@ public class Order {
 
 	public Order(LocalDateTime confirmedAt, String createdBy, int totalK, String routeType, String routeLabel,
 			int totalDays, long productionCost, long shippingCost, long totalCost, String memo, String customerName,
-			String planJson) {
+			Integer dueDays, String planJson) {
 		this.confirmedAt = confirmedAt;
 		this.createdBy = createdBy;
 		this.totalK = totalK;
@@ -77,6 +81,7 @@ public class Order {
 		this.totalCost = totalCost;
 		this.memo = memo;
 		this.customerName = customerName;
+		this.dueDays = dueDays;
 		this.planJson = planJson;
 		this.status = OrderStatus.CONFIRMED;
 	}
@@ -131,6 +136,15 @@ public class Order {
 
 	public String getMemo() {
 		return memo;
+	}
+
+	public Integer getDueDays() {
+		return dueDays;
+	}
+
+	/** 소요 일수가 납기를 넘은 일수. 납기가 없거나 넘지 않으면 null */
+	public Integer getDueOverDays() {
+		return dueDays != null && totalDays > dueDays ? totalDays - dueDays : null;
 	}
 
 	public String getCustomerName() {

@@ -1,0 +1,25 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 1/2
+점검 시각: 2026-10-22 15:26:56 (E2E 단계에서 중단)
+작업: 주문 추가 화면 필요 납기일(가능한 빨리/5~50일) 및 납기 초과 빨간 표시
+
+[체크리스트]
+1. 납기 초과 경로안 빨간 표시: 미확인 (E2E 실행 불가, 코드는 직접 대조하지 않음)
+2. 잘못된 납기 오류·요청 본문 불변: 미확인 (동일 사유)
+3. JUnit·E2E 전체 동일 결과: 미충족 (JUnit만 확인, E2E 실행 못 함)
+   근거: JUnit 32건 통과 0 실패(build/test-results XML 합산), E2E 는 8092 포트 점유로 못 돌림
+
+[변경 범위]
+git diff --stat: app.css, order-new.js, order-new.html 수정 + 신규 e2e-due-date.spec.ts. 계획의 files 4개와 일치.
+(그 외 untracked 파일은 작업 전부터 있던 것)
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 32건 중 통과 32, 실패 0
+E2E: 실행 못 함. 8092 를 PID 8688(java, C:\work\battery-4-team-2 의 앱, --server.port=8092 e2e-all)이 점유 중이고 다른 Playwright Chrome 이 접속 중. 다른 프로세스라 끄지 않음. 설정은 reuseExistingServer:false 라 실행하면 실패함.
+간헐 실패: 해당 없음
+앱 로그: 해당 없음
+
+[원칙 대조] 미수행
+[미확인] E2E 전체, 체크리스트 1·2, 원칙 대조
+
+[판정] FAIL (ENV) → next PREPARE
+[피드백] 다른 작업 폴더(battery-4-team-2)의 E2E 앱이 8092 를 쓰고 있음. 그 작업이 끝나 포트가 비면 코드 수정 없이 재실행하면 됨. 코드 문제는 확인되지 않음.

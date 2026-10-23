@@ -20,6 +20,14 @@
 				합계는 항상 총 생산 필요 수와 같습니다.</p>
 		</div>
 		<div id="gauges" class="gauges"></div>
+		<div class="due">
+			<label class="due-asap"><input type="checkbox" id="dueAsap" checked> 가능한 빨리</label>
+			<label class="due-days">필요 납기일(5~50일)
+				<input type="text" id="dueDays" inputmode="numeric" autocomplete="off" disabled
+					aria-invalid="false" aria-describedby="dueHint dueError"> 일</label>
+			<p id="dueHint" class="due-hint muted" hidden>5~50 사이의 정수(일)를 입력하세요.</p>
+			<p id="dueError" class="due-error" role="alert" hidden></p>
+		</div>
 		<p id="inputError" class="alert error" hidden></p>
 		<button type="button" id="runBtn" class="primary">시뮬레이션 실행</button>
 	</section>

@@ -1,0 +1,27 @@
+검증 로그 (verify) 1회차/3, 연속 통과 확인 1/2
+점검 시각: 2026-10-22 17:05:00
+작업: 확정 때 필요 납기일을 주문과 함께 저장하고 목록·상세에서 납기 초과를 빨간색+글자로 표시
+
+[체크리스트]
+1. 납기 저장·빨간색 표시: 충족
+   근거: e2e-due-date-save.spec.ts 5건 모두 통과(E2E 전체 2회 실행에서 모두 ok, #17~#21).
+2. 서버 검증·구형 요청 호환·스냅샷 불변: 충족
+   근거: .\gradlew.bat test OrderFlowTests 13건 통과(신규 포함), 실패 0. OrderService.java:51 범위 검증, ApiController.parseDueDays 정수만 허용.
+3. 기존 JUnit·E2E 동일 결과, e2e-due-date.spec.ts 단언이 새 계약과 맞음: 충족
+   근거: JUnit 35/35, E2E 71 통과(예상 실패 E2E-035 포함), due-date 본문 단언 테스트 ok(#35~#39).
+
+[변경 범위]
+git diff --stat: 12개 수정 + e2e-due-date-save.spec.ts 신규. 계획 files 와 일치. e2e-023.spec.ts 는 사람이 승인한 정당한 변경.
+order-detail.html 은 계획 files 에 있으나 변경 없음(상세는 JS 로 그림). 작업 전부터 있던 untracked(MasterTest.java 등)는 구별함.
+참고: MasterTest.java 는 untracked 로 작업 전부터 존재.
+
+[Regression Test]
+JUnit: .\gradlew.bat compileJava compileTestJava test --rerun-tasks, 전체 35 / 통과 35 / 실패 0
+E2E: npx playwright test -c src/test/e2e/playwright.all.config.ts, 전체 71 = 통과 70 + 예상 실패 1(E2E-035) + 예상 밖 실패 0 (2회 실행 동일)
+간헐 실패: 없음
+앱 로그: 해당 없음
+
+[원칙 대조] 원칙 2(납기는 계산에 미사용), 4(스냅샷 불변; planJson 변경 없음), 7(서버 검증), 11(Planner 미변경), 1(초과 안도 선택 가능) 위반 없음.
+[미확인] 기존 개발 DB 행에 nullable 컬럼 추가는 개발 DB 미사용 조건이라 확인 못함(메모리 DB 에서는 정상 기동). PRD/INTENT 문서는 구현과 일시적으로 어긋남.
+
+[판정] PASS  → next DONE

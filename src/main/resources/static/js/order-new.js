@@ -125,11 +125,52 @@
 		return {master: result.master, orders: result.orders, visits: result.visits, plan};
 	}
 
-	function renderResult(first) {
+	// ---- 필요 납기일 (카드 표시용이며, 확정할 때 주문에 함께 저장한다. 계산에는 쓰지 않는다)
+
+	const dueAsap = document.getElementById('dueAsap');
+	const dueDays = document.getElementById('dueDays');
+	const dueHint = document.getElementById('dueHint');
+	const dueError = document.getElementById('dueError');
+
+	/** 납기 입력 상태: 'asap'(가능한 빨리) | 'empty'(아직 안 적음) | 'invalid'(잘못된 값) | 'valid' */
+	function dueState() {
+		if (dueAsap.checked) return 'asap';
+		const t = dueDays.value.trim();
+		if (t === '') return 'empty';
+		if (!/^\d+$/.test(t)) return 'invalid';
+		const n = parseInt(t, 10);
+		return n >= 5 && n <= 50 ? 'valid' : 'invalid';
+	}
+
+	/** 유효한 납기(일)를 돌려준다. 가능한 빨리이거나 비었거나 잘못된 입력이면 null */
+	function currentDue() {
+		return dueState() === 'valid' ? parseInt(dueDays.value.trim(), 10) : null;
+	}
+
+	function refreshDue() {
+		const state = dueState();
+		dueDays.disabled = state === 'asap';
+		dueHint.hidden = state !== 'empty';      // 아직 안 적었을 때는 오류가 아니라 안내만 보인다
+		dueError.hidden = state !== 'invalid';
+		if (state === 'invalid') dueError.textContent = '필요 납기일은 5~50 사이의 정수로 입력하세요.';
+		dueDays.setAttribute('aria-invalid', state === 'invalid' ? 'true' : 'false');
+		if (result) renderOptions();   // 납기는 경로안 카드의 표시만 바꾼다. 요약·상세·지도는 다시 그리지 않는다
+	}
+
+	dueAsap.addEventListener('change', () => {
+		refreshDue();
+		if (!dueAsap.checked) dueDays.focus();   // 해제하면 바로 입력할 수 있게 한다
+	});
+	dueDays.addEventListener('input', refreshDue);
+
+	/** 경로안 카드를 그린다(납기 초과 표시 포함). */
+	function renderOptions() {
+		const due = currentDue();
 		optionsEl.innerHTML = result.options.map(o => `
-			<button type="button" class="option ${o.type === selected ? 'selected' : ''}" data-type="${o.type}">
+			<button type="button" class="option ${o.type === selected ? 'selected' : ''} ${due !== null && o.totalDays > due ? 'late' : ''}" data-type="${o.type}">
 				<strong>${o.label}</strong>
 				<span>소요 ${o.totalDays}일</span>
+				${due !== null && o.totalDays > due ? `<span class="late-note">납기 초과 ${o.totalDays - due}일</span>` : ''}
 				<span>총 비용 ${eok(o.totalCost)}억원</span>
 				<span class="muted">생산 원가 ${eok(o.productionCost)}억원 · 운항비 ${eok(o.shippingCost)}억원 · 운영비 ${eok(o.operatingCost)}억원 · 배 ${o.ships.length}척</span>
 			</button>`).join('');
@@ -141,6 +182,10 @@
 			selected = b.dataset.type;
 			renderResult(false);
 		}));
+	}
+
+	function renderResult(first) {
+		renderOptions();
 
 		const stored = currentStored();
 		PlanView.renderSummary(document.getElementById('summary'), stored);
@@ -158,6 +203,12 @@
 	confirmBtn.addEventListener('click', async () => {
 		if (!result) return;
 		confirmError.hidden = true;
+		const state = dueState();
+		if (state === 'empty' || state === 'invalid') {
+			showError(confirmError, '필요 납기일을 5~50 사이의 정수로 입력하거나 "가능한 빨리"를 체크하세요.');
+			dueDays.focus();
+			return;
+		}
 		confirmBtn.disabled = true;
 		try {
 			const res = await postJson('/api/orders', {
@@ -165,6 +216,7 @@
 				routeType: selected,
 				masterVersion: result.master.version,
 				memo: document.getElementById('memo').value,
+				dueDays: currentDue(),
 				customerName: document.getElementById('customerName').value
 			});
 			location.href = '/orders/' + res.id;

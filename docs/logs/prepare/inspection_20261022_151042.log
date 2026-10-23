@@ -1,0 +1,32 @@
+점검 시각: 2026-10-22 15:10:42 (/ih prepare, 회차 1/3)
+요청 원문: 필요 납기일'을 요청할 수 있습니다.-체크박스에 체크하면 '가능한 빨리'-원하는 납기일이 있다면 5 ~ 50일 내 이렇게 선택 가능-주문시 만약 납기일이 지나는 방법은 빨간색으로 표시함
+
+[배경] 이해함 — 주문 담당자가 주문 추가 화면(order-new)에서 수량을 넣고 3가지 경로안(COST/FAST/NEAR)을 비교하는데, 고객이 원하는 납기를 입력해 볼 방법이 없어 어느 안이 납기를 못 맞추는지 알 수 없다. 근거: PRD R1~R3, order-new.html/js, 요청 문구('주문시', '납기일이 지나는 방법').
+[목적] 이해함 — 사용자가 필요 납기일(가능한 빨리 또는 5~50일)을 지정하고, 소요 일수가 납기를 넘는 경로안을 빨간색으로 바로 식별해 안을 고르게 한다. 근거: 요청 문구. 요청이 문장 단편이라 '방법'은 '경로안'(PRD 용어)으로 해석(추정).
+
+[점검한 곳] PRD.md(5·9·10장), CLAUDE.md, order-new.html, order-new.js, planview.js, orders.js, order-detail.js, ApiController, OrderController, OrderService, SimulationService, Order 엔티티, Plan/StoredPlan, app.css, application.properties(ddl-auto=update), src/test/e2e 목록.
+ 확인한 사실: PRD·src/main 어디에도 '납기' 개념이 없다. 경로안은 totalDays(일수)를 이미 가진다(Plan.totalDays). 주문 확정 API는 orders/routeType/masterVersion/memo만 받는다. 빨간색 계열 CSS(--danger, .alert.error)는 있다.
+ 추정: INTENT.md 원문은 이번에 열어 보지 않고 CLAUDE.md 요약(원칙 14개)과 템플릿 목록으로 대조했다.
+
+[규모·위험]
+ 규모: 파일 4개(order-new.html, order-new.js, app.css, 새 E2E 스펙 1개). 화면 계층만. 서버·Planner·DB 변경 없음.
+ 위험: (Low) 납기 입력이 시뮬레이션 입력이 아님 — 시뮬레이션 결과는 납기와 무관하게 재계산 불필요, 납기 변경 때 결과를 지우지(invalidate) 않고 표시만 갱신 / 확인: E2E.
+ (Low) 색만으로 뜻 전달 — '납기 초과 N일' 글자를 함께 표시.
+ (Medium, 범위 밖으로 둠) 납기를 주문에 저장하려면 Order 엔티티 컬럼 추가(ddl-auto=update 로 스키마 변경), 확정 API, 서버 검증(원칙 7), 목록·상세 표시가 필요해 7개 이상 파일·여러 계층이 된다. 요청은 주문 화면에서의 선택과 빨간 표시만 말하므로 이번에는 제외하고 가정에 적는다.
+ 사용자가 알고 있는가: 해당 없음 — 높은 위험이 없는 범위로 한정.
+
+[영향 범위] 변경: order-new 화면. 영향받는 곳: 시뮬레이션 실행·확정 흐름(order-new.js)과 이를 쓰는 E2E(order-quantity, simulation, confirm, e2e-0xx 의 createOrder 헬퍼). 기존 JUnit 영향 없음. test.fail() (E2E-033, 035, 013b) 영향 없음.
+[INTENT 원칙 대조] 2(서버 재계산)·4(스냅샷)·11(Planner 무관)·7(입력 검증): 서버·스냅샷·Planner를 건드리지 않아 깨지지 않는다. 납기는 서버에 보내지 않으므로 확정 내용과 화면 계산의 일치(R3)도 그대로. 클라이언트에서 5~50 범위를 검증한다.
+
+[판단] status READY. 이유: 배경·목적이 요청과 PRD로 설명되고, 승인 범위를 화면 한정으로 잡아 High 이상 위험이 없다.
+
+[계획]
+ 범위: 주문 추가 화면에 '필요 납기일' 영역(체크박스 '가능한 빨리', 해제 시 5~50일 입력), 결과 경로안 카드 중 totalDays 가 납기보다 큰 안을 빨간색 + '납기 초과 N일' 표시.
+ 범위 밖: 납기 저장·주문 목록/상세 표시, 서버 검증, Planner 변경, PRD/INTENT 수정.
+ 바꿀 파일: src/main/resources/static/order-new.html, src/main/resources/static/js/order-new.js, src/main/resources/static/css/app.css, src/test/e2e/e2e-due-date.spec.ts(신규)
+ 구현 순서: 1) html 에 납기 영역 2) js 에 상태·범위 검증(정수, 5~50, 벗어나면 오류 문구)·renderResult 에서 초과 표시, 납기 변경 시 결과 유지하고 재렌더 3) css 에 .option.late 빨강 4) E2E 추가 5) JUnit·E2E 회귀.
+ 가정: 기본값은 '가능한 빨리' 체크. 체크 상태에서는 빨간 표시 없음. 입력은 정수 일 단위, 5~50 닫힌 구간. 일수 비교는 소요 일수(totalDays) > 납기일이면 초과. 납기는 이번에 저장하지 않는다.
+[체크리스트]
+ 1. 체크 해제 후 납기 5~50일을 입력하면 소요 일수가 납기를 넘는 경로안만 빨간색과 '납기 초과' 글자로 표시되고, 체크하면 표시가 사라진다. 확인: 별도 포트·메모리 DB 앱에서 시뮬레이션 후 화면/E2E.
+ 2. 5 미만·50 초과·비정수 납기는 오류 문구를 보이고 빨간 표시를 하지 않으며, 주문 확정 요청 본문은 기존과 같다. 확인: 새 E2E 와 /api/orders 요청 본문 점검.
+ 3. 기존 JUnit 전체와 E2E(알려진 결함 3건 제외)가 변경 전과 같은 결과. 확인: .\gradlew.bat test, 별도 포트 E2E.

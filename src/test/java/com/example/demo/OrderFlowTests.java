@@ -292,6 +292,62 @@ class OrderFlowTests {
 				.andExpect(jsonPath("$.shipDailyCostWon").value(150_000_000));
 	}
 
+	private int masterVersion(MockHttpSession s) throws Exception {
+		MvcResult sim = mvc.perform(post("/api/simulate").session(s).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orders\":" + ORDERS + "}")).andReturn();
+		return com.jayway.jsonpath.JsonPath.read(sim.getResponse().getContentAsString(), "$.master.version");
+	}
+
+	private org.springframework.test.web.servlet.ResultActions confirmWith(MockHttpSession s, String dueField)
+			throws Exception {
+		return mvc.perform(post("/api/orders").session(s).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orders\":" + ORDERS + ",\"routeType\":\"FAST\",\"masterVersion\":" + masterVersion(s)
+						+ dueField + "}"));
+	}
+
+	@Test
+	void dueDaysAreRejectedOutsideRangeOrNonInteger() throws Exception {
+		MockHttpSession s = login();
+		for (String bad : new String[] {"4", "51", "0", "-5", "5.5", "\"10\"", "true"}) {
+			confirmWith(s, ",\"dueDays\":" + bad).andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("5~50")));
+		}
+	}
+
+	@Test
+	void dueDaysBoundariesAreAcceptedAndShownWithOverdueDays() throws Exception {
+		MockHttpSession s = login();
+		for (int due : new int[] {5, 50}) {
+			MvcResult res = confirmWith(s, ",\"dueDays\":" + due).andExpect(status().isOk()).andReturn();
+			Integer idValue = com.jayway.jsonpath.JsonPath.read(res.getResponse().getContentAsString(), "$.id");
+			long id = idValue;
+			var order = orderService.getOrder(id);
+			assertThat(order.getDueDays()).isEqualTo(due);
+			Integer over = order.getTotalDays() > due ? order.getTotalDays() - due : null;
+			assertThat(order.getDueOverDays()).isEqualTo(over);
+			mvc.perform(get("/api/orders/" + id).session(s)).andExpect(status().isOk())
+					.andExpect(jsonPath("$.dueDays").value(due))
+					.andExpect(jsonPath("$.dueOverDays").value(over));
+		}
+	}
+
+	@Test
+	void requestWithoutDueDaysIsAsapAndKeepsSnapshot() throws Exception {
+		MockHttpSession s = login();
+		long omitted = confirm(s);
+		MvcResult nul = confirmWith(s, ",\"dueDays\":null").andExpect(status().isOk()).andReturn();
+		Integer nulId = com.jayway.jsonpath.JsonPath.read(nul.getResponse().getContentAsString(), "$.id");
+		for (long id : new long[] {omitted, nulId}) {
+			assertThat(orderService.getOrder(id).getDueDays()).isNull();
+			mvc.perform(get("/api/orders/" + id).session(s))
+					.andExpect(jsonPath("$.dueDays").value((Object) null))
+					.andExpect(jsonPath("$.dueOverDays").value((Object) null));
+			assertThat(orderService.getOrder(id).getPlanJson()).doesNotContain("dueDays");
+		}
+		mvc.perform(get("/api/orders").session(s)).andExpect(status().isOk())
+				.andExpect(jsonPath("$.orders[0].dueDays").value((Object) null));
+	}
+
 	@Test
 	void invalidMasterIsNotSaved() throws Exception {
 		MockHttpSession s = login();

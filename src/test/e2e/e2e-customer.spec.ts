@@ -34,8 +34,8 @@ async function listCustomerCell(page: Page, id: number): Promise<string> {
   // 행은 목록 API 응답 뒤에 그려진다. allInnerTexts() 는 기다리지 않으므로 먼저 행이 보일 때까지 기다린다.
   await expect(listRow(page, id)).toBeVisible();
   const cells = await listRow(page, id).locator('td').allInnerTexts();
-  expect(cells).toHaveLength(9);
-  return normalize(cells[8]);
+  expect(cells).toHaveLength(10);
+  return normalize(cells[9]);
 }
 
 test.describe('고객사 이름', () => {

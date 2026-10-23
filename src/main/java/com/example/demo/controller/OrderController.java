@@ -49,6 +49,8 @@ public class OrderController {
 			row.put("totalK", o.getTotalK());
 			row.put("routeLabel", o.getRouteLabel());
 			row.put("totalDays", o.getTotalDays());
+			row.put("dueDays", o.getDueDays());
+			row.put("dueOverDays", o.getDueOverDays());
 			row.put("totalCostEok", o.getTotalCostEok());
 			row.put("status", o.getStatus().name());
 			row.put("statusLabel", o.getStatus().getLabel());
@@ -79,6 +81,9 @@ public class OrderController {
 			body.put("createdBy", o.getCreatedBy());
 			body.put("routeLabel", o.getRouteLabel());
 			body.put("memo", o.getMemo());
+			body.put("totalDays", o.getTotalDays());
+			body.put("dueDays", o.getDueDays());
+			body.put("dueOverDays", o.getDueOverDays());
 			body.put("customerName", o.getCustomerName());
 			body.put("customerEditable", OrderService.canEditCustomer(o, user));
 			body.put("next", o.getStatus().next().stream()
