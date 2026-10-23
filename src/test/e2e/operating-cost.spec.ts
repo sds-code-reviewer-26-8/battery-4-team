@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 import {
-  apiSimulate, createOrder, login, openNewOrder, readDetailsTable, readMasterForm, readStats, runSimulation, saveMaster, setGauge,
+  apiSimulate, createOrder, login, openNewOrder, pickOption, readDetailsTable, readMasterForm, readStats, runSimulation, saveMaster, setGauge,
   setTotal,
 } from './helpers';
 
@@ -180,11 +180,12 @@ test.describe('공장 운영비', () => {
     const fast = (r: { options: { type: string }[] }) => r.options.find((o) => o.type === 'FAST') as unknown as { totalDays: number };
     expect(fast(after).totalDays).toBe(fast(before).totalDays);
 
-    // 화면의 선택 안 카드와 요약도 새 값을 쓴다
+    // 총비용 최소 안을 직접 고른 뒤, 화면 요약도 새 값을 쓰는지 본다(기본 선택에 기대지 않는다)
     await openNewOrder(page);
     await setTotal(page, 15000);
     for (const [c, v] of Object.entries(DIFFERENT)) await setGauge(page, c as 'CHINA', v);
     await runSimulation(page);
+    await pickOption(page, 'COST');
     const cost = after.options.find((o: { type: string }) => o.type === 'COST');
     expect((await readStats(page))['운영비']).toBe(`${eok(cost.operatingCost)}억원`);
   });
