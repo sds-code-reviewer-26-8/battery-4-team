@@ -24,10 +24,10 @@ jmeter -n -t src/test/jmeter/battery-stress.jmx -Jthreads=50 -JloginThreads=10 -
 | `threads` | 10 | A 그룹(무로그인 계산·health) 동시 사용자 |
 | `loginThreads` | 5 | B 그룹(로그인 후 목록·상세) |
 | `writeThreads` | 5 | C 그룹(주문 확정) |
-| `rampup`, `duration` | 10, 60 | 증가 시간, 유지 시간(초) |
+| `rampup`, `duration` | 10, 60 | 사용자를 늘리는 시간, 전체 실행 시간(초). `duration`은 `rampup`을 포함한다(120초로 주면 처음 30초 동안 늘리고 총 120초 실행). 반복 횟수(Loop Count)는 무한이고 시간으로 멈춘다 |
 | `seedCount` | 50 | 시작 전에 만들어 두는 주문 수 |
-| `think` | 500 | A·B 그룹 요청 사이 쉬는 시간(ms). 0이면 쉬지 않는다 |
-| `writeThink` | 1000 | C 그룹 요청 사이 쉬는 시간(ms) |
+| `think` | 500 | A·B 그룹의 쉬는 타이머 값(ms). 타이머 2개가 요청마다 더해져 요청 사이에 `2×think ~ 4×think` ms 쉰다(기본 1~2초, 평균 1.5초). 0이면 쉬지 않는다 |
+| `writeThink` | 1000 | C 그룹의 쉬는 타이머 값(ms). 요청마다 `writeThink ~ 2×writeThink` ms 쉰다(기본 1~2초, 평균 1.5초). 0이면 쉬지 않는다 |
 
 `result.jtl`과 `report/`는 저장소에 올리지 않는다.
 
